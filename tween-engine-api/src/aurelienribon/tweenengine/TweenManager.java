@@ -26,7 +26,7 @@ public class TweenManager {
 	/**
 	 * Disables or enables the "auto remove" mode of any tween manager for a
 	 * particular tween or timeline. This mode is activated by default. The
-	 * interest of desactivating it is to prevent some tweens or timelines from
+	 * interest of deactivating it is to prevent some tweens or timelines from
 	 * being automatically removed from a manager once they are finished.
 	 * Therefore, if you update a manager backwards, the tweens or timelines
 	 * will be played again, even if they were finished.

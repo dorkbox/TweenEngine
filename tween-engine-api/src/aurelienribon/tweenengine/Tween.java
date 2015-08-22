@@ -169,7 +169,7 @@ class Tween extends BaseTween<Tween> {
 	/**
 	 * Increases the minimum capacity of the pool. Capacity defaults to 20.
 	 */
-	public static void ensurePoolCapacity(int minCapacity) {
+	public static void setPoolCapacity(int minCapacity) {
         if (Tween.capacity < minCapacity) {
             pool =  ObjectPoolFactory.create(poolableObject, minCapacity);
             Tween.capacity = minCapacity;
@@ -223,7 +223,7 @@ class Tween extends BaseTween<Tween> {
 	 *
 	 * The common use of Tweens is "fire-and-forget": you do not need to care
 	 * for tweens once you added them to a TweenManager, they will be updated
-	 * automatically, and cleaned once finished. Common call:
+	 * automatically, and cleaned once finished.
 	 * <br/><br/>
 	 *
 	 * <pre> {@code

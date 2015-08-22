@@ -32,13 +32,15 @@ public class App implements ApplicationListener {
 		Tween.setCombinedAttributesLimit(3);
 		Tween.registerAccessor(Sprite.class, new SpriteAccessor());
 
-		Assets.inst().load("data/splash/pack", TextureAtlas.class);
-		Assets.inst().load("data/launcher/pack", TextureAtlas.class);
-		Assets.inst().load("data/test/pack", TextureAtlas.class);
-		Assets.inst().load("data/arial-16.fnt", BitmapFont.class);
-		Assets.inst().load("data/arial-18.fnt", BitmapFont.class);
-		Assets.inst().load("data/arial-20.fnt", BitmapFont.class);
-		Assets.inst().load("data/arial-24.fnt", BitmapFont.class);
+        Assets inst = Assets.inst();
+
+        inst.load("data/splash/pack", TextureAtlas.class);
+		inst.load("data/launcher/pack", TextureAtlas.class);
+		inst.load("data/test/pack", TextureAtlas.class);
+		inst.load("data/arial-16.fnt", BitmapFont.class);
+		inst.load("data/arial-18.fnt", BitmapFont.class);
+		inst.load("data/arial-20.fnt", BitmapFont.class);
+		inst.load("data/arial-24.fnt", BitmapFont.class);
 	}
 
 	@Override

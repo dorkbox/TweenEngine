@@ -7,6 +7,7 @@ import aurelienribon.tweenengine.demo.Test;
 import aurelienribon.tweenengine.equations.Linear;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.InputProcessor;
+import com.badlogic.gdx.utils.Align;
 
 /**
  * @author Aurelien Ribon | http://www.aurelienribon.com
@@ -68,7 +69,7 @@ public class Info extends Test {
 		int h = Gdx.graphics.getHeight();
 		batch.getProjectionMatrix().setToOrtho2D(0, 0, w, h);
 		batch.begin();
-		font.drawWrapped(batch, msg, 20, h-20, w-40);
+		font.draw(batch, msg, 20, h-20, w-40, Align.left, true);
 		batch.end();
 	}
 }

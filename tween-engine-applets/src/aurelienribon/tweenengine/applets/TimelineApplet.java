@@ -31,7 +31,7 @@ import java.util.Hashtable;
  */
 @SuppressWarnings({"FieldCanBeLocal", "UnusedParameters"})
 public class TimelineApplet extends javax.swing.JApplet {
-	/*public static void main(String[] args) {
+	public static void main(String[] args) {
 		TimelineApplet applet = new TimelineApplet();
 		applet.init();
 		applet.start();
@@ -40,7 +40,7 @@ public class TimelineApplet extends javax.swing.JApplet {
 		wnd.add(applet);
 		wnd.setSize(600, 700);
 		wnd.setVisible(true);
-	}*/
+	}
 
 	// -------------------------------------------------------------------------
 	// Applet

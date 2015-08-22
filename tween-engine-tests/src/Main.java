@@ -1,9 +1,11 @@
-
 import aurelienribon.tweenengine.BaseTween;
 import aurelienribon.tweenengine.Timeline;
 import aurelienribon.tweenengine.Tween;
 import aurelienribon.tweenengine.TweenCallback;
+import aurelienribon.tweenengine.demo.App;
 import aurelienribon.tweenengine.primitives.MutableFloat;
+import com.badlogic.gdx.backends.lwjgl.LwjglApplication;
+import com.badlogic.gdx.backends.lwjgl.LwjglApplicationConfiguration;
 
 import java.util.Locale;
 
@@ -12,14 +14,14 @@ public class Main {
     public static void main(String[] args) {
 		// Demo
 
-//		LwjglApplicationConfiguration cfg = new LwjglApplicationConfiguration();
-//		cfg.resizable = false;
-//		cfg.vSyncEnabled = true;
-//		cfg.useGL20 = false;
-//		cfg.width = 800;
-//		cfg.height = 480;
-//		cfg.title = "Tween-Engine tests";
-//		new LwjglApplication(new App(), cfg);
+		LwjglApplicationConfiguration cfg = new LwjglApplicationConfiguration();
+		cfg.resizable = false;
+		cfg.vSyncEnabled = true;
+		cfg.useGL30 = false;
+		cfg.width = 800;
+		cfg.height = 480;
+		cfg.title = "Tween-Engine tests";
+		new LwjglApplication(new App(), cfg);
 
 		// Tests
 

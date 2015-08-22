@@ -8,15 +8,17 @@ import aurelienribon.tweenengine.TweenManager;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.InputProcessor;
 import com.badlogic.gdx.graphics.Color;
-import com.badlogic.gdx.graphics.GL10;
-import com.badlogic.gdx.graphics.GLCommon;
+import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
+import com.badlogic.gdx.graphics.g2d.GlyphLayout;
 import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureAtlas;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
+import com.badlogic.gdx.utils.Align;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -41,6 +43,8 @@ public abstract class Test {
 	protected final float wpw = 10;
 	protected final float wph = 10 * Gdx.graphics.getHeight() / Gdx.graphics.getWidth();
 	protected Sprite[] sprites;
+
+    GlyphLayout layout = new GlyphLayout();
 
 	public Test() {
 		atlas = Assets.inst().get("data/test/pack", TextureAtlas.class);
@@ -129,11 +133,11 @@ public abstract class Test {
 
 		// render
 
-		GLCommon gl = Gdx.gl;
+		GL20 gl = Gdx.gl20;
 		gl.glClearColor(1, 1, 1, 1);
-		gl.glClear(GL10.GL_COLOR_BUFFER_BIT);
-		gl.glEnable(GL10.GL_BLEND);
-		gl.glBlendFunc(GL10.GL_SRC_ALPHA, GL10.GL_ONE_MINUS_SRC_ALPHA);
+		gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+		gl.glEnable(GL20.GL_BLEND);
+		gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
 
 		int w = Gdx.graphics.getWidth();
 		int h = Gdx.graphics.getHeight();
@@ -151,14 +155,16 @@ public abstract class Test {
 
 		if (getInfo() != null) {
 			int padding = 15;
-			BitmapFont.TextBounds bs = font.getWrappedBounds(getInfo(), w - padding*2);
-			infoBack.setSize(w, bs.height + padding*2);
+            layout.setText(font, getInfo(), Color.WHITE, w - padding*2, Align.left, true);
+
+			infoBack.setSize(w, layout.height + padding*2);
 			font.setColor(Color.WHITE);
 
 			batch.getProjectionMatrix().setToOrtho2D(0, 0, w, h);
+
 			batch.begin();
 			infoBack.draw(batch);
-			font.drawWrapped(batch, getInfo(), padding, bs.height + padding, w - padding*2);
+			font.draw(batch, getInfo(), padding, layout.height + padding, w - padding*2, 0, true);
 			batch.end();
 		}
 

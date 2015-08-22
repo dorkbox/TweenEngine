@@ -103,7 +103,7 @@ class Timeline extends BaseTween<Timeline> {
      * Needs to be set before any threads access or use the timeline. This is not thread safe!
      */
     public static
-    void ensurePoolCapacity(int minCapacity) {
+    void setPoolCapacity(int minCapacity) {
         if (Timeline.capacity < minCapacity) {
             pool =  ObjectPoolFactory.create(poolableObject, minCapacity);
             Timeline.capacity = minCapacity;
@@ -244,13 +244,13 @@ class Timeline extends BaseTween<Timeline> {
 	@SuppressWarnings("FieldRepeatedlyAccessedInMethod")
     public
     Timeline beginParallel() {
-		if (isBuilt) throw new RuntimeException("You can't push anything to a timeline once it is started");
-		Timeline tl = pool.takeUninterruptibly();
-		tl.parent = current;
-		tl.mode = Modes.PARALLEL;
-		current.children.add(tl);
-		current = tl;
-		return this;
+        if (isBuilt) throw new RuntimeException("You can't push anything to a timeline once it is started");
+        Timeline tl = pool.takeUninterruptibly();
+        tl.parent = current;
+        tl.mode = Modes.PARALLEL;
+        current.children.add(tl);
+        current = tl;
+        return this;
 	}
 
 	/**
@@ -261,10 +261,10 @@ class Timeline extends BaseTween<Timeline> {
 	@SuppressWarnings("FieldRepeatedlyAccessedInMethod")
     public
     Timeline end() {
-		if (isBuilt) throw new RuntimeException("You can't push anything to a timeline once it is started");
-		if (current == this) throw new RuntimeException("Nothing to end...");
-		current = current.parent;
-		return this;
+        if (isBuilt) throw new RuntimeException("You can't push anything to a timeline once it is started");
+        if (current == this) throw new RuntimeException("Nothing to end...");
+        current = current.parent;
+        return this;
 	}
 
 	/**

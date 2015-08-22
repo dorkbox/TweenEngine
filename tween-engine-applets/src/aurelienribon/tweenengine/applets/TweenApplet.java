@@ -26,7 +26,7 @@ import java.io.IOException;
  * @author Aurelien Ribon | http://www.aurelienribon.com
  */
 public class TweenApplet extends javax.swing.JApplet {
-	/*public static void main(String[] args) {
+	public static void main(String[] args) {
 		TweenApplet applet = new TweenApplet();
 		applet.init();
 		applet.start();
@@ -35,7 +35,7 @@ public class TweenApplet extends javax.swing.JApplet {
 		wnd.add(applet);
 		wnd.setSize(600, 550);
 		wnd.setVisible(true);
-	}*/
+	}
 
 	// -------------------------------------------------------------------------
 	// Applet

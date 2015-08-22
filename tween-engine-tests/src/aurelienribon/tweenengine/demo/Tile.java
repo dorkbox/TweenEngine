@@ -14,6 +14,7 @@ import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureAtlas;
+import com.badlogic.gdx.utils.Align;
 
 /**
  * @author Aurelien Ribon | http://www.aurelienribon.com/
@@ -62,10 +63,10 @@ public class Tile {
 		float wrapW = (sprite.getWidth() - sprite.getWidth()/10) * Gdx.graphics.getWidth() / camera.viewportWidth;
 
 		font.setColor(1, 1, 1, textOpacity.floatValue());
-		font.drawWrapped(batch, test.getTitle(),
+		font.draw(batch, test.getTitle(),
 			sprite.getX() + sprite.getWidth()/20,
 			sprite.getY() + sprite.getHeight()*19/20,
-			wrapW);
+                  wrapW, Align.left, true);
 
 		if (veil.getColor().a > 0.1f) veil.draw(batch);
 	}

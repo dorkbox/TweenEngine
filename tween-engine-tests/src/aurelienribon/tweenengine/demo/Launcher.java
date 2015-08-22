@@ -12,14 +12,14 @@ import com.badlogic.gdx.Input.Keys;
 import com.badlogic.gdx.InputAdapter;
 import com.badlogic.gdx.InputMultiplexer;
 import com.badlogic.gdx.InputProcessor;
-import com.badlogic.gdx.graphics.GL10;
-import com.badlogic.gdx.graphics.GLCommon;
+import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureAtlas;
 import com.badlogic.gdx.math.Vector3;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -54,7 +54,7 @@ public class Launcher {
 		camera.update();
 
 		font = Assets.inst().get("data/arial-18.fnt", BitmapFont.class);
-		font.setScale(0.0025f);
+        font.getData().setScale(0.0025f);
 		font.setUseIntegerPositions(false);
 
 		TextureAtlas atlas = Assets.inst().get("data/launcher/pack", TextureAtlas.class);
@@ -107,11 +107,11 @@ public class Launcher {
 	public void render() {
 		tweenManager.update(Gdx.graphics.getDeltaTime());
 
-		GLCommon gl = Gdx.gl;
+		GL20 gl = Gdx.gl20;
 		gl.glClearColor(1, 1, 1, 1);
-		gl.glClear(GL10.GL_COLOR_BUFFER_BIT);
-		gl.glEnable(GL10.GL_BLEND);
-		gl.glBlendFunc(GL10.GL_SRC_ALPHA, GL10.GL_ONE_MINUS_SRC_ALPHA);
+		gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+		gl.glEnable(GL20.GL_BLEND);
+		gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
 
 		int w = Gdx.graphics.getWidth();
 		int h = Gdx.graphics.getHeight();
