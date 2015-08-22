@@ -16,6 +16,9 @@
 package aurelienribon.tweenengine;
 
 import aurelienribon.tweenengine.equations.Quad;
+import dorkbox.util.objectPool.ObjectPool;
+import dorkbox.util.objectPool.ObjectPoolFactory;
+import dorkbox.util.objectPool.PoolableObject;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -138,27 +141,22 @@ class Tween extends BaseTween<Tween> {
 	// Static -- pool
 	// -------------------------------------------------------------------------
 
-    private static final Pool.Callback<Tween> poolCallback = new Pool.Callback<Tween>() {
+    private static volatile int capacity = 10;
+    private static final PoolableObject<Tween> poolableObject = new PoolableObject<Tween>() {
         @Override
         public
-        void onPool(Tween obj) {
-            obj.reset();
+        void reset(final Tween object) {
+            object.reset();
         }
 
         @Override
         public
-        void onUnPool(Tween obj) {
-            obj.reset();
-        }
-    };
-
-    private static final Pool<Tween> pool = new Pool<Tween>(20, poolCallback) {
-        @Override
-        protected
         Tween create() {
             return new Tween();
         }
     };
+
+    static ObjectPool<Tween> pool = ObjectPoolFactory.create(poolableObject, capacity);
 
 	/**
 	 * Used for debug purpose. Gets the current number of objects that are
@@ -172,7 +170,10 @@ class Tween extends BaseTween<Tween> {
 	 * Increases the minimum capacity of the pool. Capacity defaults to 20.
 	 */
 	public static void ensurePoolCapacity(int minCapacity) {
-		pool.ensureCapacity(minCapacity);
+        if (Tween.capacity < minCapacity) {
+            pool =  ObjectPoolFactory.create(poolableObject, minCapacity);
+            Tween.capacity = minCapacity;
+        }
 	}
 
 	// -------------------------------------------------------------------------
@@ -242,7 +243,7 @@ class Tween extends BaseTween<Tween> {
 	 */
 	public static
     Tween to(Object target, int tweenType, float duration) {
-		Tween tween = pool.get();
+		Tween tween = pool.takeUninterruptibly();
 		tween.setup(target, tweenType, duration);
 		tween.ease(Quad.INOUT);
 		tween.path(TweenPaths.catmullRom);
@@ -281,7 +282,7 @@ class Tween extends BaseTween<Tween> {
 	 */
 	public static
     Tween from(Object target, int tweenType, float duration) {
-		Tween tween = pool.get();
+		Tween tween = pool.takeUninterruptibly();
 		tween.setup(target, tweenType, duration);
 		tween.ease(Quad.INOUT);
 		tween.path(TweenPaths.catmullRom);
@@ -320,7 +321,7 @@ class Tween extends BaseTween<Tween> {
 	 */
 	public static
     Tween set(Object target, int tweenType) {
-		Tween tween = pool.get();
+		Tween tween = pool.takeUninterruptibly();
 		tween.setup(target, tweenType, 0);
 		tween.ease(Quad.INOUT);
 		return tween;
@@ -350,7 +351,7 @@ class Tween extends BaseTween<Tween> {
 	 */
 	public static
     Tween call(TweenCallback callback) {
-		Tween tween = pool.get();
+		Tween tween = pool.takeUninterruptibly();
 		tween.setup(null, -1, 0);
 		tween.setCallback(callback);
 		tween.setCallbackTriggers(TweenCallback.START);
@@ -368,7 +369,7 @@ class Tween extends BaseTween<Tween> {
 	 */
 	public static
     Tween mark() {
-		Tween tween = pool.get();
+		Tween tween = pool.takeUninterruptibly();
 		tween.setup(null, -1, 0);
 		return tween;
 	}
@@ -871,7 +872,7 @@ class Tween extends BaseTween<Tween> {
     @Override
     public
     void free() {
-        pool.free(this);
+        pool.release(this);
     }
 
 	@Override

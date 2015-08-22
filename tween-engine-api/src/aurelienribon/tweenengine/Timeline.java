@@ -15,6 +15,10 @@
  */
 package aurelienribon.tweenengine;
 
+import dorkbox.util.objectPool.ObjectPool;
+import dorkbox.util.objectPool.ObjectPoolFactory;
+import dorkbox.util.objectPool.PoolableObject;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -65,27 +69,23 @@ class Timeline extends BaseTween<Timeline> {
 	// Static -- pool
 	// -------------------------------------------------------------------------
 
-    private static final Pool.Callback<Timeline> poolCallback = new Pool.Callback<Timeline>() {
+    private static volatile int capacity = 10;
+    private static final PoolableObject<Timeline> poolableObject = new PoolableObject<Timeline>() {
         @Override
         public
-        void onPool(Timeline obj) {
-            obj.reset();
+        void reset(final Timeline object) {
+            object.reset();
         }
 
         @Override
         public
-        void onUnPool(Timeline obj) {
-            obj.reset();
-        }
-    };
-
-    static final Pool<Timeline> pool = new Pool<Timeline>(10, poolCallback) {
-        @Override
-        protected
         Timeline create() {
             return new Timeline();
         }
     };
+
+    static ObjectPool<Timeline> pool = ObjectPoolFactory.create(poolableObject, capacity);
+
 
 	/**
 	 * Used for debug purpose. Gets the current number of empty timelines that
@@ -96,12 +96,17 @@ class Timeline extends BaseTween<Timeline> {
 		return pool.size();
 	}
 
-	/**
-	 * Increases the minimum capacity of the pool. Capacity defaults to 10.
-	 */
-	public static
+    /**
+     * Increases the minimum capacity of the pool. Capacity defaults to 10.
+     * <p>
+     * Needs to be set before any threads access or use the timeline. This is not thread safe!
+     */
+    public static
     void ensurePoolCapacity(int minCapacity) {
-		pool.ensureCapacity(minCapacity);
+        if (Timeline.capacity < minCapacity) {
+            pool =  ObjectPoolFactory.create(poolableObject, minCapacity);
+            Timeline.capacity = minCapacity;
+        }
 	}
 
 	// -------------------------------------------------------------------------
@@ -114,7 +119,7 @@ class Timeline extends BaseTween<Timeline> {
 	 */
 	public static
     Timeline createSequence() {
-		Timeline tl = pool.get();
+		Timeline tl = pool.takeUninterruptibly();
 		tl.setup(Modes.SEQUENCE);
 		return tl;
 	}
@@ -125,12 +130,12 @@ class Timeline extends BaseTween<Timeline> {
 	 */
 	public static
     Timeline createParallel() {
-		Timeline tl = pool.get();
+		Timeline tl = pool.takeUninterruptibly();
 		tl.setup(Modes.PARALLEL);
 		return tl;
 	}
 
-	// -------------------------------------------------------------------------
+    // -------------------------------------------------------------------------
 	// Attributes
 	// -------------------------------------------------------------------------
 
@@ -220,7 +225,7 @@ class Timeline extends BaseTween<Timeline> {
 	public
     Timeline beginSequence() {
 		if (isBuilt) throw new RuntimeException("You can't push anything to a timeline once it is started");
-		Timeline tl = pool.get();
+		Timeline tl = pool.takeUninterruptibly();
 		tl.parent = current;
 		tl.mode = Modes.SEQUENCE;
 		current.children.add(tl);
@@ -237,7 +242,7 @@ class Timeline extends BaseTween<Timeline> {
 	public
     Timeline beginParallel() {
 		if (isBuilt) throw new RuntimeException("You can't push anything to a timeline once it is started");
-		Timeline tl = pool.get();
+		Timeline tl = pool.takeUninterruptibly();
 		tl.parent = current;
 		tl.mode = Modes.PARALLEL;
 		current.children.add(tl);
@@ -323,7 +328,7 @@ class Timeline extends BaseTween<Timeline> {
 			obj.free();
 		}
 
-		pool.free(this);
+		pool.release(this);
 	}
 
 	@Override
