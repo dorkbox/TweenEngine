@@ -69,6 +69,7 @@ class Timeline extends BaseTween<Timeline> {
 	// Static -- pool
 	// -------------------------------------------------------------------------
 
+    @SuppressWarnings("StaticNonFinalField")
     private static volatile int capacity = 10;
     private static final PoolableObject<Timeline> poolableObject = new PoolableObject<Timeline>() {
         @Override
@@ -222,7 +223,8 @@ class Timeline extends BaseTween<Timeline> {
 	 *
 	 * @return The current timeline, for chaining instructions.
 	 */
-	public
+	@SuppressWarnings("FieldRepeatedlyAccessedInMethod")
+    public
     Timeline beginSequence() {
 		if (isBuilt) throw new RuntimeException("You can't push anything to a timeline once it is started");
 		Timeline tl = pool.takeUninterruptibly();
@@ -239,7 +241,8 @@ class Timeline extends BaseTween<Timeline> {
 	 *
 	 * @return The current timeline, for chaining instructions.
 	 */
-	public
+	@SuppressWarnings("FieldRepeatedlyAccessedInMethod")
+    public
     Timeline beginParallel() {
 		if (isBuilt) throw new RuntimeException("You can't push anything to a timeline once it is started");
 		Timeline tl = pool.takeUninterruptibly();
@@ -255,7 +258,8 @@ class Timeline extends BaseTween<Timeline> {
 	 *
 	 * @return The current timeline, for chaining instructions.
 	 */
-	public
+	@SuppressWarnings("FieldRepeatedlyAccessedInMethod")
+    public
     Timeline end() {
 		if (isBuilt) throw new RuntimeException("You can't push anything to a timeline once it is started");
 		if (current == this) throw new RuntimeException("Nothing to end...");
@@ -277,7 +281,8 @@ class Timeline extends BaseTween<Timeline> {
 	// Overrides
 	// -------------------------------------------------------------------------
 
-	@Override
+	@SuppressWarnings("FieldRepeatedlyAccessedInMethod")
+    @Override
 	public
     Timeline build() {
 		if (isBuilt) return this;
@@ -343,7 +348,7 @@ class Timeline extends BaseTween<Timeline> {
 
 		if (!isIterationStep && step < lastStep) {
 			assert delta <= 0;
-			float dt = isReverse(lastStep) ? -delta-1 : delta+1;
+            float dt = isReverse(lastStep) ? delta+1 : -delta-1;
 			for (int i=children.size()-1; i>=0; i--) children.get(i).update(dt);
 			return;
 		}

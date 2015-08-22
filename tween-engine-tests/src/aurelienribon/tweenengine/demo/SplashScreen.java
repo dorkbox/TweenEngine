@@ -131,7 +131,7 @@ public class SplashScreen {
 			.end()
 			.pushPause(0.3f)
 
-			.setCallback(callback)
+			.addCallback(callback)
 			.start(tweenManager);
 	}
 
@@ -169,7 +169,7 @@ public class SplashScreen {
 		public boolean touchUp(int x, int y, int pointer, int button) {
 			Tween.to(veil, SpriteAccessor.OPACITY, 0.7f)
 				.target(1)
-				.setCallback(callback)
+				.addCallback(callback)
 				.start(tweenManager);
 			return true;
 		}

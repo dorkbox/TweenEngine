@@ -77,7 +77,7 @@ public class Launcher {
 		title.setPosition(0, h);
 
 		veil.setSize(w, h);
-		Tween.to(veil, SpriteAccessor.OPACITY, 1f).target(0).delay(0.5f).setCallback(veilEndCallback).start(tweenManager);
+		Tween.to(veil, SpriteAccessor.OPACITY, 1f).target(0).delay(0.5f).addCallback(veilEndCallback).start(tweenManager);
 
 		Gdx.input.setInputProcessor(launcherInputProcessor);
 

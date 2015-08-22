@@ -3,10 +3,8 @@ import aurelienribon.tweenengine.BaseTween;
 import aurelienribon.tweenengine.Timeline;
 import aurelienribon.tweenengine.Tween;
 import aurelienribon.tweenengine.TweenCallback;
-import aurelienribon.tweenengine.demo.App;
 import aurelienribon.tweenengine.primitives.MutableFloat;
-import com.badlogic.gdx.backends.lwjgl.LwjglApplication;
-import com.badlogic.gdx.backends.lwjgl.LwjglApplicationConfiguration;
+
 import java.util.Locale;
 
 
@@ -14,14 +12,14 @@ public class Main {
     public static void main(String[] args) {
 		// Demo
 
-		LwjglApplicationConfiguration cfg = new LwjglApplicationConfiguration();
-		cfg.resizable = false;
-		cfg.vSyncEnabled = true;
-		cfg.useGL20 = false;
-		cfg.width = 800;
-		cfg.height = 480;
-		cfg.title = "Tween-Engine tests";
-		new LwjglApplication(new App(), cfg);
+//		LwjglApplicationConfiguration cfg = new LwjglApplicationConfiguration();
+//		cfg.resizable = false;
+//		cfg.vSyncEnabled = true;
+//		cfg.useGL20 = false;
+//		cfg.width = 800;
+//		cfg.height = 480;
+//		cfg.title = "Tween-Engine tests";
+//		new LwjglApplication(new App(), cfg);
 
 		// Tests
 
@@ -40,13 +38,15 @@ public class Main {
 
 	private static void testTween(float step) {
 		MutableFloat target = new MutableFloat(0);
-		Tween t = Tween.to(target, 0, 1.0f)
-			.target(1)
-			.repeat(2, 1)
-			.delay(1)
-			.setCallback(buildCallback("t", target))
-			.setCallbackTriggers(TweenCallback.ANY)
-			.start();
+        TweenCallback t1 = buildCallback("t", target);
+        t1.setTriggers(TweenCallback.Events.ANY);
+
+        Tween t = Tween.to(target, 0, 1.0f)
+                       .target(1)
+                       .repeat(2, 1)
+                       .delay(1)
+                       .addCallback(t1)
+                       .start();
 
 		float acc = 0;
 		while (acc < t.getFullDuration()+1) {
@@ -73,16 +73,17 @@ public class Main {
 		Tween t2 = Tween.call(buildCallback("t2"));
 		Tween t3 = Tween.call(buildCallback("t3"));
 
-		Timeline tl = Timeline.createSequence()
-			.push(t1)
-			.pushPause(1)
-			.push(t2)
-			.pushPause(1)
-			.push(t3)
-			.repeat(2, 1)
-			.setCallback(buildCallback("TL"))
-			.setCallbackTriggers(TweenCallback.ANY)
-			.start();
+        TweenCallback tl1 = buildCallback("TL");
+        tl1.setTriggers(TweenCallback.Events.ANY);
+        Timeline tl = Timeline.createSequence()
+                              .push(t1)
+                              .pushPause(1)
+                              .push(t2)
+                              .pushPause(1)
+                              .push(t3)
+                              .repeat(2, 1)
+                              .addCallback(tl1)
+                              .start();
 
 		float acc = 0;
 		while (acc < tl.getFullDuration()+1) {
@@ -104,14 +105,14 @@ public class Main {
 	private static TweenCallback buildCallback(final String name, final MutableFloat target) {
 		return new TweenCallback() {
 			@Override public void onEvent(int type, BaseTween<?> source) {
-				String t = type == TweenCallback.BEGIN ? "BEGIN        "
-					: type == TweenCallback.START ? "START        "
-					: type == TweenCallback.END ? "END          "
-					: type == TweenCallback.COMPLETE ? "COMPLETE     "
-					: type == TweenCallback.BACK_BEGIN ? "BACK_BEGIN   "
-					: type == TweenCallback.BACK_START ? "BACK_START   "
-					: type == TweenCallback.BACK_END ? "BACK_END     "
-					: type == TweenCallback.BACK_COMPLETE ? "BACK_COMPLETE"
+				String t = type == TweenCallback.Events.BEGIN ? "BEGIN        "
+					: type == TweenCallback.Events.START ? "START        "
+					: type == TweenCallback.Events.END ? "END          "
+					: type == TweenCallback.Events.COMPLETE ? "COMPLETE     "
+					: type == TweenCallback.Events.BACK_BEGIN ? "BACK_BEGIN   "
+					: type == TweenCallback.Events.BACK_START ? "BACK_START   "
+					: type == TweenCallback.Events.BACK_END ? "BACK_END     "
+					: type == TweenCallback.Events.BACK_COMPLETE ? "BACK_COMPLETE"
 					: "???";
 
 				String str = String.format(Locale.US, "%s %s   lt %.2f   v %.2f", name, t, source.getCurrentTime(), target.floatValue());
@@ -123,14 +124,14 @@ public class Main {
 	private static TweenCallback buildCallback(final String name) {
 		return new TweenCallback() {
 			@Override public void onEvent(int type, BaseTween<?> source) {
-				String t = type == TweenCallback.BEGIN ? "BEGIN        "
-					: type == TweenCallback.START ? "START        "
-					: type == TweenCallback.END ? "END          "
-					: type == TweenCallback.COMPLETE ? "COMPLETE     "
-					: type == TweenCallback.BACK_BEGIN ? "BACK_BEGIN   "
-					: type == TweenCallback.BACK_START ? "BACK_START   "
-					: type == TweenCallback.BACK_END ? "BACK_END     "
-					: type == TweenCallback.BACK_COMPLETE ? "BACK_COMPLETE"
+				String t = type == TweenCallback.Events.BEGIN ? "BEGIN        "
+					: type == TweenCallback.Events.START ? "START        "
+					: type == TweenCallback.Events.END ? "END          "
+					: type == TweenCallback.Events.COMPLETE ? "COMPLETE     "
+					: type == TweenCallback.Events.BACK_BEGIN ? "BACK_BEGIN   "
+					: type == TweenCallback.Events.BACK_START ? "BACK_START   "
+					: type == TweenCallback.Events.BACK_END ? "BACK_END     "
+					: type == TweenCallback.Events.BACK_COMPLETE ? "BACK_COMPLETE"
 					: "???";
 
 				String str = String.format(Locale.US, "%s %s   lt %.2f", name, t, source.getCurrentTime());

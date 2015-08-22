@@ -104,7 +104,7 @@ public class Tile {
 			.pushPause(-0.3f)
 			.push(Tween.to(veil, SpriteAccessor.OPACITY, 0.7f).target(1))
 			.setUserData(this)
-			.setCallback(callback)
+			.addCallback(callback)
 			.start(tweenManager);
 	}
 
@@ -123,7 +123,7 @@ public class Tile {
 				.push(Tween.to(interactiveIcon, SpriteAccessor.OPACITY, 0.3f).target(1))
 			.end()
 			.setUserData(this)
-			.setCallback(callback)
+			.addCallback(callback)
 			.start(tweenManager);
 	}
 

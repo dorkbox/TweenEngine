@@ -26,7 +26,7 @@ public abstract
 class Quint extends TweenEquation {
     public static final Quint IN = new Quint() {
         @Override
-        public final
+        public
         float compute(float t) {
             return t * t * t * t * t;
         }
@@ -40,7 +40,7 @@ class Quint extends TweenEquation {
 
     public static final Quint OUT = new Quint() {
         @Override
-        public final
+        public
         float compute(float t) {
             return (t -= 1) * t * t * t * t + 1;
         }
@@ -54,7 +54,7 @@ class Quint extends TweenEquation {
 
     public static final Quint INOUT = new Quint() {
         @Override
-        public final
+        public
         float compute(float t) {
             if ((t *= 2) < 1) {
                 return 0.5f * t * t * t * t * t;

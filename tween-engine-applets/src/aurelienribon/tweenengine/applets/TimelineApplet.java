@@ -4,12 +4,17 @@ import aurelienribon.tweenengine.BaseTween;
 import aurelienribon.tweenengine.Timeline;
 import aurelienribon.tweenengine.Tween;
 import aurelienribon.tweenengine.TweenCallback;
-import aurelienribon.tweenengine.TweenCallback.EventType;
 import aurelienribon.tweenengine.TweenManager;
 import aurelienribon.tweenengine.equations.Back;
 import aurelienribon.tweenengine.equations.Bounce;
 import aurelienribon.tweenengine.equations.Quart;
 import aurelienribon.utils.swing.DrawingCanvas;
+
+import javax.imageio.ImageIO;
+import javax.swing.JLabel;
+import javax.swing.UIManager;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 import java.awt.BorderLayout;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
@@ -20,16 +25,11 @@ import java.awt.event.ActionListener;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.util.Hashtable;
-import javax.imageio.ImageIO;
-import javax.swing.JLabel;
-import javax.swing.UIManager;
-import javax.swing.UnsupportedLookAndFeelException;
-import javax.swing.event.ChangeEvent;
-import javax.swing.event.ChangeListener;
 
 /**
  * @author Aurelien Ribon | http://www.aurelienribon.com
  */
+@SuppressWarnings({"FieldCanBeLocal", "UnusedParameters"})
 public class TimelineApplet extends javax.swing.JApplet {
 	/*public static void main(String[] args) {
 		TimelineApplet applet = new TimelineApplet();
@@ -46,8 +46,8 @@ public class TimelineApplet extends javax.swing.JApplet {
 	// Applet
 	// -------------------------------------------------------------------------
 
-	private MyCanvas canvas;
-	private boolean isPaused = false;
+	MyCanvas canvas;
+	boolean isPaused = false;
 
 	@Override
 	public void init() {
@@ -65,13 +65,11 @@ public class TimelineApplet extends javax.swing.JApplet {
 		canvas.stop();
 	}
 
-	private void load() {
+	void load() {
 		try {
 			UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
-		} catch (ClassNotFoundException ex) {
-		} catch (InstantiationException ex) {
-		} catch (IllegalAccessException ex) {
-		} catch (UnsupportedLookAndFeelException ex) {
+		} catch (Exception ex) {
+            ex.printStackTrace();
 		}
 
 		initComponents();
@@ -99,44 +97,64 @@ public class TimelineApplet extends javax.swing.JApplet {
 
 		canvas = (MyCanvas) new MyCanvas().start();
 		canvasWrapper.add(canvas, BorderLayout.CENTER);
-		canvas.setCallback(new DrawingCanvas.Callback() {
-			@Override public void onUpdate(int elapsedMillis) {
-				if (canvas.getTimeline() == null || isPaused) return;
-				int delta = (int) (elapsedMillis * (speedSlider.getValue() / 100f));
+        canvas.setCallback(new DrawingCanvas.Callback() {
+            @Override
+            public
+            void onUpdate(int elapsedMillis) {
+                if (canvas.getTimeline() == null || isPaused) {
+                    return;
+                }
+                int delta = (int) (elapsedMillis * (speedSlider.getValue() / 100f));
 
-				if (canvas.getTimeline().getState()%4 == 2 && canvas.getTimeline().isYoyo())
-					iterationTimeSlider.setValue(iterationTimeSlider.getValue() - delta);
-				else if (canvas.getTimeline().getState()%2 == 0)
-					iterationTimeSlider.setValue(iterationTimeSlider.getValue() + delta);
-				totalTimeSlider.setValue(totalTimeSlider.getValue() + delta);
-			}
-		});
+                if (canvas.getTimeline()
+                          .getStep() % 4 == 2 && canvas.getTimeline()
+                                                        .isYoyo()) {
+
+                    iterationTimeSlider.setValue(iterationTimeSlider.getValue() - delta);
+                }
+                else if (canvas.getTimeline()
+                               .getStep() % 2 == 0) {
+                    iterationTimeSlider.setValue(iterationTimeSlider.getValue() + delta);
+                }
+                totalTimeSlider.setValue(totalTimeSlider.getValue() + delta);
+            }
+        });
 
 		canvas.createTimeline();
 		initTimeline();
 	}
 
 	private void initTimeline() {
-		iterationTimeSlider.setMaximum(canvas.getTimeline().getDuration());
-		totalTimeSlider.setMaximum(canvas.getTimeline().getFullDuration());
+		iterationTimeSlider.setMaximum((int) canvas.getTimeline().getDuration());
+		totalTimeSlider.setMaximum((int) canvas.getTimeline().getFullDuration());
 
-		canvas.getTimeline().addCallback(EventType.BEGIN, new TweenCallback() {
-			@Override public void onEvent(EventType eventType, BaseTween source) {
+		canvas.getTimeline().addCallback(new TweenCallback(TweenCallback.Events.BEGIN) {
+			@Override public void onEvent(int eventType, BaseTween source) {
 				totalTimeSlider.setValue(0);
 			}
 		});
 
-		canvas.getTimeline().addCallback(EventType.START, new TweenCallback() {
-			@Override public void onEvent(EventType eventType, BaseTween source) {
-				if (canvas.getTimeline().getState()%4 == 2 && canvas.getTimeline().isYoyo())
-					iterationTimeSlider.setValue(canvas.getTimeline().getFullDuration());
-				else if (canvas.getTimeline().getState()%2 == 0)
-					iterationTimeSlider.setValue(0);
-			}
-		});
+        canvas.getTimeline()
+              .addCallback(new TweenCallback(TweenCallback.Events.START) {
+                  @Override
+                  public
+                  void onEvent(int eventType, BaseTween source) {
+                      if (canvas.getTimeline()
+                                .getStep() % 4 == 2 && canvas.getTimeline()
+                                                              .isYoyo()) {
+
+                          iterationTimeSlider.setValue((int) canvas.getTimeline()
+                                                                   .getFullDuration());
+                      }
+                      else if (canvas.getTimeline()
+                                     .getStep() % 2 == 0) {
+                          iterationTimeSlider.setValue(0);
+                      }
+                  }
+              });
 	}
 
-	private void generateCode() {
+	void generateCode() {
 		int rptCnt = (Integer) rptSpinner.getValue();
 		int rptDelay = (Integer) rptDelaySpinner.getValue();
 		boolean isYoyo = yoyoChk.isSelected();
@@ -159,14 +177,17 @@ public class TimelineApplet extends javax.swing.JApplet {
 		resultArea.setText(code);
 	}
 
-	private void restart() {
+	void restart() {
 		speedSlider.setValue(100);
 		canvas.createTimeline();
 		initTimeline();
 	}
 
 	private class OptionsListener implements ChangeListener, ActionListener {
-		@Override public void stateChanged(ChangeEvent e) {onEvent();}
+        OptionsListener() {
+        }
+
+        @Override public void stateChanged(ChangeEvent e) {onEvent();}
 		@Override public void actionPerformed(ActionEvent e) {onEvent();}
 		private void onEvent() {
 			generateCode();
@@ -186,10 +207,9 @@ public class TimelineApplet extends javax.swing.JApplet {
 		private final Sprite imgLogoSprite;
 		private final Sprite blankStripSprite;
 		private TexturePaint bgPaint;
-		private Timeline timeline;
+		Timeline timeline;
 
 		public MyCanvas() {
-			Tween.enablePooling(false);
 			Tween.registerAccessor(Sprite.class, new SpriteAccessor());
 			
 			imgUniversalSprite = new Sprite("img-universal.png").setCentered(false);
@@ -202,6 +222,7 @@ public class TimelineApplet extends javax.swing.JApplet {
 				BufferedImage bgImage = ImageIO.read(TimelineApplet.class.getResource("/aurelienribon/tweenengine/applets/gfx/transparent-dark.png"));
 				bgPaint = new TexturePaint(bgImage, new Rectangle(0, 0, bgImage.getWidth(), bgImage.getHeight()));
 			} catch (IOException ex) {
+                ex.printStackTrace();
 			}
 		}
 
@@ -230,7 +251,8 @@ public class TimelineApplet extends javax.swing.JApplet {
 			imgLogoSprite.draw(gg);
 		}
 
-		public void createTimeline() {
+		@SuppressWarnings("FieldRepeatedlyAccessedInMethod")
+        public void createTimeline() {
 			tweenManager.killAll();
 			
 			imgUniversalSprite.setPosition(60, 105 - 200);
@@ -262,14 +284,14 @@ public class TimelineApplet extends javax.swing.JApplet {
 			if (rptCnt > 0 && yoyo) timeline.repeatYoyo(rptCnt, rpDelay);
 			else if (rptCnt > 0) timeline.repeat(rptCnt, rpDelay);
 
-			timeline.addCallback(EventType.COMPLETE, new TweenCallback() {
-				@Override public void onEvent(EventType eventType, BaseTween source) {
+			timeline.addCallback(new TweenCallback(TweenCallback.Events.COMPLETE) {
+				@Override public void onEvent(int eventType, BaseTween<?> source) {
 					timeline = null;
 				}
 			});
 
-			timeline.addCallback(EventType.BACK_COMPLETE, new TweenCallback() {
-				@Override public void onEvent(EventType eventType, BaseTween source) {
+			timeline.addCallback(new TweenCallback(TweenCallback.Events.BACK_COMPLETE) {
+				@Override public void onEvent(int eventType, BaseTween<?> source) {
 					timeline = null;
 				}
 			});
@@ -286,7 +308,7 @@ public class TimelineApplet extends javax.swing.JApplet {
 	// Generated stuff
 	// -------------------------------------------------------------------------
 
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings({"unchecked", "FieldRepeatedlyAccessedInMethod"})
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
 
@@ -461,6 +483,7 @@ public class TimelineApplet extends javax.swing.JApplet {
         restartBtn.setText("Restart");
         restartBtn.setMargin(new java.awt.Insets(2, 3, 2, 3));
         restartBtn.addActionListener(new java.awt.event.ActionListener() {
+            @Override
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 restartBtnActionPerformed(evt);
             }
@@ -469,6 +492,7 @@ public class TimelineApplet extends javax.swing.JApplet {
         pauseBtn.setText("Pause");
         pauseBtn.setMargin(new java.awt.Insets(2, 3, 2, 3));
         pauseBtn.addActionListener(new java.awt.event.ActionListener() {
+            @Override
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 pauseBtnActionPerformed(evt);
             }
@@ -477,6 +501,7 @@ public class TimelineApplet extends javax.swing.JApplet {
         resumeBtn.setText("Resume");
         resumeBtn.setMargin(new java.awt.Insets(2, 3, 2, 3));
         resumeBtn.addActionListener(new java.awt.event.ActionListener() {
+            @Override
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 resumeBtnActionPerformed(evt);
             }
@@ -485,6 +510,7 @@ public class TimelineApplet extends javax.swing.JApplet {
         reverseBtn.setText("Reverse");
         reverseBtn.setMargin(new java.awt.Insets(2, 3, 2, 3));
         reverseBtn.addActionListener(new java.awt.event.ActionListener() {
+            @Override
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 reverseBtnActionPerformed(evt);
             }
@@ -524,7 +550,7 @@ public class TimelineApplet extends javax.swing.JApplet {
                 .addContainerGap())
         );
 
-        jPanel4Layout.linkSize(javax.swing.SwingConstants.HORIZONTAL, new java.awt.Component[] {pauseBtn, restartBtn, resumeBtn, reverseBtn});
+        jPanel4Layout.linkSize(javax.swing.SwingConstants.HORIZONTAL, pauseBtn, restartBtn, resumeBtn, reverseBtn);
 
         jPanel4Layout.setVerticalGroup(
             jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -576,25 +602,25 @@ public class TimelineApplet extends javax.swing.JApplet {
         );
     }// </editor-fold>//GEN-END:initComponents
 
-	private void restartBtnActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_restartBtnActionPerformed
+	void restartBtnActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_restartBtnActionPerformed
 		restart();
 	}//GEN-LAST:event_restartBtnActionPerformed
 
-	private void pauseBtnActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_pauseBtnActionPerformed
+	void pauseBtnActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_pauseBtnActionPerformed
 		isPaused = true;
 	}//GEN-LAST:event_pauseBtnActionPerformed
 
-	private void resumeBtnActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_resumeBtnActionPerformed
+	void resumeBtnActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_resumeBtnActionPerformed
 		isPaused = false;
 	}//GEN-LAST:event_resumeBtnActionPerformed
 
-	private void reverseBtnActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_reverseBtnActionPerformed
+	void reverseBtnActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_reverseBtnActionPerformed
 		speedSlider.setValue(-speedSlider.getValue());
 	}//GEN-LAST:event_reverseBtnActionPerformed
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JPanel canvasWrapper;
-    private javax.swing.JSlider iterationTimeSlider;
+    javax.swing.JSlider iterationTimeSlider;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel3;
@@ -613,11 +639,11 @@ public class TimelineApplet extends javax.swing.JApplet {
     private javax.swing.JTextArea resultArea;
     private javax.swing.JButton resumeBtn;
     private javax.swing.JButton reverseBtn;
-    private javax.swing.JSpinner rptDelaySpinner;
-    private javax.swing.JSpinner rptSpinner;
-    private javax.swing.JSlider speedSlider;
-    private javax.swing.JSlider totalTimeSlider;
-    private javax.swing.JCheckBox yoyoChk;
+    javax.swing.JSpinner rptDelaySpinner;
+    javax.swing.JSpinner rptSpinner;
+    javax.swing.JSlider speedSlider;
+    javax.swing.JSlider totalTimeSlider;
+    javax.swing.JCheckBox yoyoChk;
     // End of variables declaration//GEN-END:variables
 
 }

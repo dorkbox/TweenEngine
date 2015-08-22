@@ -15,6 +15,9 @@
  */
 package aurelienribon.tweenengine;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * BaseTween is the base class of Tween and Timeline. It defines the
  * iteration engine used to play animations for any number of times, and in
@@ -44,6 +47,7 @@ abstract class BaseTween<T> {
 	private float repeatDelay;
 	private float currentTime;
 	private float deltaTime;
+
 	private boolean isStarted; // true when the object is started
 	private boolean isInitialized; // true after the delay
 	private boolean isFinished; // true when all repetitions are done
@@ -51,8 +55,7 @@ abstract class BaseTween<T> {
 	private boolean isPaused; // true if pause() was called
 
 	// Misc
-	private TweenCallback callback;
-	private int callbackTriggers;
+	private List<TweenCallback> callbacks = new ArrayList<TweenCallback>();
 	private Object userData;
 
 	// Package access
@@ -70,8 +73,7 @@ abstract class BaseTween<T> {
 		delay = duration = repeatDelay = currentTime = deltaTime = 0;
 		isStarted = isInitialized = isFinished = isKilled = isPaused = false;
 
-		callback = null;
-		callbackTriggers = TweenCallback.COMPLETE;
+		callbacks.clear();
 		userData = null;
 
 		isAutoRemoveEnabled = isAutoStartEnabled = true;
@@ -208,49 +210,26 @@ abstract class BaseTween<T> {
 	}
 
 	/**
-	 * Sets the callback. By default, it will be fired at the completion of the
-	 * tween or timeline (event COMPLETE). If you want to change this behavior
-	 * and add more triggers, use the {@link BaseTween#setCallbackTriggers(int)} method.
-	 *
-	 * @see TweenCallback
+	 * Clears all of the callback.
 	 */
     @SuppressWarnings("unchecked")
 	public
-    T setCallback(TweenCallback callback) {
-		this.callback = callback;
+    T clearCallbacks() {
+        this.callbacks.clear();
 		return (T) this;
 	}
 
-	/**
-	 * Changes the triggers of the callback. The available triggers, listed as
-	 * members of the {@link TweenCallback} interface, are:
-	 * <p/>
-	 *
-	 * <b>BEGIN</b>: right after the delay (if any)<br/>
-	 * <b>START</b>: at each iteration beginning<br/>
-	 * <b>END</b>: at each iteration ending, before the repeat delay<br/>
-	 * <b>COMPLETE</b>: at last END event<br/>
-	 * <b>BACK_BEGIN</b>: at the beginning of the first backward iteration<br/>
-	 * <b>BACK_START</b>: at each backward iteration beginning, after the repeat delay<br/>
-	 * <b>BACK_END</b>: at each backward iteration ending<br/>
-	 * <b>BACK_COMPLETE</b>: at last BACK_END event
-	 * <p/>
-	 *
-	 * <pre> {@code
-	 * forward :      BEGIN                                   COMPLETE
-	 * forward :      START    END      START    END      START    END
-	 * |--------------[XXXXXXXXXX]------[XXXXXXXXXX]------[XXXXXXXXXX]
-	 * backward:      bEND  bSTART      bEND  bSTART      bEND  bSTART
-	 * backward:      bCOMPLETE                                 bBEGIN
-	 * }</pre>
-	 *
-	 * @param flags one or more triggers, separated by the '|' operator.
-	 * @see TweenCallback
-	 */
+    /**
+     * Adds a callback. By default, it will be fired at the completion of the
+     * tween or timeline (event COMPLETE). If you want to change this behavior
+     * use the {@link TweenCallback#setTriggers(int)} method.
+     *
+     * @see TweenCallback
+     */
     @SuppressWarnings("unchecked")
 	public
-    T setCallbackTriggers(int flags) {
-		this.callbackTriggers = flags;
+    T addCallback(TweenCallback callback) {
+        this.callbacks.add(callback);
 		return (T) this;
 	}
 
@@ -433,15 +412,22 @@ abstract class BaseTween<T> {
 	protected
     void forceToEnd(float time) {
 		currentTime = time - getFullDuration();
-		step = repeatCnt*2 + 1;
+        int count = repeatCnt << 1;
+
+        step = count + 1;
 		isIterationStep = false;
-		if (isReverse(repeatCnt*2)) forceStartValues();
+		if (isReverse(count)) forceStartValues();
 		else forceEndValues();
 	}
 
-	protected
-    void callCallback(int type) {
-		if (callback != null && (callbackTriggers & type) > 0) callback.onEvent(type, this);
+	@SuppressWarnings("Convert2streamapi")
+    protected
+    void callCallbacks(int type) {
+        for (TweenCallback callback : callbacks) {
+            if ((callback.triggers & type) > 0) {
+                callback.onEvent(type, this);
+            }
+        }
 	}
 
 	protected
@@ -451,7 +437,7 @@ abstract class BaseTween<T> {
 
 	protected
     boolean isValid(int step) {
-		return (step >= 0 && step <= repeatCnt*2) || repeatCnt < 0;
+		return (step >= 0 && step <= repeatCnt << 1) || repeatCnt < 0;
 	}
 
 	protected
@@ -479,7 +465,8 @@ abstract class BaseTween<T> {
 	 *
 	 * @param delta A delta time between now and the last call.
 	 */
-	public
+	@SuppressWarnings("FieldRepeatedlyAccessedInMethod")
+    public
     void update(float delta) {
 		if (!isStarted || isPaused || isKilled) return;
 
@@ -499,7 +486,8 @@ abstract class BaseTween<T> {
 		deltaTime = 0;
 	}
 
-	private
+	@SuppressWarnings("FieldRepeatedlyAccessedInMethod")
+    private
     void initialize() {
 		if (currentTime+deltaTime >= delay) {
 			initializeOverride();
@@ -508,12 +496,13 @@ abstract class BaseTween<T> {
 			step = 0;
 			deltaTime -= delay-currentTime;
 			currentTime = 0;
-			callCallback(TweenCallback.BEGIN);
-			callCallback(TweenCallback.START);
+			callCallbacks(TweenCallback.Events.BEGIN);
+			callCallbacks(TweenCallback.Events.START);
 		}
 	}
 
-	private
+	@SuppressWarnings("FieldRepeatedlyAccessedInMethod")
+    private
     void testRelaunch() {
 		if (!isIterationStep && repeatCnt >= 0 && step < 0 && currentTime+deltaTime >= 0) {
 			assert step == -1;
@@ -522,24 +511,28 @@ abstract class BaseTween<T> {
 			float delta = 0-currentTime;
 			deltaTime -= delta;
 			currentTime = 0;
-			callCallback(TweenCallback.BEGIN);
-			callCallback(TweenCallback.START);
+			callCallbacks(TweenCallback.Events.BEGIN);
+			callCallbacks(TweenCallback.Events.START);
 			updateOverride(step, step-1, isIterationStep, delta);
 
-		} else if (!isIterationStep && repeatCnt >= 0 && step > repeatCnt*2 && currentTime+deltaTime < 0) {
-			assert step == repeatCnt*2 + 1;
-			isIterationStep = true;
-			step = repeatCnt*2;
-			float delta = 0-currentTime;
-			deltaTime -= delta;
-			currentTime = duration;
-			callCallback(TweenCallback.BACK_BEGIN);
-			callCallback(TweenCallback.BACK_START);
-			updateOverride(step, step+1, isIterationStep, delta);
-		}
+		} else {
+            int count = repeatCnt << 1;
+            if (!isIterationStep && repeatCnt >= 0 && step > count && currentTime + deltaTime < 0) {
+                assert step == count + 1;
+                isIterationStep = true;
+                step = count;
+                float delta = 0-currentTime;
+                deltaTime -= delta;
+                currentTime = duration;
+                callCallbacks(TweenCallback.Events.BACK_BEGIN);
+                callCallbacks(TweenCallback.Events.BACK_START);
+                updateOverride(step, step+1, isIterationStep, delta);
+            }
+        }
 	}
 
-	private
+	@SuppressWarnings("FieldRepeatedlyAccessedInMethod")
+    private
     void updateStep() {
 		while (isValid(step)) {
 			if (!isIterationStep && currentTime+deltaTime <= 0) {
@@ -551,7 +544,7 @@ abstract class BaseTween<T> {
 				currentTime = duration;
 
 				if (isReverse(step)) forceStartValues(); else forceEndValues();
-				callCallback(TweenCallback.BACK_START);
+				callCallbacks(TweenCallback.Events.BACK_START);
 				updateOverride(step, step+1, isIterationStep, delta);
 
 			} else if (!isIterationStep && currentTime+deltaTime >= repeatDelay) {
@@ -563,7 +556,7 @@ abstract class BaseTween<T> {
 				currentTime = 0;
 
 				if (isReverse(step)) forceEndValues(); else forceStartValues();
-				callCallback(TweenCallback.START);
+				callCallbacks(TweenCallback.Events.START);
 				updateOverride(step, step-1, isIterationStep, delta);
 
 			} else if (isIterationStep && currentTime+deltaTime < 0) {
@@ -575,9 +568,9 @@ abstract class BaseTween<T> {
 				currentTime = 0;
 
 				updateOverride(step, step+1, isIterationStep, delta);
-				callCallback(TweenCallback.BACK_END);
+				callCallbacks(TweenCallback.Events.BACK_END);
 
-				if (step < 0 && repeatCnt >= 0) callCallback(TweenCallback.BACK_COMPLETE);
+				if (step < 0 && repeatCnt >= 0) callCallbacks(TweenCallback.Events.BACK_COMPLETE);
 				else currentTime = repeatDelay;
 
 			} else if (isIterationStep && currentTime+deltaTime > duration) {
@@ -589,9 +582,9 @@ abstract class BaseTween<T> {
 				currentTime = duration;
 
 				updateOverride(step, step-1, isIterationStep, delta);
-				callCallback(TweenCallback.END);
+				callCallbacks(TweenCallback.Events.END);
 
-				if (step > repeatCnt*2 && repeatCnt >= 0) callCallback(TweenCallback.COMPLETE);
+				if (step > repeatCnt << 1 && repeatCnt >= 0) callCallbacks(TweenCallback.Events.COMPLETE);
 				currentTime = 0;
 
 			} else if (isIterationStep) {
@@ -612,6 +605,6 @@ abstract class BaseTween<T> {
 
 	private
     void testCompletion() {
-		isFinished = repeatCnt >= 0 && (step > repeatCnt*2 || step < 0);
+		isFinished = repeatCnt >= 0 && (step > repeatCnt << 1 || step < 0);
 	}
 }

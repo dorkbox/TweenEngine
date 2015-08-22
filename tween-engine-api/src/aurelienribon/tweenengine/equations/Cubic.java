@@ -26,7 +26,7 @@ public abstract
 class Cubic extends TweenEquation {
     public static final Cubic IN = new Cubic() {
         @Override
-        public final
+        public
         float compute(float t) {
             return t * t * t;
         }
@@ -40,7 +40,7 @@ class Cubic extends TweenEquation {
 
     public static final Cubic OUT = new Cubic() {
         @Override
-        public final
+        public
         float compute(float t) {
             return (t -= 1) * t * t + 1;
         }
@@ -54,7 +54,7 @@ class Cubic extends TweenEquation {
 
     public static final Cubic INOUT = new Cubic() {
         @Override
-        public final
+        public
         float compute(float t) {
             if ((t *= 2) < 1) {
                 return 0.5f * t * t * t;

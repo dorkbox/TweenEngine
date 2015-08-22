@@ -97,23 +97,22 @@ public class TimeManipulation extends Test {
 		TweenCallback callback = new TweenCallback() {
 			@Override public void onEvent(int type, BaseTween source) {
 				switch (type) {
-					case START: text = "Iteration: " + (++iterationCnt) + " / " + 3; break;
-					case BACK_START: text = "Iteration: " + (--iterationCnt) + " / " + 3; break;
-					case COMPLETE: text = "Forwards play complete (touch to restart)"; canBeRestarted = true; break;
-					case BACK_COMPLETE: text = "Backwards play complete (touch to restart)"; canBeRestarted = true; break;
+					case Events.START: text = "Iteration: " + (++iterationCnt) + " / " + 3; break;
+					case Events.BACK_START: text = "Iteration: " + (--iterationCnt) + " / " + 3; break;
+					case Events.COMPLETE: text = "Forwards play complete (touch to restart)"; canBeRestarted = true; break;
+					case Events.BACK_COMPLETE: text = "Backwards play complete (touch to restart)"; canBeRestarted = true; break;
 				}
 			}
 		};
 
 		// The animation itself
-
+        callback.setTriggers(TweenCallback.Events.START | TweenCallback.Events.BACK_START | TweenCallback.Events.COMPLETE | TweenCallback.Events.BACK_COMPLETE);
 		Timeline.createParallel()
 			.push(buildSequence(sprites[0], 1, 0.0f, 1.4f))
 			.push(buildSequence(sprites[1], 2, 0.2f, 1.0f))
 			.push(buildSequence(sprites[2], 3, 0.4f, 0.6f))
 			.push(buildSequence(sprites[3], 4, 0.6f, 0.2f))
-			.setCallback(callback)
-			.setCallbackTriggers(TweenCallback.START | TweenCallback.BACK_START | TweenCallback.COMPLETE | TweenCallback.BACK_COMPLETE)
+			.addCallback(callback)
 			.repeat(2, 0)
 			.start(tweenManager);
 	}

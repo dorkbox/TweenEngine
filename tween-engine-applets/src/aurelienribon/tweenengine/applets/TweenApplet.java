@@ -3,7 +3,13 @@ package aurelienribon.tweenengine.applets;
 import aurelienribon.tweenengine.Tween;
 import aurelienribon.tweenengine.TweenEquation;
 import aurelienribon.tweenengine.TweenManager;
+import aurelienribon.tweenengine.TweenUtils;
 import aurelienribon.utils.swing.DrawingCanvas;
+
+import javax.imageio.ImageIO;
+import javax.swing.UIManager;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 import java.awt.BorderLayout;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
@@ -15,11 +21,6 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
-import javax.imageio.ImageIO;
-import javax.swing.UIManager;
-import javax.swing.UnsupportedLookAndFeelException;
-import javax.swing.event.ChangeEvent;
-import javax.swing.event.ChangeListener;
 
 /**
  * @author Aurelien Ribon | http://www.aurelienribon.com
@@ -59,10 +60,8 @@ public class TweenApplet extends javax.swing.JApplet {
 	private void load() {
 		try {
 			UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
-		} catch (ClassNotFoundException ex) {
-		} catch (InstantiationException ex) {
-		} catch (IllegalAccessException ex) {
-		} catch (UnsupportedLookAndFeelException ex) {
+		} catch (Exception ex) {
+            ex.printStackTrace();
 		}
 
 		initComponents();
@@ -121,7 +120,6 @@ public class TweenApplet extends javax.swing.JApplet {
 		private TexturePaint bgPaint;
 
 		public MyCanvas() {
-			Tween.enablePooling(false);
 			Tween.registerAccessor(Sprite.class, new SpriteAccessor());
 			addMouseListener(mouseAdapter);
 
@@ -156,7 +154,7 @@ public class TweenApplet extends javax.swing.JApplet {
 
 		private final MouseAdapter mouseAdapter = new MouseAdapter() {
 			@Override public void mousePressed(MouseEvent e) {
-				TweenEquation easing = TweenEquation.parse((String) easingCbox.getSelectedItem());
+				TweenEquation easing = TweenUtils.parseEasing((String) easingCbox.getSelectedItem());
 				int delay = (Integer) delaySpinner.getValue();
 				int duration = (Integer) durationSpinner.getValue();
 				int rptCnt = (Integer) rptSpinner.getValue();

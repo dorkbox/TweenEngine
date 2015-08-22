@@ -29,7 +29,7 @@ class Elastic extends TweenEquation {
 
     public static final Elastic IN = new Elastic() {
         @Override
-        public final
+        public
         float compute(float t) {
             float a = param_a;
             float p = param_p;
@@ -62,7 +62,7 @@ class Elastic extends TweenEquation {
 
     public static final Elastic OUT = new Elastic() {
         @Override
-        public final
+        public
         float compute(float t) {
             float a = param_a;
             float p = param_p;
@@ -95,7 +95,7 @@ class Elastic extends TweenEquation {
 
     public static final Elastic INOUT = new Elastic() {
         @Override
-        public final
+        public
         float compute(float t) {
             float a = param_a;
             float p = param_p;

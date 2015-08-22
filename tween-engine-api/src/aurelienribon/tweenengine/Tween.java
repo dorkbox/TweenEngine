@@ -134,7 +134,7 @@ class Tween extends BaseTween<Tween> {
 	 */
     public static
     String getVersion() {
-		return "6.3.3";
+		return "7.0.0";
 	}
 
 	// -------------------------------------------------------------------------
@@ -353,8 +353,8 @@ class Tween extends BaseTween<Tween> {
     Tween call(TweenCallback callback) {
 		Tween tween = pool.takeUninterruptibly();
 		tween.setup(null, -1, 0);
-		tween.setCallback(callback);
-		tween.setCallbackTriggers(TweenCallback.START);
+        callback.triggers = TweenCallback.Events.START;
+		tween.addCallback(callback);
 		return tween;
 	}
 
@@ -409,7 +409,8 @@ class Tween extends BaseTween<Tween> {
 		reset();
 	}
 
-	@Override
+	@SuppressWarnings("FieldRepeatedlyAccessedInMethod")
+    @Override
 	protected
     void reset() {
 		super.reset();
@@ -692,7 +693,8 @@ class Tween extends BaseTween<Tween> {
 	 * @param targetValue The target of this waypoint.
 	 * @return The current tween, for chaining instructions.
 	 */
-	public
+	@SuppressWarnings("FieldRepeatedlyAccessedInMethod")
+    public
     Tween waypoint(float targetValue) {
 		if (waypointsCnt == waypointsLimit) throwWaypointsLimitReached();
 		waypoints[waypointsCnt] = targetValue;
@@ -714,12 +716,14 @@ class Tween extends BaseTween<Tween> {
 	 * @param targetValue2 The 2nd target of this waypoint.
 	 * @return The current tween, for chaining instructions.
 	 */
-	public
+	@SuppressWarnings("FieldRepeatedlyAccessedInMethod")
+    public
     Tween waypoint(float targetValue1, float targetValue2) {
 		if (waypointsCnt == waypointsLimit) throwWaypointsLimitReached();
-        final int i = waypointsCnt * 2;
-        waypoints[i] = targetValue1;
-		waypoints[i + 1] = targetValue2;
+        final int count = waypointsCnt << 1;
+        float[] waypoints = this.waypoints;
+        waypoints[count] = targetValue1;
+        waypoints[count + 1] = targetValue2;
 		waypointsCnt += 1;
 		return this;
 	}
@@ -739,12 +743,15 @@ class Tween extends BaseTween<Tween> {
 	 * @param targetValue3 The 3rd target of this waypoint.
 	 * @return The current tween, for chaining instructions.
 	 */
-	public
+	@SuppressWarnings("FieldRepeatedlyAccessedInMethod")
+    public
     Tween waypoint(float targetValue1, float targetValue2, float targetValue3) {
 		if (waypointsCnt == waypointsLimit) throwWaypointsLimitReached();
-		waypoints[waypointsCnt*3] = targetValue1;
-		waypoints[waypointsCnt*3+1] = targetValue2;
-		waypoints[waypointsCnt*3+2] = targetValue3;
+        int count = waypointsCnt * 3;
+        float[] waypoints = this.waypoints;
+        waypoints[count] = targetValue1;
+        waypoints[count + 1] = targetValue2;
+        waypoints[count + 2] = targetValue3;
 		waypointsCnt += 1;
 		return this;
 	}
@@ -762,7 +769,8 @@ class Tween extends BaseTween<Tween> {
 	 * @param targetValues The targets of this waypoint.
 	 * @return The current tween, for chaining instructions.
 	 */
-	public
+	@SuppressWarnings("FieldRepeatedlyAccessedInMethod")
+    public
     Tween waypoint(float... targetValues) {
 		if (waypointsCnt == waypointsLimit) throwWaypointsLimitReached();
 		System.arraycopy(targetValues, 0, waypoints, waypointsCnt*targetValues.length, targetValues.length);
@@ -853,7 +861,7 @@ class Tween extends BaseTween<Tween> {
 	// Overrides
 	// -------------------------------------------------------------------------
 
-	@SuppressWarnings("unchecked")
+	@SuppressWarnings({"unchecked", "FieldRepeatedlyAccessedInMethod"})
     @Override
 	public
     Tween build() {

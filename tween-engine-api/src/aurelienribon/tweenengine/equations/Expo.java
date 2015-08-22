@@ -26,7 +26,7 @@ public abstract
 class Expo extends TweenEquation {
     public static final Expo IN = new Expo() {
         @Override
-        public final
+        public
         float compute(float t) {
             return (t == 0) ? 0 : (float) Math.pow(2, 10 * (t - 1));
         }
@@ -40,7 +40,7 @@ class Expo extends TweenEquation {
 
     public static final Expo OUT = new Expo() {
         @Override
-        public final
+        public
         float compute(float t) {
             return (t == 1) ? 1 : -(float) Math.pow(2, -10 * t) + 1;
         }
@@ -54,7 +54,7 @@ class Expo extends TweenEquation {
 
     public static final Expo INOUT = new Expo() {
         @Override
-        public final
+        public
         float compute(float t) {
             if (t == 0) {
                 return 0;

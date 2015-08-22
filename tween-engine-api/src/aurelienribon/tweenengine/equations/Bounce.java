@@ -48,6 +48,7 @@ class Bounce extends TweenEquation {
             return "Bounce.OUT";
         }
     };
+
     public static final Bounce IN = new Bounce() {
         @Override
         public final
@@ -61,6 +62,7 @@ class Bounce extends TweenEquation {
             return "Bounce.IN";
         }
     };
+
     public static final Bounce INOUT = new Bounce() {
         @Override
         public final
