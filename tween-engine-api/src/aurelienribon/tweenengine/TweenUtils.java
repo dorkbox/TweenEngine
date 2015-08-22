@@ -17,6 +17,7 @@ import aurelienribon.tweenengine.equations.Sine;
  *
  * @author Aurelien Ribon | http://www.aurelienribon.com/
  */
+@SuppressWarnings("unused")
 public class TweenUtils {
 	private static TweenEquation[] easings;
 

@@ -1,3 +1,18 @@
+/*
+ * Copyright 2012 Aurelien Ribon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package aurelienribon.tweenengine;
 
 /**
@@ -14,7 +29,9 @@ package aurelienribon.tweenengine;
  * @see Timeline
  * @author Aurelien Ribon | http://www.aurelienribon.com/
  */
-public abstract class BaseTween<T> {
+@SuppressWarnings("unused")
+public
+abstract class BaseTween<T> {
 	// General
 	private int step;
 	private int repeatCnt;
@@ -44,7 +61,8 @@ public abstract class BaseTween<T> {
 
 	// -------------------------------------------------------------------------
 
-	protected void reset() {
+	protected
+    void reset() {
 		step = -2;
 		repeatCnt = 0;
 		isIterationStep = isYoyo = false;
@@ -70,7 +88,9 @@ public abstract class BaseTween<T> {
 	 *
 	 * @return The current object, for chaining instructions.
 	 */
-	public T build() {
+    @SuppressWarnings("unchecked")
+	public
+    T build() {
 		return (T) this;
 	}
 
@@ -81,7 +101,9 @@ public abstract class BaseTween<T> {
 	 *
 	 * @return The current object, for chaining instructions.
 	 */
-	public T start() {
+	@SuppressWarnings("unchecked")
+    public
+    T start() {
 		build();
 		currentTime = 0;
 		isStarted = true;
@@ -94,7 +116,9 @@ public abstract class BaseTween<T> {
 	 *
 	 * @return The current object, for chaining instructions.
 	 */
-	public T start(TweenManager manager) {
+    @SuppressWarnings("unchecked")
+	public
+    T start(TweenManager manager) {
 		manager.add(this);
 		return (T) this;
 	}
@@ -105,7 +129,9 @@ public abstract class BaseTween<T> {
 	 * @param delay A duration.
 	 * @return The current object, for chaining instructions.
 	 */
-	public T delay(float delay) {
+    @SuppressWarnings("unchecked")
+	public
+    T delay(float delay) {
 		this.delay += delay;
 		return (T) this;
 	}
@@ -114,29 +140,33 @@ public abstract class BaseTween<T> {
 	 * Kills the tween or timeline. If you are using a TweenManager, this object
 	 * will be removed automatically.
 	 */
-	public void kill() {
+	public
+    void kill() {
 		isKilled = true;
 	}
 
 	/**
 	 * Stops and resets the tween or timeline, and sends it to its pool, for
-+	 * later reuse. Note that if you use a {@link TweenManager}, this method
-+	 * is automatically called once the animation is finished.
+	 * later reuse. Note that if you use a {@link TweenManager}, this method
+	 * is automatically called once the animation is finished.
 	 */
-	public void free() {
+	public
+    void free() {
 	}
 
 	/**
 	 * Pauses the tween or timeline. Further update calls won't have any effect.
 	 */
-	public void pause() {
+	public
+    void pause() {
 		isPaused = true;
 	}
 
 	/**
 	 * Resumes the tween or timeline. Has no effect is it was no already paused.
 	 */
-	public void resume() {
+	public
+    void resume() {
 		isPaused = false;
 	}
 
@@ -148,7 +178,9 @@ public abstract class BaseTween<T> {
 	 * @param delay A delay between each iteration.
 	 * @return The current tween or timeline, for chaining instructions.
 	 */
-	public T repeat(int count, float delay) {
+    @SuppressWarnings("unchecked")
+	public
+    T repeat(int count, float delay) {
 		if (isStarted) throw new RuntimeException("You can't change the repetitions of a tween or timeline once it is started");
 		repeatCnt = count;
 		repeatDelay = delay >= 0 ? delay : 0;
@@ -165,7 +197,9 @@ public abstract class BaseTween<T> {
 	 * @param delay A delay before each repetition.
 	 * @return The current tween or timeline, for chaining instructions.
 	 */
-	public T repeatYoyo(int count, float delay) {
+    @SuppressWarnings("unchecked")
+	public
+    T repeatYoyo(int count, float delay) {
 		if (isStarted) throw new RuntimeException("You can't change the repetitions of a tween or timeline once it is started");
 		repeatCnt = count;
 		repeatDelay = delay >= 0 ? delay : 0;
@@ -176,11 +210,13 @@ public abstract class BaseTween<T> {
 	/**
 	 * Sets the callback. By default, it will be fired at the completion of the
 	 * tween or timeline (event COMPLETE). If you want to change this behavior
-	 * and add more triggers, use the {@link setCallbackTriggers()} method.
+	 * and add more triggers, use the {@link BaseTween#setCallbackTriggers(int)} method.
 	 *
 	 * @see TweenCallback
 	 */
-	public T setCallback(TweenCallback callback) {
+    @SuppressWarnings("unchecked")
+	public
+    T setCallback(TweenCallback callback) {
 		this.callback = callback;
 		return (T) this;
 	}
@@ -211,7 +247,9 @@ public abstract class BaseTween<T> {
 	 * @param flags one or more triggers, separated by the '|' operator.
 	 * @see TweenCallback
 	 */
-	public T setCallbackTriggers(int flags) {
+    @SuppressWarnings("unchecked")
+	public
+    T setCallbackTriggers(int flags) {
 		this.callbackTriggers = flags;
 		return (T) this;
 	}
@@ -223,7 +261,9 @@ public abstract class BaseTween<T> {
 	 * @param data Any kind of object.
 	 * @return The current tween or timeline, for chaining instructions.
 	 */
-	public T setUserData(Object data) {
+    @SuppressWarnings("unchecked")
+	public
+    T setUserData(Object data) {
 		userData = data;
 		return (T) this;
 	}
@@ -236,28 +276,32 @@ public abstract class BaseTween<T> {
 	 * Gets the delay of the tween or timeline. Nothing will happen before
 	 * this delay.
 	 */
-	public float getDelay() {
+	public
+    float getDelay() {
 		return delay;
 	}
 
 	/**
 	 * Gets the duration of a single iteration.
 	 */
-	public float getDuration() {
+	public
+    float getDuration() {
 		return duration;
 	}
 
 	/**
 	 * Gets the number of iterations that will be played.
 	 */
-	public int getRepeatCount() {
+	public
+    int getRepeatCount() {
 		return repeatCnt;
 	}
 
 	/**
-	 * Gets the delay occuring between two iterations.
+	 * Gets the delay occurring between two iterations.
 	 */
-	public float getRepeatDelay() {
+	public
+    float getRepeatDelay() {
 		return repeatDelay;
 	}
 
@@ -268,7 +312,8 @@ public abstract class BaseTween<T> {
 	 * fullDuration = delay + duration + (repeatDelay + duration) * repeatCnt
 	 * </pre>
 	 */
-	public float getFullDuration() {
+	public
+    float getFullDuration() {
 		if (repeatCnt < 0) return -1;
 		return delay + duration + (repeatDelay + duration) * repeatCnt;
 	}
@@ -276,7 +321,8 @@ public abstract class BaseTween<T> {
 	/**
 	 * Gets the attached data, or null if none.
 	 */
-	public Object getUserData() {
+	public
+    Object getUserData() {
 		return userData;
 	}
 
@@ -289,21 +335,24 @@ public abstract class BaseTween<T> {
 	 * <li>-1 means that we are before the first iteration,<br/>
 	 * <li>repeatCount*2 + 1 means that we are after the last iteration
 	 */
-	public int getStep() {
+	public
+    int getStep() {
 		return step;
 	}
 
 	/**
 	 * Gets the local time.
 	 */
-	public float getCurrentTime() {
+	public
+    float getCurrentTime() {
 		return currentTime;
 	}
 
 	/**
 	 * Returns true if the tween or timeline has been started.
 	 */
-	public boolean isStarted() {
+	public
+    boolean isStarted() {
 		return isStarted;
 	}
 
@@ -312,16 +361,18 @@ public abstract class BaseTween<T> {
 	 * values for tweens are stored at initialization time. This initialization
 	 * takes place right after the initial delay, if any.
 	 */
-	public boolean isInitialized() {
+	public
+    boolean isInitialized() {
 		return isInitialized;
 	}
 
 	/**
 	 * Returns true if the tween is finished (i.e. if the tween has reached
 	 * its end or has been killed). If you don't use a TweenManager, you may
-	 * want to call {@link free()} to reuse the object later.
+	 * want to call {@link BaseTween#free()} to reuse the object later.
 	 */
-	public boolean isFinished() {
+	public
+    boolean isFinished() {
 		return isFinished || isKilled;
 	}
 
@@ -329,14 +380,16 @@ public abstract class BaseTween<T> {
 	 * Returns true if the iterations are played as yoyo. Yoyo means that
 	 * every two iterations, the animation will be played backwards.
 	 */
-	public boolean isYoyo() {
+	public
+    boolean isYoyo() {
 		return isYoyo;
 	}
 
 	/**
 	 * Returns true if the tween or timeline is currently paused.
 	 */
-	public boolean isPaused() {
+	public
+    boolean isPaused() {
 		return isPaused;
 	}
 
@@ -344,23 +397,32 @@ public abstract class BaseTween<T> {
 	// Abstract API
 	// -------------------------------------------------------------------------
 
-	protected abstract void forceStartValues();
-	protected abstract void forceEndValues();
+    protected abstract
+    void forceStartValues();
 
-	protected abstract boolean containsTarget(Object target);
-	protected abstract boolean containsTarget(Object target, int tweenType);
+    protected abstract
+    void forceEndValues();
+
+    protected abstract
+    boolean containsTarget(Object target);
+
+    protected abstract
+    boolean containsTarget(Object target, int tweenType);
 
 	// -------------------------------------------------------------------------
 	// Protected API
 	// -------------------------------------------------------------------------
 
-	protected void initializeOverride() {
+	protected
+    void initializeOverride() {
 	}
 
-	protected void updateOverride(int step, int lastStep, boolean isIterationStep, float delta) {
+	protected
+    void updateOverride(int step, int lastStep, boolean isIterationStep, float delta) {
 	}
 
-	protected void forceToStart() {
+	protected
+    void forceToStart() {
 		currentTime = -delay;
 		step = -1;
 		isIterationStep = false;
@@ -368,7 +430,8 @@ public abstract class BaseTween<T> {
 		else forceStartValues();
 	}
 
-	protected void forceToEnd(float time) {
+	protected
+    void forceToEnd(float time) {
 		currentTime = time - getFullDuration();
 		step = repeatCnt*2 + 1;
 		isIterationStep = false;
@@ -376,23 +439,29 @@ public abstract class BaseTween<T> {
 		else forceEndValues();
 	}
 
-	protected void callCallback(int type) {
+	protected
+    void callCallback(int type) {
 		if (callback != null && (callbackTriggers & type) > 0) callback.onEvent(type, this);
 	}
 
-	protected boolean isReverse(int step) {
+	protected
+    boolean isReverse(int step) {
 		return isYoyo && Math.abs(step%4) == 2;
 	}
 
-	protected boolean isValid(int step) {
+	protected
+    boolean isValid(int step) {
 		return (step >= 0 && step <= repeatCnt*2) || repeatCnt < 0;
 	}
 
-	protected void killTarget(Object target) {
+	protected
+    void killTarget(Object target) {
 		if (containsTarget(target)) kill();
 	}
 
-	protected void killTarget(Object target, int tweenType) {
+
+	protected
+    void killTarget(Object target, int tweenType) {
 		if (containsTarget(target, tweenType)) kill();
 	}
 
@@ -410,7 +479,8 @@ public abstract class BaseTween<T> {
 	 *
 	 * @param delta A delta time between now and the last call.
 	 */
-	public void update(float delta) {
+	public
+    void update(float delta) {
 		if (!isStarted || isPaused || isKilled) return;
 
 		deltaTime = delta;
@@ -429,7 +499,8 @@ public abstract class BaseTween<T> {
 		deltaTime = 0;
 	}
 
-	private void initialize() {
+	private
+    void initialize() {
 		if (currentTime+deltaTime >= delay) {
 			initializeOverride();
 			isInitialized = true;
@@ -442,7 +513,8 @@ public abstract class BaseTween<T> {
 		}
 	}
 
-	private void testRelaunch() {
+	private
+    void testRelaunch() {
 		if (!isIterationStep && repeatCnt >= 0 && step < 0 && currentTime+deltaTime >= 0) {
 			assert step == -1;
 			isIterationStep = true;
@@ -467,7 +539,8 @@ public abstract class BaseTween<T> {
 		}
 	}
 
-	private void updateStep() {
+	private
+    void updateStep() {
 		while (isValid(step)) {
 			if (!isIterationStep && currentTime+deltaTime <= 0) {
 				isIterationStep = true;
@@ -537,7 +610,8 @@ public abstract class BaseTween<T> {
 		}
 	}
 
-	private void testCompletion() {
+	private
+    void testCompletion() {
 		isFinished = repeatCnt >= 0 && (step > repeatCnt*2 || step < 0);
 	}
 }

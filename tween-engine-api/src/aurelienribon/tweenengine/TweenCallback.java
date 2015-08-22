@@ -1,3 +1,18 @@
+/*
+ * Copyright 2012 Aurelien Ribon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package aurelienribon.tweenengine;
 
 /**
@@ -28,18 +43,20 @@ package aurelienribon.tweenengine;
  * @see Timeline
  * @author Aurelien Ribon | http://www.aurelienribon.com/
  */
-public interface TweenCallback {
-	public static final int BEGIN = 0x01;
-	public static final int START = 0x02;
-	public static final int END = 0x04;
-	public static final int COMPLETE = 0x08;
-	public static final int BACK_BEGIN = 0x10;
-	public static final int BACK_START = 0x20;
-	public static final int BACK_END = 0x40;
-	public static final int BACK_COMPLETE = 0x80;
-	public static final int ANY_FORWARD = 0x0F;
-	public static final int ANY_BACKWARD = 0xF0;
-	public static final int ANY = 0xFF;
+@SuppressWarnings("unused")
+public
+interface TweenCallback {
+	int BEGIN = 0x01;
+	int START = 0x02;
+	int END = 0x04;
+	int COMPLETE = 0x08;
+	int BACK_BEGIN = 0x10;
+	int BACK_START = 0x20;
+	int BACK_END = 0x40;
+	int BACK_COMPLETE = 0x80;
+	int ANY_FORWARD = 0x0F;
+	int ANY_BACKWARD = 0xF0;
+	int ANY = 0xFF;
 
-	public void onEvent(int type, BaseTween<?> source);
+	void onEvent(int type, BaseTween<?> source);
 }

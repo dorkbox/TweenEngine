@@ -1,3 +1,18 @@
+/*
+ * Copyright 2012 Aurelien Ribon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package aurelienribon.tweenengine;
 
 /**
@@ -57,7 +72,8 @@ package aurelienribon.tweenengine;
  *
  * @author Aurelien Ribon | http://www.aurelienribon.com/
  */
-public interface TweenAccessor<T> {
+public
+interface TweenAccessor<T> {
 	/**
 	 * Gets one or many values from the target object associated to the
 	 * given tween type. It is used by the Tween Engine to determine starting
@@ -68,7 +84,7 @@ public interface TweenAccessor<T> {
 	 * @param returnValues An array which should be modified by this method.
 	 * @return The count of modified slots from the returnValues array.
 	 */
-	public int getValues(T target, int tweenType, float[] returnValues);
+    int getValues(T target, int tweenType, float[] returnValues);
 
 	/**
 	 * This method is called by the Tween Engine each time a running tween
@@ -78,5 +94,5 @@ public interface TweenAccessor<T> {
 	 * @param tweenType An integer representing the tween type.
 	 * @param newValues The new values determined by the Tween Engine.
 	 */
-	public void setValues(T target, int tweenType, float[] newValues);
+    void setValues(T target, int tweenType, float[] newValues);
 }

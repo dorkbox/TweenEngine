@@ -17,6 +17,7 @@ import java.util.List;
  * @see Timeline
  * @author Aurelien Ribon | http://www.aurelienribon.com/
  */
+@SuppressWarnings("unused")
 public class TweenManager {
 	// -------------------------------------------------------------------------
 	// Static API

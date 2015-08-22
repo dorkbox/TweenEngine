@@ -1,3 +1,18 @@
+/*
+ * Copyright 2012 Aurelien Ribon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package aurelienribon.tweenengine;
 
 import java.util.ArrayList;
@@ -43,32 +58,49 @@ import java.util.List;
  * @see TweenCallback
  * @author Aurelien Ribon | http://www.aurelienribon.com/
  */
-public final class Timeline extends BaseTween<Timeline> {
+@SuppressWarnings("unused")
+public final
+class Timeline extends BaseTween<Timeline> {
 	// -------------------------------------------------------------------------
 	// Static -- pool
 	// -------------------------------------------------------------------------
 
-	private static final Pool.Callback<Timeline> poolCallback = new Pool.Callback<Timeline>() {
-		@Override public void onPool(Timeline obj) {obj.reset();}
-		@Override public void onUnPool(Timeline obj) {obj.reset();}
-	};
+    private static final Pool.Callback<Timeline> poolCallback = new Pool.Callback<Timeline>() {
+        @Override
+        public
+        void onPool(Timeline obj) {
+            obj.reset();
+        }
 
-	static final Pool<Timeline> pool = new Pool<Timeline>(10, poolCallback) {
-		@Override protected Timeline create() {return new Timeline();}
-	};
+        @Override
+        public
+        void onUnPool(Timeline obj) {
+            obj.reset();
+        }
+    };
+
+    static final Pool<Timeline> pool = new Pool<Timeline>(10, poolCallback) {
+        @Override
+        protected
+        Timeline create() {
+            return new Timeline();
+        }
+    };
 
 	/**
 	 * Used for debug purpose. Gets the current number of empty timelines that
 	 * are waiting in the Timeline pool.
 	 */
-	public static int getPoolSize() {
+	public static
+    int getPoolSize() {
 		return pool.size();
 	}
 
 	/**
 	 * Increases the minimum capacity of the pool. Capacity defaults to 10.
 	 */
-	public static void ensurePoolCapacity(int minCapacity) {
+	public static
+    void ensurePoolCapacity(int minCapacity) {
 		pool.ensureCapacity(minCapacity);
 	}
 
@@ -80,7 +112,8 @@ public final class Timeline extends BaseTween<Timeline> {
 	 * Creates a new timeline with a 'sequence' behavior. Its children will
 	 * be delayed so that they are triggered one after the other.
 	 */
-	public static Timeline createSequence() {
+	public static
+    Timeline createSequence() {
 		Timeline tl = pool.get();
 		tl.setup(Modes.SEQUENCE);
 		return tl;
@@ -90,7 +123,8 @@ public final class Timeline extends BaseTween<Timeline> {
 	 * Creates a new timeline with a 'parallel' behavior. Its children will be
 	 * triggered all at once.
 	 */
-	public static Timeline createParallel() {
+	public static
+    Timeline createParallel() {
 		Timeline tl = pool.get();
 		tl.setup(Modes.PARALLEL);
 		return tl;
@@ -112,12 +146,13 @@ public final class Timeline extends BaseTween<Timeline> {
 	// Setup
 	// -------------------------------------------------------------------------
 
-	private Timeline() {
+	Timeline() {
 		reset();
 	}
 
 	@Override
-	protected void reset() {
+	protected
+    void reset() {
 		super.reset();
 
 		children.clear();
@@ -126,7 +161,8 @@ public final class Timeline extends BaseTween<Timeline> {
 		isBuilt = false;
 	}
 
-	private void setup(Modes mode) {
+	private
+    void setup(Modes mode) {
 		this.mode = mode;
 		this.current = this;
 	}
@@ -140,7 +176,8 @@ public final class Timeline extends BaseTween<Timeline> {
 	 *
 	 * @return The current timeline, for chaining instructions.
 	 */
-	public Timeline push(Tween tween) {
+	public
+    Timeline push(Tween tween) {
 		if (isBuilt) throw new RuntimeException("You can't push anything to a timeline once it is started");
 		current.children.add(tween);
 		return this;
@@ -151,7 +188,8 @@ public final class Timeline extends BaseTween<Timeline> {
 	 *
 	 * @return The current timeline, for chaining instructions.
 	 */
-	public Timeline push(Timeline timeline) {
+	public
+    Timeline push(Timeline timeline) {
 		if (isBuilt) throw new RuntimeException("You can't push anything to a timeline once it is started");
 		if (timeline.current != timeline) throw new RuntimeException("You forgot to call a few 'end()' statements in your pushed timeline");
 		timeline.parent = current;
@@ -166,7 +204,8 @@ public final class Timeline extends BaseTween<Timeline> {
 	 * @param time A positive or negative duration.
 	 * @return The current timeline, for chaining instructions.
 	 */
-	public Timeline pushPause(float time) {
+	public
+    Timeline pushPause(float time) {
 		if (isBuilt) throw new RuntimeException("You can't push anything to a timeline once it is started");
 		current.children.add(Tween.mark().delay(time));
 		return this;
@@ -174,11 +213,12 @@ public final class Timeline extends BaseTween<Timeline> {
 
 	/**
 	 * Starts a nested timeline with a 'sequence' behavior. Don't forget to
-	 * call {@link end()} to close this nested timeline.
+	 * call {@link Timeline#end()} to close this nested timeline.
 	 *
 	 * @return The current timeline, for chaining instructions.
 	 */
-	public Timeline beginSequence() {
+	public
+    Timeline beginSequence() {
 		if (isBuilt) throw new RuntimeException("You can't push anything to a timeline once it is started");
 		Timeline tl = pool.get();
 		tl.parent = current;
@@ -190,11 +230,12 @@ public final class Timeline extends BaseTween<Timeline> {
 
 	/**
 	 * Starts a nested timeline with a 'parallel' behavior. Don't forget to
-	 * call {@link end()} to close this nested timeline.
+	 * call {@link Timeline#end()} to close this nested timeline.
 	 *
 	 * @return The current timeline, for chaining instructions.
 	 */
-	public Timeline beginParallel() {
+	public
+    Timeline beginParallel() {
 		if (isBuilt) throw new RuntimeException("You can't push anything to a timeline once it is started");
 		Timeline tl = pool.get();
 		tl.parent = current;
@@ -209,7 +250,8 @@ public final class Timeline extends BaseTween<Timeline> {
 	 *
 	 * @return The current timeline, for chaining instructions.
 	 */
-	public Timeline end() {
+	public
+    Timeline end() {
 		if (isBuilt) throw new RuntimeException("You can't push anything to a timeline once it is started");
 		if (current == this) throw new RuntimeException("Nothing to end...");
 		current = current.parent;
@@ -220,7 +262,8 @@ public final class Timeline extends BaseTween<Timeline> {
 	 * Gets a list of the timeline children. If the timeline is started, the
 	 * list will be immutable.
 	 */
-	public List<BaseTween<?>> getChildren() {
+	public
+    List<BaseTween<?>> getChildren() {
 		if (isBuilt) return Collections.unmodifiableList(current.children);
 		else return current.children;
 	}
@@ -230,7 +273,8 @@ public final class Timeline extends BaseTween<Timeline> {
 	// -------------------------------------------------------------------------
 
 	@Override
-	public Timeline build() {
+	public
+    Timeline build() {
 		if (isBuilt) return this;
 
 		duration = 0;
@@ -259,7 +303,8 @@ public final class Timeline extends BaseTween<Timeline> {
 	}
 
 	@Override
-	public Timeline start() {
+	public
+    Timeline start() {
 		super.start();
 
 		for (int i=0; i<children.size(); i++) {
@@ -271,7 +316,8 @@ public final class Timeline extends BaseTween<Timeline> {
 	}
 
 	@Override
-	public void free() {
+	public
+    void free() {
 		for (int i=children.size()-1; i>=0; i--) {
 			BaseTween<?> obj = children.remove(i);
 			obj.free();
@@ -281,7 +327,8 @@ public final class Timeline extends BaseTween<Timeline> {
 	}
 
 	@Override
-	protected void updateOverride(int step, int lastStep, boolean isIterationStep, float delta) {
+	protected
+    void updateOverride(int step, int lastStep, boolean isIterationStep, float delta) {
 		if (!isIterationStep && step > lastStep) {
 			assert delta >= 0;
 			float dt = isReverse(lastStep) ? -delta-1 : delta+1;
@@ -328,7 +375,8 @@ public final class Timeline extends BaseTween<Timeline> {
 	// -------------------------------------------------------------------------
 
 	@Override
-	protected void forceStartValues() {
+	protected
+    void forceStartValues() {
 		for (int i=children.size()-1; i>=0; i--) {
 			BaseTween<?> obj = children.get(i);
 			obj.forceToStart();
@@ -336,15 +384,18 @@ public final class Timeline extends BaseTween<Timeline> {
 	}
 
 	@Override
-	protected void forceEndValues() {
+	protected
+    void forceEndValues() {
+        final float duration = this.duration;
 		for (int i=0, n=children.size(); i<n; i++) {
 			BaseTween<?> obj = children.get(i);
-			obj.forceToEnd(duration);
+            obj.forceToEnd(duration);
 		}
 	}
 
 	@Override
-	protected boolean containsTarget(Object target) {
+	protected
+    boolean containsTarget(Object target) {
 		for (int i=0, n=children.size(); i<n; i++) {
 			BaseTween<?> obj = children.get(i);
 			if (obj.containsTarget(target)) return true;
@@ -353,7 +404,8 @@ public final class Timeline extends BaseTween<Timeline> {
 	}
 
 	@Override
-	protected boolean containsTarget(Object target, int tweenType) {
+	protected
+    boolean containsTarget(Object target, int tweenType) {
 		for (int i=0, n=children.size(); i<n; i++) {
 			BaseTween<?> obj = children.get(i);
 			if (obj.containsTarget(target, tweenType)) return true;
