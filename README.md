@@ -116,10 +116,10 @@ A test executable can be found in the download section. Its source code, in the 
 Detailed documentation with code snippets and examples is available for the following topics:
   * [Get started](https://github.com/dorkbox/TweenEngine/wiki/GetStarted) --- A step-by-step example to get you started, with code
 
-  * [The TweenAccessor interface](TweenAccessor) --- Know how to implement it
-  * [Tweens and options](Tween) --- See what are the possibilities
-  * [Timelines and options](Timeline) --- Learn how to build powerful sequences
-  * [Animating Android apps](AndroidUI) --- See how to use the TweenEngine with Android UIs
+  * [The TweenAccessor interface](https://github.com/dorkbox/TweenEngine/wiki/TweenAccessor) --- Know how to implement it
+  * [Tweens and options](https://github.com/dorkbox/TweenEngine/wiki/Tween) --- See what are the possibilities
+  * [Timelines and options](https://github.com/dorkbox/TweenEngine/wiki/Timeline) --- Learn how to build powerful sequences
+  * [Animating Android apps](https://github.com/dorkbox/TweenEngine/wiki/AndroidUI) --- See how to use the TweenEngine with Android UIs
 
 # Where can I ask for help? #
 
