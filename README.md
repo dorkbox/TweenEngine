@@ -114,7 +114,7 @@ A test executable can be found in the download section. Its source code, in the 
 # Get started and documentation index #
 
 Detailed documentation with code snippets and examples is available for the following topics:
-  * [Get started](GetStarted) --- A step-by-step example to get you started, with code
+  * [Get started](https://github.com/dorkbox/TweenEngine/wiki/GetStarted) --- A step-by-step example to get you started, with code
 
   * [The TweenAccessor interface](TweenAccessor) --- Know how to implement it
   * [Tweens and options](Tween) --- See what are the possibilities
