@@ -29,8 +29,8 @@ class Sine extends TweenEquation {
     public static final Sine IN = new Sine() {
         @Override
         public
-        float compute(float t) {
-            return (float) -Math.cos(t * (PI / 2)) + 1;
+        float compute(float time) {
+            return (float) -Math.cos(time * (PI / 2)) + 1;
         }
 
         @Override
@@ -43,8 +43,8 @@ class Sine extends TweenEquation {
     public static final Sine OUT = new Sine() {
         @Override
         public
-        float compute(float t) {
-            return (float) Math.sin(t * (PI / 2));
+        float compute(float time) {
+            return (float) Math.sin(time * (PI / 2));
         }
 
         @Override
@@ -57,8 +57,8 @@ class Sine extends TweenEquation {
     public static final Sine INOUT = new Sine() {
         @Override
         public
-        float compute(float t) {
-            return -0.5f * ((float) Math.cos(PI * t) - 1);
+        float compute(float time) {
+            return -0.5f * ((float) Math.cos(PI * time) - 1);
         }
 
         @Override

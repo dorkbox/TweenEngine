@@ -30,13 +30,13 @@ class Elastic extends TweenEquation {
     public static final Elastic IN = new Elastic() {
         @Override
         public
-        float compute(float t) {
+        float compute(float time) {
             float a = param_a;
             float p = param_p;
-            if (t == 0) {
+            if (time == 0) {
                 return 0;
             }
-            if (t == 1) {
+            if (time == 1) {
                 return 1;
             }
             if (!setP) {
@@ -50,7 +50,7 @@ class Elastic extends TweenEquation {
             else {
                 s = p / (2 * PI) * (float) Math.asin(1 / a);
             }
-            return -(a * (float) Math.pow(2, 10 * (t -= 1)) * (float) Math.sin((t - s) * (2 * PI) / p));
+            return -(a * (float) Math.pow(2, 10 * (time -= 1)) * (float) Math.sin((time - s) * (2 * PI) / p));
         }
 
         @Override
@@ -63,13 +63,13 @@ class Elastic extends TweenEquation {
     public static final Elastic OUT = new Elastic() {
         @Override
         public
-        float compute(float t) {
+        float compute(float time) {
             float a = param_a;
             float p = param_p;
-            if (t == 0) {
+            if (time == 0) {
                 return 0;
             }
-            if (t == 1) {
+            if (time == 1) {
                 return 1;
             }
             if (!setP) {
@@ -83,7 +83,7 @@ class Elastic extends TweenEquation {
             else {
                 s = p / (2 * PI) * (float) Math.asin(1 / a);
             }
-            return a * (float) Math.pow(2, -10 * t) * (float) Math.sin((t - s) * (2 * PI) / p) + 1;
+            return a * (float) Math.pow(2, -10 * time) * (float) Math.sin((time - s) * (2 * PI) / p) + 1;
         }
 
         @Override
@@ -96,13 +96,13 @@ class Elastic extends TweenEquation {
     public static final Elastic INOUT = new Elastic() {
         @Override
         public
-        float compute(float t) {
+        float compute(float time) {
             float a = param_a;
             float p = param_p;
-            if (t == 0) {
+            if (time == 0) {
                 return 0;
             }
-            if ((t *= 2) == 2) {
+            if ((time *= 2) == 2) {
                 return 1;
             }
             if (!setP) {
@@ -116,10 +116,10 @@ class Elastic extends TweenEquation {
             else {
                 s = p / (2 * PI) * (float) Math.asin(1 / a);
             }
-            if (t < 1) {
-                return -.5f * (a * (float) Math.pow(2, 10 * (t -= 1)) * (float) Math.sin((t - s) * (2 * PI) / p));
+            if (time < 1) {
+                return -.5f * (a * (float) Math.pow(2, 10 * (time -= 1)) * (float) Math.sin((time - s) * (2 * PI) / p));
             }
-            return a * (float) Math.pow(2, -10 * (t -= 1)) * (float) Math.sin((t - s) * (2 * PI) / p) * .5f + 1;
+            return a * (float) Math.pow(2, -10 * (time -= 1)) * (float) Math.sin((time - s) * (2 * PI) / p) * .5f + 1;
         }
 
         @Override

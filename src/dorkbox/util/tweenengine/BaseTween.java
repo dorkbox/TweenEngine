@@ -110,7 +110,7 @@ abstract class BaseTween<T> {
      */
     @SuppressWarnings("unchecked")
     public
-    T addCallback(TweenCallback callback) {
+    T addCallback(final TweenCallback callback) {
         this.callbacks.add(callback);
         return (T) this;
     }
@@ -144,11 +144,12 @@ abstract class BaseTween<T> {
 	 * Adds a delay to the tween or timeline in seconds.
 	 *
 	 * @param delay A duration in seconds, for example .2F for 200 milliseconds.
+     *
 	 * @return The current object, for chaining instructions.
 	 */
     @SuppressWarnings("unchecked")
 	public
-    T delay(float delay) {
+    T delay(final float delay) {
 		this.delay += delay;
 		return (T) this;
 	}
@@ -197,7 +198,7 @@ abstract class BaseTween<T> {
 	 */
     @SuppressWarnings("unchecked")
 	public
-    T repeat(int count, float delay) {
+    T repeat(final int count, final float delay) {
         if (isStarted) {
             throw new RuntimeException("You can't change the repetitions of a tween or timeline once it is started");
         }
@@ -218,7 +219,7 @@ abstract class BaseTween<T> {
 	 */
     @SuppressWarnings("unchecked")
 	public
-    T repeatYoyo(int count, float delay) {
+    T repeatYoyo(final int count, final float delay) {
         if (isStarted) {
             throw new RuntimeException("You can't change the repetitions of a tween or timeline once it is started");
         }
@@ -237,7 +238,7 @@ abstract class BaseTween<T> {
 	 */
     @SuppressWarnings("unchecked")
 	public
-    T setUserData(Object data) {
+    T setUserData(final Object data) {
 		userData = data;
 		return (T) this;
 	}
@@ -279,7 +280,7 @@ abstract class BaseTween<T> {
      */
     @SuppressWarnings("unchecked")
     public
-    T start(TweenManager manager) {
+    T start(final TweenManager manager) {
         manager.add(this);
         return (T) this;
     }
@@ -422,10 +423,10 @@ abstract class BaseTween<T> {
     void forceEndValues();
 
     protected abstract
-    boolean containsTarget(Object target);
+    boolean containsTarget(final Object target);
 
     protected abstract
-    boolean containsTarget(Object target, int tweenType);
+    boolean containsTarget(final Object target, final int tweenType);
 
 	// -------------------------------------------------------------------------
 	// Protected API
@@ -436,7 +437,7 @@ abstract class BaseTween<T> {
 	}
 
 	protected
-    void updateOverride(int step, int lastStep, boolean isIterationStep, float delta) {
+    void updateOverride(final int step, final int lastStep, final boolean isIterationStep, final float delta) {
 	}
 
 	protected
@@ -454,7 +455,7 @@ abstract class BaseTween<T> {
     }
 
 	protected
-    void forceToEnd(float time) {
+    void forceToEnd(final float time) {
         currentTime = time - getFullDuration();
         int count = repeatCount << 1;
 
@@ -471,9 +472,8 @@ abstract class BaseTween<T> {
 
 	@SuppressWarnings("Convert2streamapi")
     protected
-    void callCallbacks(int type) {
-        int size = callbacks.size();
-        for (int i = 0; i < size; i++) {
+    void callCallbacks(final int type) {
+        for (int i = 0, n = callbacks.size(); i < n; i++) {
             final TweenCallback callback = callbacks.get(i);
             if ((callback.triggers & type) > 0) {
                 callback.onEvent(type, this);
@@ -485,7 +485,7 @@ abstract class BaseTween<T> {
      * @return true if the step is in the middle of the "backwards" yoyo iteration
      */
     public final
-    boolean isYoyoReverse(int step) {
+    boolean isYoyoReverse(final int step) {
         return isYoyo && Math.abs(step % 4) == 2;
     }
 
@@ -493,17 +493,17 @@ abstract class BaseTween<T> {
      * @return true if the step is in the middle of an iteration. See {@link BaseTween#getStep()}
      */
     public final
-    boolean isInIteration(int step) {
+    boolean isInIteration(final int step) {
         return Math.abs(step % 2) == 0;
     }
 
     protected
-    boolean isValid(int step) {
+    boolean isValid(final int step) {
         return repeatCount < 0 || (step >= 0 && step <= repeatCount << 1);
     }
 
     protected
-    void killTarget(Object target) {
+    void killTarget(final Object target) {
         if (containsTarget(target)) {
             kill();
         }
@@ -511,7 +511,7 @@ abstract class BaseTween<T> {
 
 
     protected
-    void killTarget(Object target, int tweenType) {
+    void killTarget(final Object target, final int tweenType) {
         if (containsTarget(target, tweenType)) {
             kill();
         }

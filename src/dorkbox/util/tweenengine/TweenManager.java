@@ -36,21 +36,23 @@ class TweenManager {
 	 * Therefore, if you update a manager backwards, the tweens or timelines
 	 * will be played again, even if they were finished.
 	 */
-    public static void setAutoRemove(BaseTween<?> object, boolean value) {
-		object.isAutoRemoveEnabled = value;
-	}
+    public static
+    void setAutoRemove(final BaseTween<?> object, final boolean value) {
+        object.isAutoRemoveEnabled = value;
+    }
 
-	/**
+    /**
 	 * Disables or enables the "auto start" mode of any tween manager for a
 	 * particular tween or timeline. This mode is activated by default. If it
 	 * is not enabled, add a tween or timeline to any manager won't start it
 	 * automatically, and you'll need to call .start() manually on your object.
 	 */
-	public static void setAutoStart(BaseTween<?> object, boolean value) {
-		object.isAutoStartEnabled = value;
-	}
+    public static
+    void setAutoStart(final BaseTween<?> object, final boolean value) {
+        object.isAutoStartEnabled = value;
+    }
 
-	// -------------------------------------------------------------------------
+    // -------------------------------------------------------------------------
 	// Public API
 	// -------------------------------------------------------------------------
 
@@ -62,7 +64,8 @@ class TweenManager {
 	 *
 	 * @return The manager, for instruction chaining.
 	 */
-	public TweenManager add(BaseTween<?> object) {
+	public
+    TweenManager add(final BaseTween<?> object) {
         if (!objects.contains(object)) {
             objects.add(object);
         }
@@ -77,24 +80,24 @@ class TweenManager {
 	 * to the given target object.
 	 */
 	public
-    boolean containsTarget(Object target) {
+    boolean containsTarget(final Object target) {
         for (int i = 0, n = objects.size(); i < n; i++) {
-            BaseTween<?> obj = objects.get(i);
+            final BaseTween<?> obj = objects.get(i);
             if (obj.containsTarget(target)) {
                 return true;
             }
         }
         return false;
-	}
+    }
 
 	/**
 	 * Returns true if the manager contains any valid interpolation associated
 	 * to the given target object and to the given tween type.
 	 */
 	public
-    boolean containsTarget(Object target, int tweenType) {
+    boolean containsTarget(final Object target, final int tweenType) {
         for (int i = 0, n = objects.size(); i < n; i++) {
-            BaseTween<?> obj = objects.get(i);
+            final BaseTween<?> obj = objects.get(i);
             if (obj.containsTarget(target, tweenType)) {
                 return true;
             }
@@ -108,7 +111,7 @@ class TweenManager {
 	public
     void killAll() {
         for (int i = 0, n = objects.size(); i < n; i++) {
-            BaseTween<?> obj = objects.get(i);
+            final BaseTween<?> obj = objects.get(i);
             obj.kill();
         }
     }
@@ -118,9 +121,9 @@ class TweenManager {
 	 * timelines containing a tween associated to the given target.
 	 */
 	public
-    void killTarget(Object target) {
+    void killTarget(final Object target) {
         for (int i = 0, n = objects.size(); i < n; i++) {
-            BaseTween<?> obj = objects.get(i);
+            final BaseTween<?> obj = objects.get(i);
             obj.killTarget(target);
         }
     }
@@ -131,9 +134,9 @@ class TweenManager {
 	 * target and tween type.
 	 */
 	public
-    void killTarget(Object target, int tweenType) {
+    void killTarget(final Object target, final int tweenType) {
         for (int i = 0, n = objects.size(); i < n; i++) {
-            BaseTween<?> obj = objects.get(i);
+            final BaseTween<?> obj = objects.get(i);
             obj.killTarget(target, tweenType);
         }
     }
@@ -141,7 +144,7 @@ class TweenManager {
 	/**
 	 * Increases the minimum capacity of the manager. Defaults to 20.
 	 */
-	public void ensureCapacity(int minCapacity) {
+	public void ensureCapacity(final int minCapacity) {
 		objects.ensureCapacity(minCapacity);
 	}
 
@@ -174,9 +177,9 @@ class TweenManager {
 	 * backward, or by 0.5 to play it twice slower than its normal speed.
 	 */
 	public
-    void update(float delta) {
+    void update(final float delta) {
         for (int i = objects.size() - 1; i >= 0; i--) {
-            BaseTween<?> obj = objects.get(i);
+            final BaseTween<?> obj = objects.get(i);
             if (obj.isFinished() && obj.isAutoRemoveEnabled) {
                 objects.remove(i);
                 obj.free();
@@ -202,7 +205,7 @@ class TweenManager {
 
 	/**
 	 * Gets the number of managed objects. An object may be a tween or a
-	 * timeline. Note that a timeline only counts for 1 object, since it
+	 * timeline. A timeline only counts for 1 object, since it
 	 * manages its children itself.
 	 * <p/>
 	 * To get the count of running tweens, see {@link #getRunningTweensCount()}.
@@ -249,29 +252,29 @@ class TweenManager {
 	// -------------------------------------------------------------------------
 
     private static
-    int getTweensCount(List<BaseTween<?>> objs) {
-        int cnt = 0;
+    int getTweensCount(final List<BaseTween<?>> objs) {
+        int count = 0;
         for (int i = 0, n = objs.size(); i < n; i++) {
-            BaseTween<?> obj = objs.get(i);
+            final BaseTween<?> obj = objs.get(i);
             if (obj instanceof Tween) {
-                cnt += 1;
+                count += 1;
             }
             else {
-                cnt += getTweensCount(((Timeline) obj).getChildren());
+                count += getTweensCount(((Timeline) obj).getChildren());
             }
         }
-        return cnt;
+        return count;
     }
 
     private static
-    int getTimelinesCount(List<BaseTween<?>> objs) {
-        int cnt = 0;
+    int getTimelinesCount(final List<BaseTween<?>> objs) {
+        int count = 0;
         for (int i = 0, n = objs.size(); i < n; i++) {
-            BaseTween<?> obj = objs.get(i);
+            final BaseTween<?> obj = objs.get(i);
             if (obj instanceof Timeline) {
-                cnt += 1 + getTimelinesCount(((Timeline) obj).getChildren());
+                count += 1 + getTimelinesCount(((Timeline) obj).getChildren());
             }
         }
-        return cnt;
+        return count;
     }
 }

@@ -185,7 +185,7 @@ class Tween extends BaseTween<Tween> {
 	/**
 	 * Increases the minimum capacity of the pool. Capacity defaults to 1024.
 	 */
-	public static void setPoolSize(int poolSize) {
+	public static void setPoolSize(final int poolSize) {
         if (constructorThread != Thread.currentThread()) {
             throw new RuntimeException("Tween pool capacity must be changed during engine initialization!");
         }
@@ -208,7 +208,7 @@ class Tween extends BaseTween<Tween> {
 	 * object of class "someClass".
 	 */
     public static
-    void registerAccessor(Class<?> someClass, TweenAccessor<?> defaultAccessor) {
+    void registerAccessor(final Class<?> someClass, final TweenAccessor<?> defaultAccessor) {
         registeredAccessors.put(someClass, defaultAccessor);
     }
 
@@ -218,7 +218,7 @@ class Tween extends BaseTween<Tween> {
 	 * @param someClass An object class.
 	 */
 	public static
-    TweenAccessor<?> getRegisteredAccessor(Class<?> someClass) {
+    TweenAccessor<?> getRegisteredAccessor(final Class<?> someClass) {
 		return registeredAccessors.get(someClass);
 	}
 
@@ -255,10 +255,11 @@ class Tween extends BaseTween<Tween> {
 	 * @param target The target object of the interpolation.
 	 * @param tweenType The desired type of interpolation, used for TweenAccessor methods.
 	 * @param duration The duration of the interpolation, in seconds.
+     *
 	 * @return The generated Tween.
 	 */
 	public static
-    Tween to(Object target, int tweenType, float duration) {
+    Tween to(final Object target, final int tweenType, final float duration) {
 		Tween tween = pool.takeUninterruptibly();
 		tween.setup(target, tweenType, duration);
 		tween.ease(Quad.INOUT);
@@ -294,10 +295,11 @@ class Tween extends BaseTween<Tween> {
 	 * @param target The target object of the interpolation.
 	 * @param tweenType The desired type of interpolation.
 	 * @param duration The duration of the interpolation, in seconds.
+     *
 	 * @return The generated Tween.
 	 */
 	public static
-    Tween from(Object target, int tweenType, float duration) {
+    Tween from(final Object target, final int tweenType, final float duration) {
 		Tween tween = pool.takeUninterruptibly();
 		tween.setup(target, tweenType, duration);
 		tween.ease(Quad.INOUT);
@@ -336,7 +338,7 @@ class Tween extends BaseTween<Tween> {
 	 * @return The generated Tween.
 	 */
 	public static
-    Tween set(Object target, int tweenType) {
+    Tween set(final Object target, final int tweenType) {
 		Tween tween = pool.takeUninterruptibly();
 		tween.setup(target, tweenType, 0);
 		tween.ease(Quad.INOUT);
@@ -366,7 +368,7 @@ class Tween extends BaseTween<Tween> {
 	 * @see TweenCallback
 	 */
 	public static
-    Tween call(TweenCallback callback) {
+    Tween call(final TweenCallback callback) {
 		Tween tween = pool.takeUninterruptibly();
 		tween.setup(null, -1, 0);
         callback.triggers = TweenCallback.Events.START;
@@ -406,7 +408,7 @@ class Tween extends BaseTween<Tween> {
 	private boolean isFrom;
 	private boolean isRelative;
 	private int combinedAttrsCnt;
-	private int waypointsCnt;
+	private int waypointsCount;
 
 	// Values
 	private final float[] startValues = new float[combinedAttrsLimit];
@@ -439,7 +441,7 @@ class Tween extends BaseTween<Tween> {
 		path = null;
 
 		isFrom = isRelative = false;
-		combinedAttrsCnt = waypointsCnt = 0;
+        combinedAttrsCnt = waypointsCount = 0;
 
 		if (accessorBuffer.length != combinedAttrsLimit) {
 			accessorBuffer = new float[combinedAttrsLimit];
@@ -451,7 +453,7 @@ class Tween extends BaseTween<Tween> {
 	}
 
 	private void
-    setup(Object target, int tweenType, float duration) {
+    setup(final Object target, final int tweenType, final float duration) {
         if (duration < 0) {
             throw new RuntimeException("Duration can't be negative");
         }
@@ -464,7 +466,7 @@ class Tween extends BaseTween<Tween> {
 
 	private
     Class<?> findTargetClass() {
-        Object target = this.target;
+        final Object target = this.target;
 
         if (registeredAccessors.containsKey(target.getClass())) {
             return target.getClass();
@@ -512,7 +514,7 @@ class Tween extends BaseTween<Tween> {
 	 * @see TweenEquations
 	 */
 	public
-    Tween ease(TweenEquation easeEquation) {
+    Tween ease(final TweenEquation easeEquation) {
 		this.equation = easeEquation;
 		return this;
 	}
@@ -523,10 +525,11 @@ class Tween extends BaseTween<Tween> {
 	 * to an interface, for instance.
 	 *
 	 * @param targetClass A class registered with an accessor.
+     *
 	 * @return The current tween, for chaining instructions.
 	 */
 	public
-    Tween cast(Class<?> targetClass) {
+    Tween cast(final Class<?> targetClass) {
         if (isStarted()) {
             throw new RuntimeException("You can't cast the target of a tween once it is started");
         }
@@ -545,10 +548,11 @@ class Tween extends BaseTween<Tween> {
 	 * - end value: param
 	 *
 	 * @param targetValue The target value of the interpolation.
+     *
 	 * @return The current tween, for chaining instructions.
 	 */
 	public
-    Tween target(float targetValue) {
+    Tween target(final float targetValue) {
 		targetValues[0] = targetValue;
 		return this;
 	}
@@ -565,10 +569,11 @@ class Tween extends BaseTween<Tween> {
 	 *
 	 * @param targetValue1 The 1st target value of the interpolation.
 	 * @param targetValue2 The 2nd target value of the interpolation.
+     *
 	 * @return The current tween, for chaining instructions.
 	 */
 	public
-    Tween target(float targetValue1, float targetValue2) {
+    Tween target(final float targetValue1, final float targetValue2) {
 		targetValues[0] = targetValue1;
 		targetValues[1] = targetValue2;
 		return this;
@@ -587,10 +592,11 @@ class Tween extends BaseTween<Tween> {
 	 * @param targetValue1 The 1st target value of the interpolation.
 	 * @param targetValue2 The 2nd target value of the interpolation.
 	 * @param targetValue3 The 3rd target value of the interpolation.
+     *
 	 * @return The current tween, for chaining instructions.
 	 */
 	public
-    Tween target(float targetValue1, float targetValue2, float targetValue3) {
+    Tween target(final float targetValue1, final float targetValue2, final float targetValue3) {
 		targetValues[0] = targetValue1;
 		targetValues[1] = targetValue2;
 		targetValues[2] = targetValue3;
@@ -608,11 +614,12 @@ class Tween extends BaseTween<Tween> {
 	 * - end values: params
 	 *
 	 * @param targetValues The target values of the interpolation.
+     *
 	 * @return The current tween, for chaining instructions.
 	 */
 	public
-    Tween target(float... targetValues) {
-        int length = targetValues.length;
+    Tween target(final float... targetValues) {
+        final int length = targetValues.length;
         if (length > combinedAttrsLimit) {
             throwCombinedAttrsLimitReached();
         }
@@ -630,10 +637,11 @@ class Tween extends BaseTween<Tween> {
 	 * - end value: param + value at start time, after delay
 	 *
 	 * @param targetValue The relative target value of the interpolation.
+     *
 	 * @return The current tween, for chaining instructions.
 	 */
 	public
-    Tween targetRelative(float targetValue) {
+    Tween targetRelative(final float targetValue) {
 		isRelative = true;
 		targetValues[0] = isInitialized() ? targetValue + startValues[0] : targetValue;
 		return this;
@@ -650,10 +658,11 @@ class Tween extends BaseTween<Tween> {
 	 *
 	 * @param targetValue1 The 1st relative target value of the interpolation.
 	 * @param targetValue2 The 2nd relative target value of the interpolation.
+     *
 	 * @return The current tween, for chaining instructions.
 	 */
 	public
-    Tween targetRelative(float targetValue1, float targetValue2) {
+    Tween targetRelative(final float targetValue1, final float targetValue2) {
 		isRelative = true;
 		targetValues[0] = isInitialized() ? targetValue1 + startValues[0] : targetValue1;
 		targetValues[1] = isInitialized() ? targetValue2 + startValues[1] : targetValue2;
@@ -672,12 +681,13 @@ class Tween extends BaseTween<Tween> {
 	 * @param targetValue1 The 1st relative target value of the interpolation.
 	 * @param targetValue2 The 2nd relative target value of the interpolation.
 	 * @param targetValue3 The 3rd relative target value of the interpolation.
+     *
 	 * @return The current tween, for chaining instructions.
 	 */
 	public
-    Tween targetRelative(float targetValue1, float targetValue2, float targetValue3) {
+    Tween targetRelative(final float targetValue1, final float targetValue2, final float targetValue3) {
 		isRelative = true;
-        float[] startValues = this.startValues;
+        final float[] startValues = this.startValues;
 
         targetValues[0] = isInitialized() ? targetValue1 + startValues[0] : targetValue1;
 		targetValues[1] = isInitialized() ? targetValue2 + startValues[1] : targetValue2;
@@ -695,12 +705,13 @@ class Tween extends BaseTween<Tween> {
 	 * - end values: params + values at start time, after delay
 	 *
 	 * @param targetValues The relative target values of the interpolation.
+     *
 	 * @return The current tween, for chaining instructions.
 	 */
 	public
-    Tween targetRelative(float... targetValues) {
-        int length = targetValues.length;
-        float[] startValues = this.startValues;
+    Tween targetRelative(final float... targetValues) {
+        final int length = targetValues.length;
+        final float[] startValues = this.startValues;
 
         if (length > combinedAttrsLimit) throwCombinedAttrsLimitReached();
 		for (int i = 0; i < length; i++) {
@@ -719,16 +730,18 @@ class Tween extends BaseTween<Tween> {
 	 * method.
 	 *
 	 * @param targetValue The target of this waypoint.
+     *
 	 * @return The current tween, for chaining instructions.
 	 */
 	@SuppressWarnings("FieldRepeatedlyAccessedInMethod")
     public
-    Tween waypoint(float targetValue) {
-        if (waypointsCnt == waypointsLimit) {
+    Tween waypoint(final float targetValue) {
+        if (waypointsCount == waypointsLimit) {
             throwWaypointsLimitReached();
         }
-        waypoints[waypointsCnt] = targetValue;
-        waypointsCnt += 1;
+
+        waypoints[waypointsCount] = targetValue;
+        waypointsCount += 1;
         return this;
 	}
 
@@ -744,19 +757,22 @@ class Tween extends BaseTween<Tween> {
 	 *
 	 * @param targetValue1 The 1st target of this waypoint.
 	 * @param targetValue2 The 2nd target of this waypoint.
+     *
 	 * @return The current tween, for chaining instructions.
 	 */
 	@SuppressWarnings("FieldRepeatedlyAccessedInMethod")
     public
-    Tween waypoint(float targetValue1, float targetValue2) {
-        if (waypointsCnt == waypointsLimit) {
+    Tween waypoint(final float targetValue1, final float targetValue2) {
+        if (waypointsCount == waypointsLimit) {
             throwWaypointsLimitReached();
         }
-        final int count = waypointsCnt << 1;
-        float[] waypoints = this.waypoints;
+
+        final int count = waypointsCount << 1;
+        final float[] waypoints = this.waypoints;
+
         waypoints[count] = targetValue1;
         waypoints[count + 1] = targetValue2;
-        waypointsCnt += 1;
+        waypointsCount += 1;
         return this;
 	}
 
@@ -773,20 +789,23 @@ class Tween extends BaseTween<Tween> {
 	 * @param targetValue1 The 1st target of this waypoint.
 	 * @param targetValue2 The 2nd target of this waypoint.
 	 * @param targetValue3 The 3rd target of this waypoint.
+     *
 	 * @return The current tween, for chaining instructions.
 	 */
 	@SuppressWarnings("FieldRepeatedlyAccessedInMethod")
     public
-    Tween waypoint(float targetValue1, float targetValue2, float targetValue3) {
-        if (waypointsCnt == waypointsLimit) {
+    Tween waypoint(final float targetValue1, final float targetValue2, final float targetValue3) {
+        if (waypointsCount == waypointsLimit) {
             throwWaypointsLimitReached();
         }
-        int count = waypointsCnt * 3;
-        float[] waypoints = this.waypoints;
+
+        final int count = waypointsCount * 3;
+        final float[] waypoints = this.waypoints;
+
         waypoints[count] = targetValue1;
         waypoints[count + 1] = targetValue2;
         waypoints[count + 2] = targetValue3;
-        waypointsCnt += 1;
+        waypointsCount += 1;
         return this;
 	}
 
@@ -801,16 +820,17 @@ class Tween extends BaseTween<Tween> {
 	 * the .targetRelative() methods to define your target.
 	 *
 	 * @param targetValues The targets of this waypoint.
+     *
 	 * @return The current tween, for chaining instructions.
 	 */
 	@SuppressWarnings("FieldRepeatedlyAccessedInMethod")
     public
-    Tween waypoint(float... targetValues) {
-        if (waypointsCnt == waypointsLimit) {
+    Tween waypoint(final float... targetValues) {
+        if (waypointsCount == waypointsLimit) {
             throwWaypointsLimitReached();
         }
-        System.arraycopy(targetValues, 0, waypoints, waypointsCnt * targetValues.length, targetValues.length);
-        waypointsCnt += 1;
+        System.arraycopy(targetValues, 0, waypoints, waypointsCount * targetValues.length, targetValues.length);
+        waypointsCount += 1;
         return this;
 	}
 
@@ -820,12 +840,13 @@ class Tween extends BaseTween<Tween> {
 	 * but you can find other paths in the {@link TweenPaths} class.
 	 *
 	 * @param path A TweenPath implementation.
+     *
 	 * @return The current tween, for chaining instructions.
 	 * @see TweenPath
 	 * @see TweenPaths
 	 */
 	public
-    Tween path(TweenPath path) {
+    Tween path(final TweenPath path) {
 		this.path = path;
 		return this;
 	}
@@ -945,7 +966,7 @@ class Tween extends BaseTween<Tween> {
         for (int i = 0; i < combinedAttrsCnt; i++) {
             targetValues[i] += isRelative ? startValues[i] : 0;
 
-            for (int ii = 0; ii < waypointsCnt; ii++) {
+            for (int ii = 0; ii < waypointsCount; ii++) {
                 waypoints[ii * combinedAttrsCnt + i] += isRelative ? startValues[i] : 0;
             }
 
@@ -959,7 +980,7 @@ class Tween extends BaseTween<Tween> {
 
 	@Override
 	protected
-    void updateOverride(int step, int lastStep, boolean isIterationStep, float delta) {
+    void updateOverride(final int step, final int lastStep, final boolean isIterationStep, final float delta) {
         final Object target = this.target;
         if (target == null || equation == null) {
             return;
@@ -1003,18 +1024,18 @@ class Tween extends BaseTween<Tween> {
 
 		// Normal behavior
 
-		float time = isYoyoReverse(step) ? duration - getCurrentTime() : getCurrentTime();
-		float t = equation.compute(time / duration);
+        final float time = isYoyoReverse(step) ? duration - getCurrentTime() : getCurrentTime();
+        final float tweenValue = equation.compute(time / duration);
 
         final float[] accessorBuffer = this.accessorBuffer;
         final int combinedAttrsCnt = this.combinedAttrsCnt;
 
-        final int waypointsCnt = this.waypointsCnt;
+        final int waypointsCnt = this.waypointsCount;
         final TweenPath path = this.path;
 
         if (waypointsCnt == 0 || path == null) {
             for (int i = 0; i < combinedAttrsCnt; i++) {
-                accessorBuffer[i] = startValues[i] + t * (targetValues[i] - startValues[i]);
+                accessorBuffer[i] = startValues[i] + tweenValue * (targetValues[i] - startValues[i]);
             }
 
         }
@@ -1027,7 +1048,7 @@ class Tween extends BaseTween<Tween> {
                     pathBuffer[ii + 1] = waypoints[ii * combinedAttrsCnt + i];
                 }
 
-                accessorBuffer[i] = path.compute(t, pathBuffer, waypointsCnt + 2);
+                accessorBuffer[i] = path.compute(tweenValue, pathBuffer, waypointsCnt + 2);
             }
         }
 
@@ -1058,13 +1079,13 @@ class Tween extends BaseTween<Tween> {
 
 	@Override
 	protected
-    boolean containsTarget(Object target) {
+    boolean containsTarget(final Object target) {
 		return this.target == target;
 	}
 
 	@Override
 	protected
-    boolean containsTarget(Object target, int tweenType) {
+    boolean containsTarget(final Object target, final int tweenType) {
 		return this.target == target && this.type == tweenType;
 	}
 

@@ -119,7 +119,7 @@ class Timeline extends BaseTween<Timeline> {
      * Needs to be set before any threads access or use the timeline. This is not thread safe!
      */
     public static
-    void setPoolSize(int poolSize) {
+    void setPoolSize(final int poolSize) {
         if (constructorThread != Thread.currentThread()) {
             throw new RuntimeException("Timeline pool capacity must be changed during engine initialization!");
         }
@@ -184,7 +184,7 @@ class Timeline extends BaseTween<Timeline> {
 	}
 
 	private
-    void setup(Modes mode) {
+    void setup(final Modes mode) {
 		this.mode = mode;
 		this.current = this;
 	}
@@ -199,7 +199,7 @@ class Timeline extends BaseTween<Timeline> {
 	 * @return The current timeline, for chaining instructions.
 	 */
 	public
-    Timeline push(Tween tween) {
+    Timeline push(final Tween tween) {
         if (isBuilt) {
             throw new RuntimeException("You can't push anything to a timeline once it is started");
         }
@@ -213,13 +213,14 @@ class Timeline extends BaseTween<Timeline> {
 	 * @return The current timeline, for chaining instructions.
 	 */
 	public
-    Timeline push(Timeline timeline) {
+    Timeline push(final Timeline timeline) {
         if (isBuilt) {
             throw new RuntimeException("You can't push anything to a timeline once it is started");
         }
         if (timeline.current != timeline) {
             throw new RuntimeException("You forgot to call a few 'end()' statements in your pushed timeline");
         }
+
         timeline.parent = current;
         current.children.add(timeline);
         return this;
@@ -230,13 +231,15 @@ class Timeline extends BaseTween<Timeline> {
 	 * overlap the preceding and following children.
 	 *
 	 * @param timeInSeconds A positive or negative duration in milliseconds, for example .2F for 200 milliseconds
+     *
 	 * @return The current timeline, for chaining instructions.
 	 */
 	public
-    Timeline pushPause(float timeInSeconds) {
+    Timeline pushPause(final float timeInSeconds) {
         if (isBuilt) {
             throw new RuntimeException("You can't push anything to a timeline once it is started");
         }
+
         current.children.add(Tween.mark()
                                   .delay(timeInSeconds));
         return this;
@@ -254,6 +257,7 @@ class Timeline extends BaseTween<Timeline> {
         if (isBuilt) {
             throw new RuntimeException("You can't push anything to a timeline once it is started");
         }
+
         Timeline tl = pool.takeUninterruptibly();
         tl.parent = current;
         tl.mode = Modes.SEQUENCE;
@@ -274,6 +278,7 @@ class Timeline extends BaseTween<Timeline> {
         if (isBuilt) {
             throw new RuntimeException("You can't push anything to a timeline once it is started");
         }
+
         Timeline tl = pool.takeUninterruptibly();
         tl.parent = current;
         tl.mode = Modes.PARALLEL;
@@ -296,6 +301,7 @@ class Timeline extends BaseTween<Timeline> {
         if (current == this) {
             throw new RuntimeException("Nothing to end...");
         }
+
         current = current.parent;
         return this;
 	}
@@ -322,13 +328,14 @@ class Timeline extends BaseTween<Timeline> {
     @Override
 	public
     Timeline build() {
-		if (isBuilt) return this;
+        if (isBuilt) {
+            return this;
+        }
 
-		duration = 0;
+        duration = 0;
 
-        int size = children.size();
-        for (int i = 0; i < size; i++) {
-            BaseTween<?> obj = children.get(i);
+        for (int i = 0, n = children.size(); i < n; i++) {
+            final BaseTween<?> obj = children.get(i);
 
             if (obj.getRepeatCount() < 0) {
                 throw new RuntimeException("You can't push an object with infinite repetitions in a timeline");
@@ -337,7 +344,7 @@ class Timeline extends BaseTween<Timeline> {
 
             switch (mode) {
                 case SEQUENCE:
-                    float tDelay = duration;
+                    final float tDelay = duration;
                     duration += obj.getFullDuration();
                     obj.delay += tDelay;
                     break;
@@ -357,9 +364,8 @@ class Timeline extends BaseTween<Timeline> {
     Timeline start() {
         super.start();
 
-        int size = children.size();
-        for (int i = 0; i < size; i++) {
-            BaseTween<?> obj = children.get(i);
+        for (int i = 0, n = children.size(); i < n; i++) {
+            final BaseTween<?> obj = children.get(i);
             obj.start();
         }
 
@@ -369,9 +375,8 @@ class Timeline extends BaseTween<Timeline> {
 	@Override
 	public
     void free() {
-        int i1 = children.size() - 1;
-        for (int i = i1; i >= 0; i--) {
-            BaseTween<?> obj = children.remove(i);
+        for (int i = children.size() - 1; i >= 0; i--) {
+            final BaseTween<?> obj = children.remove(i);
             obj.free();
         }
 
@@ -380,13 +385,12 @@ class Timeline extends BaseTween<Timeline> {
 
 	@Override
 	protected
-    void updateOverride(int step, int lastStep, boolean isIterationStep, float delta) {
+    void updateOverride(final int step, final int lastStep, final boolean isIterationStep, final float delta) {
         if (!isIterationStep && step > lastStep) {
             assert delta >= 0;
-            float dt = isYoyoReverse(lastStep) ? -delta - 1 : delta + 1;
+            final float dt = isYoyoReverse(lastStep) ? -delta - 1 : delta + 1;
 
-            int size = children.size();
-            for (int i = 0, n = size; i < n; i++) {
+            for (int i = 0, n = children.size(); i < n; i++) {
                 children.get(i)
                         .update(dt);
             }
@@ -395,10 +399,9 @@ class Timeline extends BaseTween<Timeline> {
 
         if (!isIterationStep && step < lastStep) {
             assert delta <= 0;
-            float dt = isYoyoReverse(lastStep) ? delta + 1 : -delta - 1;
+            final float dt = isYoyoReverse(lastStep) ? delta + 1 : -delta - 1;
 
-            int i1 = children.size() - 1;
-            for (int i = i1; i >= 0; i--) {
+            for (int i = children.size() - 1; i >= 0; i--) {
                 children.get(i)
                         .update(dt);
             }
@@ -410,16 +413,14 @@ class Timeline extends BaseTween<Timeline> {
         if (step > lastStep) {
             if (isYoyoReverse(step)) {
                 forceEndValues();
-                int size = children.size();
-                for (int i = 0, n = size; i < n; i++) {
+                for (int i = 0, n = children.size(); i < n; i++) {
                     children.get(i)
                             .update(delta);
                 }
             }
             else {
                 forceStartValues();
-                int size = children.size();
-                for (int i = 0, n = size; i < n; i++) {
+                for (int i = 0, n = children.size(); i < n; i++) {
                     children.get(i)
                             .update(delta);
                 }
@@ -429,16 +430,14 @@ class Timeline extends BaseTween<Timeline> {
         else if (step < lastStep) {
             if (isYoyoReverse(step)) {
                 forceStartValues();
-                int i1 = children.size() - 1;
-                for (int i = i1; i >= 0; i--) {
+                for (int i = children.size() - 1; i >= 0; i--) {
                     children.get(i)
                             .update(delta);
                 }
             }
             else {
                 forceEndValues();
-                int i1 = children.size() - 1;
-                for (int i = i1; i >= 0; i--) {
+                for (int i = children.size() - 1; i >= 0; i--) {
                     children.get(i)
                             .update(delta);
                 }
@@ -446,18 +445,16 @@ class Timeline extends BaseTween<Timeline> {
 
         }
         else {
-            float dt = isYoyoReverse(step) ? -delta : delta;
+            final float dt = isYoyoReverse(step) ? -delta : delta;
             //noinspection Duplicates
             if (delta >= 0) {
-                int size = children.size();
-                for (int i = 0, n = size; i < n; i++) {
+                for (int i = 0, n = children.size(); i < n; i++) {
                     children.get(i)
                             .update(dt);
                 }
             }
             else {
-                int i1 = children.size() - 1;
-                for (int i = i1; i >= 0; i--) {
+                for (int i = children.size() - 1; i >= 0; i--) {
                     children.get(i)
                             .update(dt);
                 }
@@ -473,7 +470,7 @@ class Timeline extends BaseTween<Timeline> {
 	protected
     void forceStartValues() {
         for (int i = children.size() - 1; i >= 0; i--) {
-            BaseTween<?> obj = children.get(i);
+            final BaseTween<?> obj = children.get(i);
             obj.forceToStart();
         }
     }
@@ -483,16 +480,16 @@ class Timeline extends BaseTween<Timeline> {
     void forceEndValues() {
         final float duration = this.duration;
         for (int i = 0, n = children.size(); i < n; i++) {
-            BaseTween<?> obj = children.get(i);
+            final BaseTween<?> obj = children.get(i);
             obj.forceToEnd(duration);
         }
     }
 
 	@Override
 	protected
-    boolean containsTarget(Object target) {
+    boolean containsTarget(final Object target) {
         for (int i = 0, n = children.size(); i < n; i++) {
-            BaseTween<?> obj = children.get(i);
+            final BaseTween<?> obj = children.get(i);
             if (obj.containsTarget(target)) {
                 return true;
             }
@@ -502,9 +499,9 @@ class Timeline extends BaseTween<Timeline> {
 
 	@Override
     protected
-    boolean containsTarget(Object target, int tweenType) {
+    boolean containsTarget(final Object target, final int tweenType) {
         for (int i = 0, n = children.size(); i < n; i++) {
-            BaseTween<?> obj = children.get(i);
+            final BaseTween<?> obj = children.get(i);
             if (obj.containsTarget(target, tweenType)) {
                 return true;
             }

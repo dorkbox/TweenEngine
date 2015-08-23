@@ -29,11 +29,11 @@ class TweenEquation {
 	/**
 	 * Computes the next value of the interpolation.
 	 *
-	 * @param t The current time, between 0 and 1.
+	 * @param time The current time, between 0 and 1.
 	 * @return The current value.
 	 */
     public abstract
-    float compute(float t);
+    float compute(float time);
 
 	/**
 	 * Returns true if the given string is the name of this equation (the name

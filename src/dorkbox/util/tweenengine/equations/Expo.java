@@ -27,8 +27,8 @@ class Expo extends TweenEquation {
     public static final Expo IN = new Expo() {
         @Override
         public
-        float compute(float t) {
-            return (t == 0) ? 0 : (float) Math.pow(2, 10 * (t - 1));
+        float compute(float time) {
+            return (time == 0) ? 0 : (float) Math.pow(2, 10 * (time - 1));
         }
 
         @Override
@@ -41,8 +41,8 @@ class Expo extends TweenEquation {
     public static final Expo OUT = new Expo() {
         @Override
         public
-        float compute(float t) {
-            return (t == 1) ? 1 : -(float) Math.pow(2, -10 * t) + 1;
+        float compute(float time) {
+            return (time == 1) ? 1 : -(float) Math.pow(2, -10 * time) + 1;
         }
 
         @Override
@@ -55,17 +55,17 @@ class Expo extends TweenEquation {
     public static final Expo INOUT = new Expo() {
         @Override
         public
-        float compute(float t) {
-            if (t == 0) {
+        float compute(float time) {
+            if (time == 0) {
                 return 0;
             }
-            if (t == 1) {
+            if (time == 1) {
                 return 1;
             }
-            if ((t *= 2) < 1) {
-                return 0.5f * (float) Math.pow(2, 10 * (t - 1));
+            if ((time *= 2) < 1) {
+                return 0.5f * (float) Math.pow(2, 10 * (time - 1));
             }
-            return 0.5f * (-(float) Math.pow(2, -10 * --t) + 2);
+            return 0.5f * (-(float) Math.pow(2, -10 * --time) + 2);
         }
 
         @Override

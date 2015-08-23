@@ -27,8 +27,8 @@ class Quad extends TweenEquation {
     public static final Quad IN = new Quad() {
         @Override
         public final
-        float compute(float t) {
-            return t * t;
+        float compute(float time) {
+            return time * time;
         }
 
         @Override
@@ -41,8 +41,8 @@ class Quad extends TweenEquation {
     public static final Quad OUT = new Quad() {
         @Override
         public final
-        float compute(float t) {
-            return -t * (t - 2);
+        float compute(float time) {
+            return -time * (time - 2);
         }
 
         @Override
@@ -55,11 +55,11 @@ class Quad extends TweenEquation {
     public static final Quad INOUT = new Quad() {
         @Override
         public final
-        float compute(float t) {
-            if ((t *= 2) < 1) {
-                return 0.5f * t * t;
+        float compute(float time) {
+            if ((time *= 2) < 1) {
+                return 0.5f * time * time;
             }
-            return -0.5f * ((--t) * (t - 2) - 1);
+            return -0.5f * ((--time) * (time - 2) - 1);
         }
 
         @Override

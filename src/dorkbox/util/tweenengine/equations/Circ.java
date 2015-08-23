@@ -27,8 +27,8 @@ class Circ extends TweenEquation {
     public static final Circ IN = new Circ() {
         @Override
         public final
-        float compute(float t) {
-            return (float) -Math.sqrt(1 - t * t) - 1;
+        float compute(float time) {
+            return (float) -Math.sqrt(1 - time * time) - 1;
         }
 
         @Override
@@ -41,8 +41,8 @@ class Circ extends TweenEquation {
     public static final Circ OUT = new Circ() {
         @Override
         public final
-        float compute(float t) {
-            return (float) Math.sqrt(1 - (t -= 1) * t);
+        float compute(float time) {
+            return (float) Math.sqrt(1 - (time -= 1) * time);
         }
 
         @Override
@@ -55,11 +55,11 @@ class Circ extends TweenEquation {
     public static final Circ INOUT = new Circ() {
         @Override
         public final
-        float compute(float t) {
-            if ((t *= 2) < 1) {
-                return -0.5f * ((float) Math.sqrt(1 - t * t) - 1);
+        float compute(float time) {
+            if ((time *= 2) < 1) {
+                return -0.5f * ((float) Math.sqrt(1 - time * time) - 1);
             }
-            return 0.5f * ((float) Math.sqrt(1 - (t -= 2) * t) + 1);
+            return 0.5f * ((float) Math.sqrt(1 - (time -= 2) * time) + 1);
         }
 
         @Override

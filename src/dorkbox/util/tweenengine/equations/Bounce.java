@@ -27,18 +27,18 @@ class Bounce extends TweenEquation {
     public static final Bounce OUT = new Bounce() {
         @Override
         public final
-        float compute(float t) {
-            if (t < (1 / 2.75)) {
-                return 7.5625f * t * t;
+        float compute(float time) {
+            if (time < (1 / 2.75)) {
+                return 7.5625f * time * time;
             }
-            else if (t < (2 / 2.75)) {
-                return 7.5625f * (t -= (1.5f / 2.75f)) * t + .75f;
+            else if (time < (2 / 2.75)) {
+                return 7.5625f * (time -= (1.5f / 2.75f)) * time + .75f;
             }
-            else if (t < (2.5 / 2.75)) {
-                return 7.5625f * (t -= (2.25f / 2.75f)) * t + .9375f;
+            else if (time < (2.5 / 2.75)) {
+                return 7.5625f * (time -= (2.25f / 2.75f)) * time + .9375f;
             }
             else {
-                return 7.5625f * (t -= (2.625f / 2.75f)) * t + .984375f;
+                return 7.5625f * (time -= (2.625f / 2.75f)) * time + .984375f;
             }
         }
 
@@ -52,8 +52,8 @@ class Bounce extends TweenEquation {
     public static final Bounce IN = new Bounce() {
         @Override
         public final
-        float compute(float t) {
-            return 1 - OUT.compute(1 - t);
+        float compute(float time) {
+            return 1 - OUT.compute(1 - time);
         }
 
         @Override
@@ -66,12 +66,12 @@ class Bounce extends TweenEquation {
     public static final Bounce INOUT = new Bounce() {
         @Override
         public final
-        float compute(float t) {
-            if (t < 0.5f) {
-                return IN.compute(t * 2) * .5f;
+        float compute(float time) {
+            if (time < 0.5f) {
+                return IN.compute(time * 2) * .5f;
             }
             else {
-                return OUT.compute(t * 2 - 1) * .5f + 0.5f;
+                return OUT.compute(time * 2 - 1) * .5f + 0.5f;
             }
         }
 

@@ -27,8 +27,8 @@ class Linear extends TweenEquation {
     public static final Linear INOUT = new Linear() {
         @Override
         public
-        float compute(float t) {
-            return t;
+        float compute(float time) {
+            return time;
         }
 
         @Override
