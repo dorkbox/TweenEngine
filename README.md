@@ -4,9 +4,7 @@
 
 Apache License 2.0
 
-**Forked from JavaUniversalTweenEngine**
-
-by: Aurelien Ribon, http://www.aurelienribon.com/blog/projects/universal-tween-engine/
+Forked from [JavaUniversalTweenEngine](http://www.aurelienribon.com/blog/projects/universal-tween-engine), by Aurelien Ribon
 
 # Check out the demo! #
 
@@ -43,7 +41,7 @@ callback.setTriggers(flags);
 
 myTween.delay(0.5f);
 myTween.repeat(2, 0.5f);
-myTween.repeatYoyo(2, 0.5f);
+myTween.repeatAutoReverse(2, 0.5f);
 myTween.pause();
 myTween.resume();
 myTween.addCallback(callback);
@@ -84,7 +82,7 @@ Timeline.createSequence()
 
     // And repeat the whole sequence 2 times
     // with a 0.5s pause between each iteration
-    .repeatYoyo(2, 0.5f)
+    .repeatAutoReverse(2, 0.5f)
 
     // Let's go!
     .start(myManager);
@@ -108,7 +106,7 @@ Main features are:
   * Tweens can be sequenced when used in Timelines.
   * Tweens can be run in parallel when used in Timelines.
   * Tweens can act on more than one value at a time, so a single tween can change the whole position (X and Y) of a sprite for instance!
-  * Tweens and Timelines can be repeated, also with a yoyo style option.
+  * Tweens and Timelines can be repeated, and can automatically auto-reverse for a smooth "back-and-forth" animation.
   * Simple timers can be built with Tween.call().
   * **Source code extensively documented!**
 
