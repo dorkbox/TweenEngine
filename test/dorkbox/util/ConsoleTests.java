@@ -23,9 +23,6 @@ import dorkbox.util.tweenengine.primitives.MutableFloat;
 
 import java.util.Locale;
 
-/**
- *
- */
 public
 class ConsoleTests {
 
