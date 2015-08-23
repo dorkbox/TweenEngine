@@ -6,7 +6,7 @@ Apache License 2.0
 
 **Forked from JavaUniversalTweenEngine**
 
-by: Aurelien Ribon
+by: Aurelien Ribon, http://www.aurelienribon.com/blog/projects/universal-tween-engine/
 
 # Check out the demo! #
 
