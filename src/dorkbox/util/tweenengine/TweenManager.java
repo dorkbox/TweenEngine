@@ -128,11 +128,11 @@ class TweenManager {
 	 */
 	public
     void killTarget(Object target, int tweenType) {
-		for (int i=0, n=objects.size(); i<n; i++) {
-			BaseTween<?> obj = objects.get(i);
-			obj.killTarget(target, tweenType);
-		}
-	}
+        for (int i = 0, n = objects.size(); i < n; i++) {
+            BaseTween<?> obj = objects.get(i);
+            obj.killTarget(target, tweenType);
+        }
+    }
 
 	/**
 	 * Increases the minimum capacity of the manager. Defaults to 20.
@@ -180,6 +180,7 @@ class TweenManager {
         }
 
         if (!isPaused) {
+            //noinspection Duplicates
             if (delta >= 0) {
                 for (int i = 0, n = objects.size(); i < n; i++) {
                     objects.get(i)
@@ -193,7 +194,7 @@ class TweenManager {
                 }
             }
         }
-	}
+    }
 
 	/**
 	 * Gets the number of managed objects. An object may be a tween or a

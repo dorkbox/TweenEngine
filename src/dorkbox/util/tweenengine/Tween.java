@@ -253,8 +253,8 @@ class Tween extends BaseTween<Tween> {
 	 * the tween.
 	 *
 	 * @param target The target object of the interpolation.
-	 * @param tweenType The desired type of interpolation.
-	 * @param duration The duration of the interpolation, in milliseconds.
+	 * @param tweenType The desired type of interpolation, used for TweenAccessor methods.
+	 * @param duration The duration of the interpolation, in seconds.
 	 * @return The generated Tween.
 	 */
 	public static
@@ -293,7 +293,7 @@ class Tween extends BaseTween<Tween> {
 	 *
 	 * @param target The target object of the interpolation.
 	 * @param tweenType The desired type of interpolation.
-	 * @param duration The duration of the interpolation, in milliseconds.
+	 * @param duration The duration of the interpolation, in seconds.
 	 * @return The generated Tween.
 	 */
 	public static
@@ -452,26 +452,34 @@ class Tween extends BaseTween<Tween> {
 
 	private void
     setup(Object target, int tweenType, float duration) {
-		if (duration < 0) throw new RuntimeException("Duration can't be negative");
+        if (duration < 0) {
+            throw new RuntimeException("Duration can't be negative");
+        }
 
-		this.target = target;
-		this.targetClass = target != null ? findTargetClass() : null;
-		this.type = tweenType;
-		this.duration = duration;
+        this.target = target;
+        this.targetClass = target != null ? findTargetClass() : null;
+        this.type = tweenType;
+        this.duration = duration;
 	}
 
 	private
     Class<?> findTargetClass() {
         Object target = this.target;
 
-        if (registeredAccessors.containsKey(target.getClass())) return target.getClass();
-		if (target instanceof TweenAccessor) return target.getClass();
+        if (registeredAccessors.containsKey(target.getClass())) {
+            return target.getClass();
+        }
+        if (target instanceof TweenAccessor) {
+            return target.getClass();
+        }
 
-		Class<?> parentClass = target.getClass().getSuperclass();
-		while (parentClass != null && !registeredAccessors.containsKey(parentClass))
-			parentClass = parentClass.getSuperclass();
+        Class<?> parentClass = target.getClass()
+                                     .getSuperclass();
+        while (parentClass != null && !registeredAccessors.containsKey(parentClass)) {
+            parentClass = parentClass.getSuperclass();
+        }
 
-		return parentClass;
+        return parentClass;
 	}
 
 	// -------------------------------------------------------------------------
@@ -519,9 +527,11 @@ class Tween extends BaseTween<Tween> {
 	 */
 	public
     Tween cast(Class<?> targetClass) {
-		if (isStarted()) throw new RuntimeException("You can't cast the target of a tween once it is started");
-		this.targetClass = targetClass;
-		return this;
+        if (isStarted()) {
+            throw new RuntimeException("You can't cast the target of a tween once it is started");
+        }
+        this.targetClass = targetClass;
+        return this;
 	}
 
 	/**
@@ -603,9 +613,11 @@ class Tween extends BaseTween<Tween> {
 	public
     Tween target(float... targetValues) {
         int length = targetValues.length;
-        if (length > combinedAttrsLimit) throwCombinedAttrsLimitReached();
-		System.arraycopy(targetValues, 0, this.targetValues, 0, length);
-		return this;
+        if (length > combinedAttrsLimit) {
+            throwCombinedAttrsLimitReached();
+        }
+        System.arraycopy(targetValues, 0, this.targetValues, 0, length);
+        return this;
 	}
 
 	/**
@@ -712,10 +724,12 @@ class Tween extends BaseTween<Tween> {
 	@SuppressWarnings("FieldRepeatedlyAccessedInMethod")
     public
     Tween waypoint(float targetValue) {
-		if (waypointsCnt == waypointsLimit) throwWaypointsLimitReached();
-		waypoints[waypointsCnt] = targetValue;
-		waypointsCnt += 1;
-		return this;
+        if (waypointsCnt == waypointsLimit) {
+            throwWaypointsLimitReached();
+        }
+        waypoints[waypointsCnt] = targetValue;
+        waypointsCnt += 1;
+        return this;
 	}
 
 	/**
@@ -735,13 +749,15 @@ class Tween extends BaseTween<Tween> {
 	@SuppressWarnings("FieldRepeatedlyAccessedInMethod")
     public
     Tween waypoint(float targetValue1, float targetValue2) {
-		if (waypointsCnt == waypointsLimit) throwWaypointsLimitReached();
+        if (waypointsCnt == waypointsLimit) {
+            throwWaypointsLimitReached();
+        }
         final int count = waypointsCnt << 1;
         float[] waypoints = this.waypoints;
         waypoints[count] = targetValue1;
         waypoints[count + 1] = targetValue2;
-		waypointsCnt += 1;
-		return this;
+        waypointsCnt += 1;
+        return this;
 	}
 
 	/**
@@ -762,14 +778,16 @@ class Tween extends BaseTween<Tween> {
 	@SuppressWarnings("FieldRepeatedlyAccessedInMethod")
     public
     Tween waypoint(float targetValue1, float targetValue2, float targetValue3) {
-		if (waypointsCnt == waypointsLimit) throwWaypointsLimitReached();
+        if (waypointsCnt == waypointsLimit) {
+            throwWaypointsLimitReached();
+        }
         int count = waypointsCnt * 3;
         float[] waypoints = this.waypoints;
         waypoints[count] = targetValue1;
         waypoints[count + 1] = targetValue2;
         waypoints[count + 2] = targetValue3;
-		waypointsCnt += 1;
-		return this;
+        waypointsCnt += 1;
+        return this;
 	}
 
 	/**
@@ -788,10 +806,12 @@ class Tween extends BaseTween<Tween> {
 	@SuppressWarnings("FieldRepeatedlyAccessedInMethod")
     public
     Tween waypoint(float... targetValues) {
-		if (waypointsCnt == waypointsLimit) throwWaypointsLimitReached();
-		System.arraycopy(targetValues, 0, waypoints, waypointsCnt*targetValues.length, targetValues.length);
-		waypointsCnt += 1;
-		return this;
+        if (waypointsCnt == waypointsLimit) {
+            throwWaypointsLimitReached();
+        }
+        System.arraycopy(targetValues, 0, waypoints, waypointsCnt * targetValues.length, targetValues.length);
+        waypointsCnt += 1;
+        return this;
 	}
 
 	/**
@@ -882,15 +902,25 @@ class Tween extends BaseTween<Tween> {
 	public
     Tween build() {
         final Object target = this.target;
-        if (target == null) return this;
+        if (target == null) {
+            return this;
+        }
 
-		accessor = (TweenAccessor<Object>) registeredAccessors.get(targetClass);
-		if (accessor == null && target instanceof TweenAccessor) accessor = (TweenAccessor<Object>) target;
-		if (accessor != null) combinedAttrsCnt = accessor.getValues(target, type, accessorBuffer);
-		else throw new RuntimeException("No TweenAccessor was found for the target");
+        accessor = (TweenAccessor<Object>) registeredAccessors.get(targetClass);
+        if (accessor == null && target instanceof TweenAccessor) {
+            accessor = (TweenAccessor<Object>) target;
+        }
+        if (accessor != null) {
+            combinedAttrsCnt = accessor.getValues(target, type, accessorBuffer);
+        }
+        else {
+            throw new RuntimeException("No TweenAccessor was found for the target");
+        }
 
-		if (combinedAttrsCnt > combinedAttrsLimit) throwCombinedAttrsLimitReached();
-		return this;
+        if (combinedAttrsCnt > combinedAttrsLimit) {
+            throwCombinedAttrsLimitReached();
+        }
+        return this;
 	}
 
     @Override
@@ -902,36 +932,40 @@ class Tween extends BaseTween<Tween> {
 	@Override
 	protected
     void initializeOverride() {
-		if (target == null) return;
+        if (target == null) {
+            return;
+        }
 
-		accessor.getValues(target, type, startValues);
+        accessor.getValues(target, type, startValues);
 
         final int combinedAttrsCnt = this.combinedAttrsCnt;
         final boolean isFrom = this.isFrom;
         final boolean isRelative = this.isRelative;
 
-		for (int i=0; i<combinedAttrsCnt; i++) {
-			targetValues[i] += isRelative ? startValues[i] : 0;
+        for (int i = 0; i < combinedAttrsCnt; i++) {
+            targetValues[i] += isRelative ? startValues[i] : 0;
 
-			for (int ii=0; ii<waypointsCnt; ii++) {
+            for (int ii = 0; ii < waypointsCnt; ii++) {
                 waypoints[ii * combinedAttrsCnt + i] += isRelative ? startValues[i] : 0;
-			}
+            }
 
             if (isFrom) {
-				float tmp = startValues[i];
-				startValues[i] = targetValues[i];
-				targetValues[i] = tmp;
-			}
-		}
+                float tmp = startValues[i];
+                startValues[i] = targetValues[i];
+                targetValues[i] = tmp;
+            }
+        }
 	}
 
 	@Override
 	protected
     void updateOverride(int step, int lastStep, boolean isIterationStep, float delta) {
         final Object target = this.target;
-        if (target == null || equation == null) return;
+        if (target == null || equation == null) {
+            return;
+        }
 
-		// Case iteration end has been reached
+        // Case iteration end has been reached
 
         final TweenAccessor<Object> accessor = this.accessor;
         final float[] startValues = this.startValues;
@@ -939,38 +973,38 @@ class Tween extends BaseTween<Tween> {
         final int type = this.type;
 
         if (!isIterationStep && step > lastStep) {
-			accessor.setValues(target, type, isReverse(lastStep) ? startValues : targetValues);
-			return;
-		}
+            accessor.setValues(target, type, isYoyoReverse(lastStep) ? startValues : targetValues);
+            return;
+        }
 
-		if (!isIterationStep && step < lastStep) {
-			accessor.setValues(target, type, isReverse(lastStep) ? targetValues : startValues);
-			return;
-		}
+        if (!isIterationStep && step < lastStep) {
+            accessor.setValues(target, type, isYoyoReverse(lastStep) ? targetValues : startValues);
+            return;
+        }
 
 		// Validation
 
-		assert isIterationStep;
-		assert getCurrentTime() >= 0;
+        assert isIterationStep;
+        assert getCurrentTime() >= 0;
         final float duration = this.duration;
 
         assert getCurrentTime() <= duration;
 
-		// Case duration equals zero
+        // Case duration equals zero
 
-		if (duration < 0.00000000001f && delta > -0.00000000001f) {
-			accessor.setValues(target, type, isReverse(step) ? targetValues : startValues);
-			return;
-		}
+        if (duration < 0.00000000001f && delta > -0.00000000001f) {
+            accessor.setValues(target, type, isYoyoReverse(step) ? targetValues : startValues);
+            return;
+        }
 
-		if (duration < 0.00000000001f && delta < 0.00000000001f) {
-			accessor.setValues(target, type, isReverse(step) ? startValues : targetValues);
-			return;
-		}
+        if (duration < 0.00000000001f && delta < 0.00000000001f) {
+            accessor.setValues(target, type, isYoyoReverse(step) ? startValues : targetValues);
+            return;
+        }
 
 		// Normal behavior
 
-		float time = isReverse(step) ? duration - getCurrentTime() : getCurrentTime();
+		float time = isYoyoReverse(step) ? duration - getCurrentTime() : getCurrentTime();
 		float t = equation.compute(time / duration);
 
         final float[] accessorBuffer = this.accessorBuffer;
@@ -984,7 +1018,8 @@ class Tween extends BaseTween<Tween> {
                 accessorBuffer[i] = startValues[i] + t * (targetValues[i] - startValues[i]);
             }
 
-		} else {
+        }
+        else {
             final float[] pathBuffer = this.pathBuffer;
             for (int i = 0; i < combinedAttrsCnt; i++) {
                 pathBuffer[0] = startValues[i];
@@ -997,7 +1032,7 @@ class Tween extends BaseTween<Tween> {
             }
         }
 
-		accessor.setValues(target, type, accessorBuffer);
+        accessor.setValues(target, type, accessorBuffer);
 	}
 
 	// -------------------------------------------------------------------------
@@ -1007,15 +1042,19 @@ class Tween extends BaseTween<Tween> {
 	@Override
 	protected
     void forceStartValues() {
-		if (target == null) return;
-		accessor.setValues(target, type, startValues);
-	}
+        if (target == null) {
+            return;
+        }
+        accessor.setValues(target, type, startValues);
+    }
 
 	@Override
 	protected
     void forceEndValues() {
-		if (target == null) return;
-		accessor.setValues(target, type, targetValues);
+        if (target == null) {
+            return;
+        }
+        accessor.setValues(target, type, targetValues);
 	}
 
 	@Override

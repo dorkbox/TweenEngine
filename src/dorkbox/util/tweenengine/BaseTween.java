@@ -82,18 +82,18 @@ abstract class BaseTween<T> {
 
 	protected
     void reset() {
-		step = -2;
-		repeatCnt = 0;
-		isIterationStep = isYoyo = false;
+        step = -2;
+        repeatCnt = 0;
+        isIterationStep = isYoyo = false;
 
-		delay = duration = repeatDelay = currentTime = deltaTime = 0;
-		isStarted = isInitialized = isFinished = isKilled = isPaused = false;
+        delay = duration = repeatDelay = currentTime = deltaTime = 0;
+        isStarted = isInitialized = isFinished = isKilled = isPaused = false;
 
-		callbacks.clear();
-		userData = null;
+        callbacks.clear();
+        userData = null;
 
-		isAutoRemoveEnabled = isAutoStartEnabled = true;
-	}
+        isAutoRemoveEnabled = isAutoStartEnabled = true;
+    }
 
 	// -------------------------------------------------------------------------
 	// Public API
@@ -199,11 +199,13 @@ abstract class BaseTween<T> {
     @SuppressWarnings("unchecked")
 	public
     T repeat(int count, float delay) {
-		if (isStarted) throw new RuntimeException("You can't change the repetitions of a tween or timeline once it is started");
-		repeatCnt = count;
-		repeatDelay = delay >= 0 ? delay : 0;
-		isYoyo = false;
-		return (T) this;
+        if (isStarted) {
+            throw new RuntimeException("You can't change the repetitions of a tween or timeline once it is started");
+        }
+        repeatCnt = count;
+        repeatDelay = delay >= 0 ? delay : 0;
+        isYoyo = false;
+        return (T) this;
 	}
 
 	/**
@@ -218,11 +220,13 @@ abstract class BaseTween<T> {
     @SuppressWarnings("unchecked")
 	public
     T repeatYoyo(int count, float delay) {
-		if (isStarted) throw new RuntimeException("You can't change the repetitions of a tween or timeline once it is started");
-		repeatCnt = count;
-		repeatDelay = delay >= 0 ? delay : 0;
-		isYoyo = true;
-		return (T) this;
+        if (isStarted) {
+            throw new RuntimeException("You can't change the repetitions of a tween or timeline once it is started");
+        }
+        repeatCnt = count;
+        repeatDelay = delay >= 0 ? delay : 0;
+        isYoyo = true;
+        return (T) this;
 	}
 
 	/**
@@ -309,9 +313,11 @@ abstract class BaseTween<T> {
 	 */
 	public
     float getFullDuration() {
-		if (repeatCnt < 0) return -1;
-		return delay + duration + (repeatDelay + duration) * repeatCnt;
-	}
+        if (repeatCnt < 0) {
+            return -1;
+        }
+        return delay + duration + (repeatDelay + duration) * repeatCnt;
+    }
 
 	/**
 	 * Gets the attached data, or null if none.
@@ -418,56 +424,83 @@ abstract class BaseTween<T> {
 
 	protected
     void forceToStart() {
-		currentTime = -delay;
-		step = -1;
-		isIterationStep = false;
-		if (isReverse(0)) forceEndValues();
-		else forceStartValues();
-	}
+        currentTime = -delay;
+        step = -1;
+        isIterationStep = false;
+
+        if (isYoyoReverse(0)) {
+            forceEndValues();
+        }
+        else {
+            forceStartValues();
+        }
+    }
 
 	protected
     void forceToEnd(float time) {
-		currentTime = time - getFullDuration();
+        currentTime = time - getFullDuration();
         int count = repeatCnt << 1;
 
         step = count + 1;
-		isIterationStep = false;
-		if (isReverse(count)) forceStartValues();
-		else forceEndValues();
-	}
+        isIterationStep = false;
+
+        if (isYoyoReverse(count)) {
+            forceStartValues();
+        }
+        else {
+            forceEndValues();
+        }
+    }
 
 	@SuppressWarnings("Convert2streamapi")
     protected
     void callCallbacks(int type) {
-        for (TweenCallback callback : callbacks) {
+        int size = callbacks.size();
+        for (int i = 0; i < size; i++) {
+            final TweenCallback callback = callbacks.get(i);
             if ((callback.triggers & type) > 0) {
                 callback.onEvent(type, this);
             }
         }
-	}
+    }
 
-	protected
-    boolean isReverse(int step) {
-		return isYoyo && Math.abs(step%4) == 2;
-	}
+    /**
+     * @return true if the step is in the middle of the "backwards" yoyo iteration
+     */
+    public final
+    boolean isYoyoReverse(int step) {
+        return isYoyo && Math.abs(step % 4) == 2;
+    }
 
-	protected
+    /**
+     * @return true if the step is in the middle of an iteration. See {@link BaseTween#getStep()}
+     */
+    public final
+    boolean isInIteration(int step) {
+        return Math.abs(step % 2) == 0;
+    }
+
+    protected
     boolean isValid(int step) {
-		return (step >= 0 && step <= repeatCnt << 1) || repeatCnt < 0;
-	}
+        return repeatCnt < 0 || (step >= 0 && step <= repeatCnt << 1);
+    }
 
-	protected
+    protected
     void killTarget(Object target) {
-		if (containsTarget(target)) kill();
-	}
+        if (containsTarget(target)) {
+            kill();
+        }
+    }
 
 
-	protected
+    protected
     void killTarget(Object target, int tweenType) {
-		if (containsTarget(target, tweenType)) kill();
-	}
+        if (containsTarget(target, tweenType)) {
+            kill();
+        }
+    }
 
-	// -------------------------------------------------------------------------
+    // -------------------------------------------------------------------------
 	// Update engine
 	// -------------------------------------------------------------------------
 
@@ -505,44 +538,49 @@ abstract class BaseTween<T> {
 	@SuppressWarnings("FieldRepeatedlyAccessedInMethod")
     private
     void initialize() {
-		if (currentTime+deltaTime >= delay) {
-			initializeOverride();
-			isInitialized = true;
-			isIterationStep = true;
-			step = 0;
-			deltaTime -= delay-currentTime;
-			currentTime = 0;
-			callCallbacks(TweenCallback.Events.BEGIN);
-			callCallbacks(TweenCallback.Events.START);
-		}
-	}
+        if (currentTime + deltaTime >= delay) {
+            initializeOverride();
+            isInitialized = true;
+            isIterationStep = true;
+            step = 0;
+            deltaTime -= delay - currentTime;
+            currentTime = 0;
+
+            callCallbacks(TweenCallback.Events.BEGIN);
+            callCallbacks(TweenCallback.Events.START);
+        }
+    }
 
 	@SuppressWarnings("FieldRepeatedlyAccessedInMethod")
     private
     void testRelaunch() {
-		if (!isIterationStep && repeatCnt >= 0 && step < 0 && currentTime+deltaTime >= 0) {
-			assert step == -1;
-			isIterationStep = true;
-			step = 0;
-			float delta = 0-currentTime;
-			deltaTime -= delta;
-			currentTime = 0;
-			callCallbacks(TweenCallback.Events.BEGIN);
-			callCallbacks(TweenCallback.Events.START);
-			updateOverride(step, step-1, isIterationStep, delta);
-
-		} else {
-            int count = repeatCnt << 1;
-            if (!isIterationStep && repeatCnt >= 0 && step > count && currentTime + deltaTime < 0) {
-                assert step == count + 1;
+		if (!isIterationStep && repeatCnt >= 0 ) {
+            if (step < 0 && currentTime + deltaTime >= 0) {
+                assert step == -1;
                 isIterationStep = true;
-                step = count;
-                float delta = 0-currentTime;
+                step = 0;
+                float delta = 0 - currentTime;
                 deltaTime -= delta;
-                currentTime = duration;
-                callCallbacks(TweenCallback.Events.BACK_BEGIN);
-                callCallbacks(TweenCallback.Events.BACK_START);
-                updateOverride(step, step+1, isIterationStep, delta);
+                currentTime = 0;
+
+                callCallbacks(TweenCallback.Events.BEGIN);
+                callCallbacks(TweenCallback.Events.START);
+                updateOverride(step, step - 1, isIterationStep, delta);
+            }
+            else {
+                int count = repeatCnt << 1;
+                if (step > count && currentTime + deltaTime < 0) {
+                    assert step == count + 1;
+                    isIterationStep = true;
+                    step = count;
+                    float delta = 0 - currentTime;
+                    deltaTime -= delta;
+                    currentTime = duration;
+
+                    callCallbacks(TweenCallback.Events.BACK_BEGIN);
+                    callCallbacks(TweenCallback.Events.BACK_START);
+                    updateOverride(step, step + 1, isIterationStep, delta);
+                }
             }
         }
 	}
@@ -550,74 +588,106 @@ abstract class BaseTween<T> {
 	@SuppressWarnings("FieldRepeatedlyAccessedInMethod")
     private
     void updateStep() {
-		while (isValid(step)) {
-			if (!isIterationStep && currentTime+deltaTime <= 0) {
-				isIterationStep = true;
-				step -= 1;
+        while (isValid(step)) {
+            float time = currentTime + deltaTime;
+            if (!isIterationStep) {
+                if (time <= 0) {
+                    // start REVERSE
+                    isIterationStep = true;
+                    step -= 1;
 
-				float delta = 0-currentTime;
-				deltaTime -= delta;
-				currentTime = duration;
+                    float delta = 0 - currentTime;
+                    deltaTime -= delta;
+                    currentTime = duration;
 
-				if (isReverse(step)) forceStartValues(); else forceEndValues();
-				callCallbacks(TweenCallback.Events.BACK_START);
-				updateOverride(step, step+1, isIterationStep, delta);
+                    if (isYoyoReverse(step)) {
+                        forceStartValues();
+                    }
+                    else {
+                        forceEndValues();
+                    }
 
-			} else if (!isIterationStep && currentTime+deltaTime >= repeatDelay) {
-				isIterationStep = true;
-				step += 1;
+                    callCallbacks(TweenCallback.Events.BACK_START);
+                    updateOverride(step, step + 1, isIterationStep, delta);
+                }
+                else if (time >= repeatDelay) {
+                    // start FORWARDS
+                    isIterationStep = true;
+                    step += 1;
 
-				float delta = repeatDelay-currentTime;
-				deltaTime -= delta;
-				currentTime = 0;
+                    float delta = repeatDelay - currentTime;
+                    deltaTime -= delta;
+                    currentTime = 0;
 
-				if (isReverse(step)) forceEndValues(); else forceStartValues();
-				callCallbacks(TweenCallback.Events.START);
-				updateOverride(step, step-1, isIterationStep, delta);
+                    if (isYoyoReverse(step)) {
+                        forceEndValues();
+                    }
+                    else {
+                        forceStartValues();
+                    }
 
-			} else if (isIterationStep && currentTime+deltaTime < 0) {
-				isIterationStep = false;
-				step -= 1;
+                    callCallbacks(TweenCallback.Events.START);
+                    updateOverride(step, step - 1, isIterationStep, delta);
+                } else {
+                    // update
+                    float delta = deltaTime;
+                    deltaTime -= delta;
+                    currentTime += delta;
 
-				float delta = 0-currentTime;
-				deltaTime -= delta;
-				currentTime = 0;
+                    break;
+                }
+            }
+            else {
+                // isIterationStep = true
+                if (time < 0) {
+                    // finish REVERSE
+                    isIterationStep = false;
+                    step -= 1;
 
-				updateOverride(step, step+1, isIterationStep, delta);
-				callCallbacks(TweenCallback.Events.BACK_END);
+                    float delta = 0 - currentTime;
+                    deltaTime -= delta;
+                    currentTime = 0;
 
-				if (step < 0 && repeatCnt >= 0) callCallbacks(TweenCallback.Events.BACK_COMPLETE);
-				else currentTime = repeatDelay;
+                    updateOverride(step, step, isIterationStep, delta);
+                    callCallbacks(TweenCallback.Events.BACK_END);
 
-			} else if (isIterationStep && currentTime+deltaTime > duration) {
-				isIterationStep = false;
-				step += 1;
+                    if (step < 0 && repeatCnt >= 0) {
+                        callCallbacks(TweenCallback.Events.BACK_COMPLETE);
+                    }
+                    else {
+                        currentTime = repeatDelay;
+                    }
+                }
+                else if (time > duration) {
+                    // finish FORWARDS
+                    isIterationStep = false;
+                    step += 1;
 
-				float delta = duration-currentTime;
-				deltaTime -= delta;
-				currentTime = duration;
+                    float delta = duration - currentTime;
+                    deltaTime -= delta;
+                    currentTime = duration;
 
-				updateOverride(step, step-1, isIterationStep, delta);
-				callCallbacks(TweenCallback.Events.END);
+                    updateOverride(step, step - 1, isIterationStep, delta);
+                    callCallbacks(TweenCallback.Events.END);
 
-				if (step > repeatCnt << 1 && repeatCnt >= 0) callCallbacks(TweenCallback.Events.COMPLETE);
-				currentTime = 0;
+                    if (step > repeatCnt << 1 && repeatCnt >= 0) {
+                        callCallbacks(TweenCallback.Events.COMPLETE);
+                    }
+                    currentTime = 0;
+                }
+                else {
+                    // update
+                    float delta = deltaTime;
+                    deltaTime -= delta;
+                    currentTime += delta;
 
-			} else if (isIterationStep) {
-				float delta = deltaTime;
-				deltaTime -= delta;
-				currentTime += delta;
-				updateOverride(step, step, isIterationStep, delta);
-				break;
+                    updateOverride(step, step, isIterationStep, delta);
 
-			} else {
-				float delta = deltaTime;
-				deltaTime -= delta;
-				currentTime += delta;
-				break;
-			}
-		}
-	}
+                    break;
+                }
+            }
+        }
+    }
 
 	private
     void testCompletion() {
