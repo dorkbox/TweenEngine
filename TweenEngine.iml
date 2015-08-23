@@ -18,6 +18,10 @@
       <sourceFolder url="file://$MODULE_DIR$/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/test" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/demos" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/demos-libGDX/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/demos-libGDX/data" type="java-resource" />
+      <sourceFolder url="file://$MODULE_DIR$/demos-libGDX/libs" type="java-resource" />
+      <excludeFolder url="file://$MODULE_DIR$/demos-libGDX/data-src" />
       <excludeFolder url="file://$MODULE_DIR$/dist" />
       <excludeFolder url="file://$MODULE_DIR$/examples" />
       <excludeFolder url="file://$MODULE_DIR$/libs" />
@@ -25,6 +29,7 @@
     <orderEntry type="jdk" jdkName="1.7" jdkType="JavaSDK" />
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="module" module-name="ObjectPool" />
+    <orderEntry type="library" name="lib-GDX (for tweenengine demo)" level="project" />
   </component>
   <component name="org.twodividedbyzero.idea.findbugs">
     <option name="_basePreferences">
