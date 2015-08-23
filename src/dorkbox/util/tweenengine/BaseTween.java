@@ -53,7 +53,7 @@ public
 abstract class BaseTween<T> {
 	// General
 	private int step;
-	private int repeatCnt;
+	private int repeatCount;
 	private boolean isIterationStep;
 	private boolean isYoyo;
 
@@ -70,6 +70,8 @@ abstract class BaseTween<T> {
 	private boolean isKilled; // true if kill() was called
 	private boolean isPaused; // true if pause() was called
 
+    private boolean snapToEndpoints;
+
 	// Misc
 	private List<TweenCallback> callbacks = new ArrayList<TweenCallback>();
 	private Object userData;
@@ -83,7 +85,7 @@ abstract class BaseTween<T> {
 	protected
     void reset() {
         step = -2;
-        repeatCnt = 0;
+        repeatCount = 0;
         isIterationStep = isYoyo = false;
 
         delay = duration = repeatDelay = currentTime = deltaTime = 0;
@@ -99,6 +101,21 @@ abstract class BaseTween<T> {
 	// Public API
 	// -------------------------------------------------------------------------
 
+    /**
+     * Adds a callback. By default, it will be fired at the completion of the
+     * tween or timeline (event COMPLETE). If you want to change this behavior
+     * use the {@link TweenCallback#setTriggers(int)} method.
+     *
+     * @see TweenCallback
+     */
+    @SuppressWarnings("unchecked")
+    public
+    T addCallback(TweenCallback callback) {
+        this.callbacks.add(callback);
+        return (T) this;
+    }
+
+
 	/**
 	 * Builds and validates the object. Only needed if you want to finalize a
 	 * tween or timeline without starting it, since a call to ".start()" also
@@ -112,34 +129,16 @@ abstract class BaseTween<T> {
 		return (T) this;
 	}
 
-	/**
-	 * Starts or restarts the object unmanaged. You will need to take care of
-	 * its life-cycle. If you want the tween to be managed for you, use a
-	 * {@link TweenManager}.
-	 *
-	 * @return The current object, for chaining instructions.
-	 */
-	@SuppressWarnings("unchecked")
-    public
-    T start() {
-		build();
-		currentTime = 0;
-		isStarted = true;
-		return (T) this;
-	}
 
-	/**
-	 * Convenience method to add an object to a manager. Its life-cycle will be
-	 * handled for you. Relax and enjoy the animation.
-	 *
-	 * @return The current object, for chaining instructions.
-	 */
+    /**
+     * Clears all of the callback.
+     */
     @SuppressWarnings("unchecked")
-	public
-    T start(TweenManager manager) {
-		manager.add(this);
-		return (T) this;
-	}
+    public
+    T clearCallbacks() {
+        this.callbacks.clear();
+        return (T) this;
+    }
 
 	/**
 	 * Adds a delay to the tween or timeline in seconds.
@@ -202,7 +201,7 @@ abstract class BaseTween<T> {
         if (isStarted) {
             throw new RuntimeException("You can't change the repetitions of a tween or timeline once it is started");
         }
-        repeatCnt = count;
+        repeatCount = count;
         repeatDelay = delay >= 0 ? delay : 0;
         isYoyo = false;
         return (T) this;
@@ -223,34 +222,10 @@ abstract class BaseTween<T> {
         if (isStarted) {
             throw new RuntimeException("You can't change the repetitions of a tween or timeline once it is started");
         }
-        repeatCnt = count;
+        repeatCount = count;
         repeatDelay = delay >= 0 ? delay : 0;
         isYoyo = true;
         return (T) this;
-	}
-
-	/**
-	 * Clears all of the callback.
-	 */
-    @SuppressWarnings("unchecked")
-	public
-    T clearCallbacks() {
-        this.callbacks.clear();
-		return (T) this;
-	}
-
-    /**
-     * Adds a callback. By default, it will be fired at the completion of the
-     * tween or timeline (event COMPLETE). If you want to change this behavior
-     * use the {@link TweenCallback#setTriggers(int)} method.
-     *
-     * @see TweenCallback
-     */
-    @SuppressWarnings("unchecked")
-	public
-    T addCallback(TweenCallback callback) {
-        this.callbacks.add(callback);
-		return (T) this;
 	}
 
 	/**
@@ -266,6 +241,48 @@ abstract class BaseTween<T> {
 		userData = data;
 		return (T) this;
 	}
+
+    /**
+     * Specifies for the update function, when an endpoint is reached, to force
+     * the value of the target to the start (or end) values. This is to guarantee
+     * that the values at the start/end of a tween are as defined, instead of
+     * calculated
+     */
+    @SuppressWarnings("unchecked")
+    public
+    T snapToEndpoints() {
+        this.snapToEndpoints = true;
+        return (T) this;
+    }
+
+    /**
+     * Starts or restarts the object unmanaged. You will need to take care of
+     * its life-cycle. If you want the tween to be managed for you, use a
+     * {@link TweenManager}.
+     *
+     * @return The current object, for chaining instructions.
+     */
+    @SuppressWarnings("unchecked")
+    public
+    T start() {
+        build();
+        currentTime = 0;
+        isStarted = true;
+        return (T) this;
+    }
+
+    /**
+     * Convenience method to add an object to a manager. Its life-cycle will be
+     * handled for you. Relax and enjoy the animation.
+     *
+     * @return The current object, for chaining instructions.
+     */
+    @SuppressWarnings("unchecked")
+    public
+    T start(TweenManager manager) {
+        manager.add(this);
+        return (T) this;
+    }
 
 	// -------------------------------------------------------------------------
 	// Getters
@@ -293,7 +310,7 @@ abstract class BaseTween<T> {
 	 */
 	public
     int getRepeatCount() {
-		return repeatCnt;
+		return repeatCount;
 	}
 
 	/**
@@ -308,15 +325,15 @@ abstract class BaseTween<T> {
 	 * Returns the complete duration, including initial delay and repetitions.
 	 * The formula is as follows:
 	 * <pre>
-	 * fullDuration = delay + duration + (repeatDelay + duration) * repeatCnt
+	 * fullDuration = delay + duration + (repeatDelay + duration) * repeatCount
 	 * </pre>
 	 */
 	public
     float getFullDuration() {
-        if (repeatCnt < 0) {
+        if (repeatCount < 0) {
             return -1;
         }
-        return delay + duration + (repeatDelay + duration) * repeatCnt;
+        return delay + duration + (repeatDelay + duration) * repeatCount;
     }
 
 	/**
@@ -439,7 +456,7 @@ abstract class BaseTween<T> {
 	protected
     void forceToEnd(float time) {
         currentTime = time - getFullDuration();
-        int count = repeatCnt << 1;
+        int count = repeatCount << 1;
 
         step = count + 1;
         isIterationStep = false;
@@ -482,7 +499,7 @@ abstract class BaseTween<T> {
 
     protected
     boolean isValid(int step) {
-        return repeatCnt < 0 || (step >= 0 && step <= repeatCnt << 1);
+        return repeatCount < 0 || (step >= 0 && step <= repeatCount << 1);
     }
 
     protected
@@ -516,7 +533,7 @@ abstract class BaseTween<T> {
 	 */
 	@SuppressWarnings("FieldRepeatedlyAccessedInMethod")
     public
-    void update(float delta) {
+    void update(final float delta) {
 		if (!isStarted || isPaused || isKilled) return;
 
 		deltaTime = delta;
@@ -526,9 +543,11 @@ abstract class BaseTween<T> {
 		}
 
 		if (isInitialized) {
-			testRelaunch();
+			relaunch();
 			updateStep();
-			testCompletion();
+
+            // calculate if our timeline/tween is finished
+            isFinished = repeatCount >= 0 && (step < 0 || step > repeatCount << 1);
 		}
 
 		currentTime += deltaTime;
@@ -553,8 +572,8 @@ abstract class BaseTween<T> {
 
 	@SuppressWarnings("FieldRepeatedlyAccessedInMethod")
     private
-    void testRelaunch() {
-		if (!isIterationStep && repeatCnt >= 0 ) {
+    void relaunch() {
+		if (!isIterationStep && repeatCount >= 0 ) {
             if (step < 0 && currentTime + deltaTime >= 0) {
                 assert step == -1;
                 isIterationStep = true;
@@ -568,7 +587,7 @@ abstract class BaseTween<T> {
                 updateOverride(step, step - 1, isIterationStep, delta);
             }
             else {
-                int count = repeatCnt << 1;
+                int count = repeatCount << 1;
                 if (step > count && currentTime + deltaTime < 0) {
                     assert step == count + 1;
                     isIterationStep = true;
@@ -626,10 +645,16 @@ abstract class BaseTween<T> {
                         forceStartValues();
                     }
 
+//                    if (snapToEndpoints) {
+//                        forceStartValues();
+//                    } else {
+//                        updateOverride(step, step, isIterationStep, delta);
+//                    }
+
                     callCallbacks(TweenCallback.Events.START);
                     updateOverride(step, step - 1, isIterationStep, delta);
                 } else {
-                    // update
+                    // no transition change, just regular updates
                     float delta = deltaTime;
                     deltaTime -= delta;
                     currentTime += delta;
@@ -648,10 +673,15 @@ abstract class BaseTween<T> {
                     deltaTime -= delta;
                     currentTime = 0;
 
-                    updateOverride(step, step, isIterationStep, delta);
+//                    if (snapToEndpoints) {
+//                        forceStartValues();
+//                    } else {
+                        updateOverride(step, step, isIterationStep, delta);
+//                    }
+
                     callCallbacks(TweenCallback.Events.BACK_END);
 
-                    if (step < 0 && repeatCnt >= 0) {
+                    if (step < 0 && repeatCount >= 0) {
                         callCallbacks(TweenCallback.Events.BACK_COMPLETE);
                     }
                     else {
@@ -668,15 +698,17 @@ abstract class BaseTween<T> {
                     currentTime = duration;
 
                     updateOverride(step, step - 1, isIterationStep, delta);
+//                    forceEndValues();
+
                     callCallbacks(TweenCallback.Events.END);
 
-                    if (step > repeatCnt << 1 && repeatCnt >= 0) {
+                    if (step > repeatCount << 1 && repeatCount >= 0) {
                         callCallbacks(TweenCallback.Events.COMPLETE);
                     }
                     currentTime = 0;
                 }
                 else {
-                    // update
+                    // no transition change, just regular updates
                     float delta = deltaTime;
                     deltaTime -= delta;
                     currentTime += delta;
@@ -688,9 +720,4 @@ abstract class BaseTween<T> {
             }
         }
     }
-
-	private
-    void testCompletion() {
-		isFinished = repeatCnt >= 0 && (step > repeatCnt << 1 || step < 0);
-	}
 }
