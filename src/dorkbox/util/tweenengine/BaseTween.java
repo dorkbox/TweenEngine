@@ -60,9 +60,9 @@ abstract class BaseTween<T> {
 	// Timings
 	protected float delay;
 	protected float duration;
+
 	private float repeatDelay;
 	private float currentTime;
-	private float deltaTime;
 
 	private boolean isStarted; // true when the object is started
 	private boolean isInitialized; // true after the delay
@@ -88,7 +88,7 @@ abstract class BaseTween<T> {
         repeatCount = 0;
         isIterationStep = isAutoReverse = false;
 
-        delay = duration = repeatDelay = currentTime = deltaTime = 0;
+        delay = duration = repeatDelay = currentTime = 0;
         isStarted = isInitialized = isFinished = isKilled = isPaused = false;
 
         callbacks.clear();
@@ -537,194 +537,178 @@ abstract class BaseTween<T> {
     void update(final float delta) {
 		if (!isStarted || isPaused || isKilled) return;
 
-		deltaTime = delta;
+        float deltaTime = delta;
+        float time = currentTime + deltaTime;
 
 		if (!isInitialized) {
-			initialize();
+            // only run if we have passed the specified delay
+            if (time >= delay) {
+                initializeOverride();
+                isInitialized = true;
+                isIterationStep = true;
+                step = 0;
+                deltaTime -= delay - currentTime;
+                currentTime = 0;
+
+                callCallbacks(TweenCallback.Events.BEGIN);
+                callCallbacks(TweenCallback.Events.START);
+            }
 		}
 
 		if (isInitialized) {
-			relaunch();
-			updateStep();
+            // restart an iteration when it used to be in reverse
+            if (!isIterationStep && repeatCount >= 0 ) {
+                if (step < 0 && time >= 0) {
+                    assert step == -1;
+
+                    isIterationStep = true;
+                    step = 0;
+                    float delta2 = 0 - currentTime;
+                    deltaTime -= delta2;
+                    currentTime = 0;
+
+                    callCallbacks(TweenCallback.Events.BEGIN);
+                    callCallbacks(TweenCallback.Events.START);
+                    updateOverride(step, step - 1, isIterationStep, delta2);
+                }
+                else {
+                    int count = repeatCount << 1;
+                    if (step > count && time < 0) {
+                        assert step == count + 1;
+                        isIterationStep = true;
+                        step = count;
+                        float delta2 = 0 - currentTime;
+                        deltaTime -= delta2;
+                        currentTime = duration;
+
+                        callCallbacks(TweenCallback.Events.BACK_BEGIN);
+                        callCallbacks(TweenCallback.Events.BACK_START);
+                        updateOverride(step, step + 1, isIterationStep, delta2);
+                    }
+                }
+            }
+
+
+            // update the animations as long as our step is valid
+
+            while (isValid(step)) {
+                time = currentTime + deltaTime;
+
+                if (!isIterationStep) {
+                    if (time <= 0) {
+                        // start REVERSE
+                        isIterationStep = true;
+                        step -= 1;
+
+                        float deltaChange = 0 - currentTime;
+                        deltaTime -= deltaChange;
+                        currentTime = duration;
+
+                        if (isStepAutoReverse(step)) {
+                            forceStartValues();
+                        }
+                        else {
+                            forceEndValues();
+                        }
+
+                        callCallbacks(TweenCallback.Events.BACK_START);
+                        updateOverride(step, step + 1, isIterationStep, deltaChange);
+                    }
+                    else if (time >= repeatDelay) {
+                        // start FORWARDS
+                        isIterationStep = true;
+                        step += 1;
+
+                        float deltaChange = repeatDelay - currentTime;
+                        deltaTime -= deltaChange;
+                        currentTime = 0;
+
+                        if (isStepAutoReverse(step)) {
+                            forceEndValues();
+                        }
+                        else {
+                            forceStartValues();
+                        }
+
+//                    if (snapToEndpoints) {
+//                        forceStartValues();
+//                    } else {
+//                        updateOverride(step, step, isIterationStep, deltaChange);
+//                    }
+
+                        callCallbacks(TweenCallback.Events.START);
+                        updateOverride(step, step - 1, isIterationStep, deltaChange);
+                    } else {
+                        // no transition change, just regular updates
+                        float deltaChange = deltaTime;
+                        deltaTime -= deltaChange;
+                        currentTime += deltaChange;
+
+                        break;
+                    }
+                }
+                else {
+                    // isIterationStep = true
+                    if (time < 0) {
+                        // finish REVERSE
+                        isIterationStep = false;
+                        step -= 1;
+
+                        float deltaChange = 0 - currentTime;
+                        deltaTime -= deltaChange;
+                        currentTime = 0;
+
+//                    if (snapToEndpoints) {
+                        forceStartValues();
+//                    } else {
+//                        updateOverride(step, step, isIterationStep, deltaChange);
+//                    }
+
+                        callCallbacks(TweenCallback.Events.BACK_END);
+
+                        if (step < 0 && repeatCount >= 0) {
+                            callCallbacks(TweenCallback.Events.BACK_COMPLETE);
+                        }
+                        else {
+                            currentTime = repeatDelay;
+                        }
+                    }
+                    else if (time > duration) {
+                        // finish FORWARDS
+                        isIterationStep = false;
+                        step += 1;
+
+                        float deltaChange = duration - currentTime;
+                        deltaTime -= deltaChange;
+                        currentTime = duration;
+
+                        updateOverride(step, step - 1, isIterationStep, deltaChange);
+//                    forceEndValues();
+
+                        callCallbacks(TweenCallback.Events.END);
+
+                        if (step > repeatCount << 1 && repeatCount >= 0) {
+                            callCallbacks(TweenCallback.Events.COMPLETE);
+                        }
+                        currentTime = 0;
+                    }
+                    else {
+                        // no transition change, just regular updates
+                        float deltaChange = deltaTime;
+                        deltaTime -= deltaChange;
+                        currentTime += deltaChange;
+
+                        updateOverride(step, step, isIterationStep, deltaChange);
+
+                        break;
+                    }
+                }
+            }
 
             // calculate if our timeline/tween is finished
             isFinished = repeatCount >= 0 && (step < 0 || step > repeatCount << 1);
 		}
 
 		currentTime += deltaTime;
-		deltaTime = 0;
 	}
-
-	@SuppressWarnings("FieldRepeatedlyAccessedInMethod")
-    private
-    void initialize() {
-        final float time = currentTime + deltaTime;
-        if (time >= delay) {
-            initializeOverride();
-            isInitialized = true;
-            isIterationStep = true;
-            step = 0;
-            deltaTime -= delay - currentTime;
-            currentTime = 0;
-
-            callCallbacks(TweenCallback.Events.BEGIN);
-            callCallbacks(TweenCallback.Events.START);
-        }
-    }
-
-	@SuppressWarnings("FieldRepeatedlyAccessedInMethod")
-    private
-    void relaunch() {
-        // restart an iteration when it used to be in reverse
-		if (!isIterationStep && repeatCount >= 0 ) {
-            final float time = currentTime + deltaTime;
-
-            if (step < 0 && time >= 0) {
-                assert step == -1;
-
-                isIterationStep = true;
-                step = 0;
-                float delta = 0 - currentTime;
-                deltaTime -= delta;
-                currentTime = 0;
-
-                callCallbacks(TweenCallback.Events.BEGIN);
-                callCallbacks(TweenCallback.Events.START);
-                updateOverride(step, step - 1, isIterationStep, delta);
-            }
-            else {
-                int count = repeatCount << 1;
-                if (step > count && time < 0) {
-                    assert step == count + 1;
-                    isIterationStep = true;
-                    step = count;
-                    float delta = 0 - currentTime;
-                    deltaTime -= delta;
-                    currentTime = duration;
-
-                    callCallbacks(TweenCallback.Events.BACK_BEGIN);
-                    callCallbacks(TweenCallback.Events.BACK_START);
-                    updateOverride(step, step + 1, isIterationStep, delta);
-                }
-            }
-        }
-	}
-
-	@SuppressWarnings("FieldRepeatedlyAccessedInMethod")
-    private
-    void updateStep() {
-        while (isValid(step)) {
-            final float time = currentTime + deltaTime;
-
-            if (!isIterationStep) {
-                if (time <= 0) {
-                    // start REVERSE
-                    isIterationStep = true;
-                    step -= 1;
-
-                    float delta = 0 - currentTime;
-                    deltaTime -= delta;
-                    currentTime = duration;
-
-                    if (isStepAutoReverse(step)) {
-                        forceStartValues();
-                    }
-                    else {
-                        forceEndValues();
-                    }
-
-                    callCallbacks(TweenCallback.Events.BACK_START);
-                    updateOverride(step, step + 1, isIterationStep, delta);
-                }
-                else if (time >= repeatDelay) {
-                    // start FORWARDS
-                    isIterationStep = true;
-                    step += 1;
-
-                    float delta = repeatDelay - currentTime;
-                    deltaTime -= delta;
-                    currentTime = 0;
-
-                    if (isStepAutoReverse(step)) {
-                        forceEndValues();
-                    }
-                    else {
-                        forceStartValues();
-                    }
-
-//                    if (snapToEndpoints) {
-//                        forceStartValues();
-//                    } else {
-//                        updateOverride(step, step, isIterationStep, delta);
-//                    }
-
-                    callCallbacks(TweenCallback.Events.START);
-                    updateOverride(step, step - 1, isIterationStep, delta);
-                } else {
-                    // no transition change, just regular updates
-                    float delta = deltaTime;
-                    deltaTime -= delta;
-                    currentTime += delta;
-
-                    break;
-                }
-            }
-            else {
-                // isIterationStep = true
-                if (time < 0) {
-                    // finish REVERSE
-                    isIterationStep = false;
-                    step -= 1;
-
-                    float delta = 0 - currentTime;
-                    deltaTime -= delta;
-                    currentTime = 0;
-
-//                    if (snapToEndpoints) {
-                        forceStartValues();
-//                    } else {
-//                        updateOverride(step, step, isIterationStep, delta);
-//                    }
-
-                    callCallbacks(TweenCallback.Events.BACK_END);
-
-                    if (step < 0 && repeatCount >= 0) {
-                        callCallbacks(TweenCallback.Events.BACK_COMPLETE);
-                    }
-                    else {
-                        currentTime = repeatDelay;
-                    }
-                }
-                else if (time > duration) {
-                    // finish FORWARDS
-                    isIterationStep = false;
-                    step += 1;
-
-                    float delta = duration - currentTime;
-                    deltaTime -= delta;
-                    currentTime = duration;
-
-                    updateOverride(step, step - 1, isIterationStep, delta);
-//                    forceEndValues();
-
-                    callCallbacks(TweenCallback.Events.END);
-
-                    if (step > repeatCount << 1 && repeatCount >= 0) {
-                        callCallbacks(TweenCallback.Events.COMPLETE);
-                    }
-                    currentTime = 0;
-                }
-                else {
-                    // no transition change, just regular updates
-                    float delta = deltaTime;
-                    deltaTime -= delta;
-                    currentTime += delta;
-
-                    updateOverride(step, step, isIterationStep, delta);
-
-                    break;
-                }
-            }
-        }
-    }
 }
