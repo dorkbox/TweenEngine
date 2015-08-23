@@ -1,0 +1,21 @@
+    - Dorkbox TweenEngine - Apache 2.0 License
+      https://github.com/dorkbox
+      Copyright 2015, dorkbox, llc
+        Animation/Tween framework for java
+
+
+    - Dorkbox ObjectPool - Apache 2.0 License
+      https://github.com/dorkbox
+      Copyright 2014, dorkbox, llc
+        Fast (via unsafe) and compatible java object pool factory
+
+
+    - Java Universal Tween Engine - Apache 2.0 License
+      https://code.google.com/p/java-universal-tween-engine/
+      Copyright 2012, Aurelien Ribon
+        Abandoned tween engine from which we are derived
+
+
+    - JCTools - Apache 2.0 License
+      https://github.com/JCTools/JCTools
+       Copyright 2013, JCTools, Nitsan Wakart

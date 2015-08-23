@@ -1,24 +1,32 @@
-![http://www.aurelienribon.com/blog/wp-content/uploads/2012/05/tween-engine-big-logo.jpg](http://www.aurelienribon.com/blog/wp-content/uploads/2012/05/tween-engine-big-logo.jpg)
+![logo](https://raw.githubusercontent.com/dorkbox/TweenEngine/master/examples/tween-engine-big-logo.jpg)
+
+**Code license**
+
+Apache License 2.0
+
+**Forked from JavaUniversalTweenEngine**
+
+by: Aurelien Ribon
 
 # Check out the demo! #
 
   * [Android application](https://play.google.com/store/apps/details?id=aurelienribon.tweenengine.demo)
-  * [Desktop application](http://code.google.com/p/java-universal-tween-engine/downloads/detail?name=tween-engine-demo-6.3.0.zip)
+  * [Desktop application](https://github.com/dorkbox/TweenEngine/blob/master/examples/tween-engine-demo-6.3.0.zip)
   * [WebGL html5 page](http://www.aurelienribon.com/universal-tween-engine/gwt/demo.html) (requires a WebGL enabled browser)
 
 # Changelog #
 
-See the [Changelog](Changelog.md) page.
+See the [Changelog](Changelog) page.
 
 # Introduction #
 
-The Universal Tween Engine enables the interpolation of every attribute from any object in any Java project (being Swing, SWT, OpenGL or even Console-based). Implement the TweenAccessor interface, register it to the engine, and animate anything you want!
+The Tween Engine enables the interpolation of every attribute from any object in any Java project (being Swing, SWT, OpenGL or even Console-based). Implement the TweenAccessor interface, register it to the engine, and animate anything you want!
 
 In one line, send your objects to another position (here x=20 and y=30), with a smooth elastic transition, during 1 second).
 ```
-// Arguments are (1) the target, (2) the type of interpolation, 
-// and (3) the duration in seconds. Additional methods specify  
-// the target values, and the easing function. 
+// Arguments are (1) the target, (2) the type of interpolation,
+// and (3) the duration in seconds. Additional methods specify
+// the target values, and the easing function.
 
 Tween.to(mySprite, Type.POSITION_XY, 1.0f).target(20, 30).ease(Elastic.INOUT);
 
@@ -106,17 +114,16 @@ A test executable can be found in the download section. Its source code, in the 
 # Get started and documentation index #
 
 Detailed documentation with code snippets and examples is available for the following topics:
-  * [Get started](GetStarted.md) --- A step-by-step example to get you started, with code
+  * [Get started](GetStarted) --- A step-by-step example to get you started, with code
 
-  * [The TweenAccessor interface](TweenAccessor.md) --- Know how to implement it
-  * [Tweens and options](Tween.md) --- See what are the possibilities
-  * [Timelines and options](Timeline.md) --- Learn how to build powerful sequences
-  * [Animating Android apps](AndroidUI.md) --- See how to use the TweenEngine with Android UIs
+  * [The TweenAccessor interface](TweenAccessor) --- Know how to implement it
+  * [Tweens and options](Tween) --- See what are the possibilities
+  * [Timelines and options](Timeline) --- Learn how to build powerful sequences
+  * [Animating Android apps](AndroidUI) --- See how to use the TweenEngine with Android UIs
 
 # Where can I ask for help? #
 
-**There is a dedicated forum for you:**
-http://www.aurelienribon.com/forum/viewforum.php?f=5
+**Use github issues**
 
 Also, the following link will guide you to a discussion thread that started it all:
 http://www.badlogicgames.com/forum/viewtopic.php?f=17&t=494
