@@ -525,10 +525,12 @@ abstract class BaseTween<T> {
 	/**
 	 * Updates the tween or timeline state. <b>You may want to use a
 	 * TweenManager to update objects for you.</b>
-	 *
+	 * <p>
 	 * Slow motion, fast motion and backward play can be easily achieved by
-	 * tweaking this delta time. Multiply it by -1 to play the animation
-	 * backward, or by 0.5 to play it twice slower than its normal speed.
+	 * tweaking this delta time.
+     * <p>
+     * Multiply it by -1 to play the animation backward, or by 0.5
+     * to play it twice-as-slow than its normal speed.
 	 *
 	 * @param delta A delta time between now and the last call.
 	 */
