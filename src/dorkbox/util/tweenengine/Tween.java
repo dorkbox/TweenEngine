@@ -965,14 +965,12 @@ class Tween extends BaseTween<Tween> {
             return;
         }
 
-        // Case iteration end has been reached
-
         final TweenAccessor<Object> accessor = this.accessor;
         final float[] startValues = this.startValues;
         final float[] targetValues = this.targetValues;
         final int type = this.type;
 
-
+        // Case iteration end has been reached
         if (!isIterationStep) {
             if (step > lastStep) {
                 accessor.setValues(target, type, isYoyoReverse(lastStep) ? startValues : targetValues);
@@ -980,14 +978,12 @@ class Tween extends BaseTween<Tween> {
             else {
                 accessor.setValues(target, type, isYoyoReverse(lastStep) ? targetValues : startValues);
             }
-
             return;
         }
 
 
 
 		// Validation
-
         assert isIterationStep;
         assert getCurrentTime() >= 0;
         final float duration = this.duration;
@@ -995,16 +991,15 @@ class Tween extends BaseTween<Tween> {
         assert getCurrentTime() <= duration;
 
         // Case duration equals zero
-
-        if (duration < 0.00000000001f && delta > -0.00000000001f) {
-            accessor.setValues(target, type, isYoyoReverse(step) ? targetValues : startValues);
+        if (duration < 0.00000000001f) {
+            if (delta > -0.00000000001f) {
+                accessor.setValues(target, type, isYoyoReverse(step) ? targetValues : startValues);
+            } else {
+                accessor.setValues(target, type, isYoyoReverse(step) ? startValues : targetValues);
+            }
             return;
         }
 
-        if (duration < 0.00000000001f && delta < 0.00000000001f) {
-            accessor.setValues(target, type, isYoyoReverse(step) ? startValues : targetValues);
-            return;
-        }
 
 		// Normal behavior
 
