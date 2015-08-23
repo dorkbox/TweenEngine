@@ -972,15 +972,19 @@ class Tween extends BaseTween<Tween> {
         final float[] targetValues = this.targetValues;
         final int type = this.type;
 
-        if (!isIterationStep && step > lastStep) {
-            accessor.setValues(target, type, isYoyoReverse(lastStep) ? startValues : targetValues);
+
+        if (!isIterationStep) {
+            if (step > lastStep) {
+                accessor.setValues(target, type, isYoyoReverse(lastStep) ? startValues : targetValues);
+            }
+            else {
+                accessor.setValues(target, type, isYoyoReverse(lastStep) ? targetValues : startValues);
+            }
+
             return;
         }
 
-        if (!isIterationStep && step < lastStep) {
-            accessor.setValues(target, type, isYoyoReverse(lastStep) ? targetValues : startValues);
-            return;
-        }
+
 
 		// Validation
 
