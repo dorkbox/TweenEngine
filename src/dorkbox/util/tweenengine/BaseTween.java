@@ -142,9 +142,9 @@ abstract class BaseTween<T> {
 	}
 
 	/**
-	 * Adds a delay to the tween or timeline.
+	 * Adds a delay to the tween or timeline in seconds.
 	 *
-	 * @param delay A duration.
+	 * @param delay A duration in seconds, for example .2F for 200 milliseconds.
 	 * @return The current object, for chaining instructions.
 	 */
     @SuppressWarnings("unchecked")

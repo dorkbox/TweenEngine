@@ -86,7 +86,7 @@ class Timeline extends BaseTween<Timeline> {
 	// -------------------------------------------------------------------------
 
     @SuppressWarnings("StaticNonFinalField")
-    private static volatile int capacity = 10;
+    private static final Thread constructorThread = Thread.currentThread();
     private static final PoolableObject<Timeline> poolableObject = new PoolableObject<Timeline>() {
         @Override
         public
@@ -101,7 +101,7 @@ class Timeline extends BaseTween<Timeline> {
         }
     };
 
-    static ObjectPool<Timeline> pool = ObjectPoolFactory.create(poolableObject, capacity);
+    static ObjectPool<Timeline> pool = ObjectPoolFactory.create(poolableObject, 256);
 
 
 	/**
@@ -114,16 +114,16 @@ class Timeline extends BaseTween<Timeline> {
 	}
 
     /**
-     * Increases the minimum capacity of the pool. Capacity defaults to 10.
+     * Increases the minimum capacity of the pool. Capacity defaults to 256.
      * <p>
      * Needs to be set before any threads access or use the timeline. This is not thread safe!
      */
     public static
-    void setPoolCapacity(int minCapacity) {
-        if (Timeline.capacity < minCapacity) {
-            pool =  ObjectPoolFactory.create(poolableObject, minCapacity);
-            Timeline.capacity = minCapacity;
+    void setPoolSize(int poolSize) {
+        if (constructorThread != Thread.currentThread()) {
+            throw new RuntimeException("Timeline pool capacity must be changed during engine initialization!");
         }
+        pool =  ObjectPoolFactory.create(poolableObject, poolSize);
 	}
 
 	// -------------------------------------------------------------------------
@@ -223,13 +223,13 @@ class Timeline extends BaseTween<Timeline> {
 	 * Adds a pause to the timeline. The pause may be negative if you want to
 	 * overlap the preceding and following children.
 	 *
-	 * @param time A positive or negative duration.
+	 * @param timeInSeconds A positive or negative duration in milliseconds, for example .2F for 200 milliseconds
 	 * @return The current timeline, for chaining instructions.
 	 */
 	public
-    Timeline pushPause(float time) {
+    Timeline pushPause(float timeInSeconds) {
 		if (isBuilt) throw new RuntimeException("You can't push anything to a timeline once it is started");
-		current.children.add(Tween.mark().delay(time));
+		current.children.add(Tween.mark().delay(timeInSeconds));
 		return this;
 	}
 

@@ -157,7 +157,7 @@ class Tween extends BaseTween<Tween> {
 	// Static -- pool
 	// -------------------------------------------------------------------------
 
-    private static volatile int capacity = 10;
+    private static final Thread constructorThread = Thread.currentThread();
     private static final PoolableObject<Tween> poolableObject = new PoolableObject<Tween>() {
         @Override
         public
@@ -172,7 +172,7 @@ class Tween extends BaseTween<Tween> {
         }
     };
 
-    static ObjectPool<Tween> pool = ObjectPoolFactory.create(poolableObject, capacity);
+    static ObjectPool<Tween> pool = ObjectPoolFactory.create(poolableObject, 1024);
 
 	/**
 	 * Used for debug purpose. Gets the current number of objects that are
@@ -183,13 +183,13 @@ class Tween extends BaseTween<Tween> {
 	}
 
 	/**
-	 * Increases the minimum capacity of the pool. Capacity defaults to 20.
+	 * Increases the minimum capacity of the pool. Capacity defaults to 1024.
 	 */
-	public static void setPoolCapacity(int minCapacity) {
-        if (Tween.capacity < minCapacity) {
-            pool =  ObjectPoolFactory.create(poolableObject, minCapacity);
-            Tween.capacity = minCapacity;
+	public static void setPoolSize(int poolSize) {
+        if (constructorThread != Thread.currentThread()) {
+            throw new RuntimeException("Tween pool capacity must be changed during engine initialization!");
         }
+        pool =  ObjectPoolFactory.create(poolableObject, poolSize);
 	}
 
 	// -------------------------------------------------------------------------
