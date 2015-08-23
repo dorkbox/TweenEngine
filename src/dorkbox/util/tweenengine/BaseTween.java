@@ -55,7 +55,7 @@ abstract class BaseTween<T> {
 	private int step;
 	private int repeatCount;
 	private boolean isIterationStep;
-	private boolean isYoyo;
+	private boolean isAutoReverse;
 
 	// Timings
 	protected float delay;
@@ -86,7 +86,7 @@ abstract class BaseTween<T> {
     void reset() {
         step = -2;
         repeatCount = 0;
-        isIterationStep = isYoyo = false;
+        isIterationStep = isAutoReverse = false;
 
         delay = duration = repeatDelay = currentTime = deltaTime = 0;
         isStarted = isInitialized = isFinished = isKilled = isPaused = false;
@@ -190,10 +190,11 @@ abstract class BaseTween<T> {
 
 	/**
 	 * Repeats the tween or timeline for a given number of times.
+     *
 	 * @param count The number of repetitions. For infinite repetition,
-	 * use Tween.INFINITY, or a negative number.
-	 *
+	 *              use {@link Tween#INFINITY} or -1.
 	 * @param delay A delay between each iteration.
+     *
 	 * @return The current tween or timeline, for chaining instructions.
 	 */
     @SuppressWarnings("unchecked")
@@ -204,28 +205,29 @@ abstract class BaseTween<T> {
         }
         repeatCount = count;
         repeatDelay = delay >= 0 ? delay : 0;
-        isYoyo = false;
+        isAutoReverse = false;
         return (T) this;
 	}
 
 	/**
 	 * Repeats the tween or timeline for a given number of times.
-	 * Every two iterations, it will be played backwards.
+	 * Once an iteration is complete, it will be played in reverse.
 	 *
 	 * @param count The number of repetitions. For infinite repetition,
-	 * use Tween.INFINITY, or '-1'.
+	 *              use {@link Tween#INFINITY} or -1.
 	 * @param delay A delay before each repetition.
+     *
 	 * @return The current tween or timeline, for chaining instructions.
 	 */
     @SuppressWarnings("unchecked")
 	public
-    T repeatYoyo(final int count, final float delay) {
+    T repeatAutoReverse(final int count, final float delay) {
         if (isStarted) {
             throw new RuntimeException("You can't change the repetitions of a tween or timeline once it is started");
         }
         repeatCount = count;
         repeatDelay = delay >= 0 ? delay : 0;
-        isYoyo = true;
+        isAutoReverse = true;
         return (T) this;
 	}
 
@@ -396,12 +398,11 @@ abstract class BaseTween<T> {
 	}
 
 	/**
-	 * Returns true if the iterations are played as yoyo. Yoyo means that
-	 * every two iterations, the animation will be played backwards.
+	 * Returns true if the tween automatically reverse when complete.
 	 */
 	public
-    boolean isYoyo() {
-		return isYoyo;
+    boolean isAutoReverse() {
+		return isAutoReverse;
 	}
 
 	/**
@@ -446,7 +447,7 @@ abstract class BaseTween<T> {
         step = -1;
         isIterationStep = false;
 
-        if (isYoyoReverse(0)) {
+        if (isStepAutoReverse(0)) {
             forceEndValues();
         }
         else {
@@ -462,7 +463,7 @@ abstract class BaseTween<T> {
         step = count + 1;
         isIterationStep = false;
 
-        if (isYoyoReverse(count)) {
+        if (isStepAutoReverse(count)) {
             forceStartValues();
         }
         else {
@@ -482,11 +483,11 @@ abstract class BaseTween<T> {
     }
 
     /**
-     * @return true if the step is in the middle of the "backwards" yoyo iteration
+     * @return true if the step is in the middle of the reverse iteration
      */
     public final
-    boolean isYoyoReverse(final int step) {
-        return isYoyo && Math.abs(step % 4) == 2;
+    boolean isStepAutoReverse(final int step) {
+        return isAutoReverse && Math.abs(step % 4) == 2;
     }
 
     /**
@@ -557,7 +558,8 @@ abstract class BaseTween<T> {
 	@SuppressWarnings("FieldRepeatedlyAccessedInMethod")
     private
     void initialize() {
-        if (currentTime + deltaTime >= delay) {
+        final float time = currentTime + deltaTime;
+        if (time >= delay) {
             initializeOverride();
             isInitialized = true;
             isIterationStep = true;
@@ -573,8 +575,11 @@ abstract class BaseTween<T> {
 	@SuppressWarnings("FieldRepeatedlyAccessedInMethod")
     private
     void relaunch() {
+        // restart an iteration when it used to be in reverse
 		if (!isIterationStep && repeatCount >= 0 ) {
-            if (step < 0 && currentTime + deltaTime >= 0) {
+            final float time = currentTime + deltaTime;
+
+            if (step < 0 && time >= 0) {
                 assert step == -1;
                 isIterationStep = true;
                 step = 0;
@@ -588,7 +593,7 @@ abstract class BaseTween<T> {
             }
             else {
                 int count = repeatCount << 1;
-                if (step > count && currentTime + deltaTime < 0) {
+                if (step > count && time < 0) {
                     assert step == count + 1;
                     isIterationStep = true;
                     step = count;
@@ -608,7 +613,8 @@ abstract class BaseTween<T> {
     private
     void updateStep() {
         while (isValid(step)) {
-            float time = currentTime + deltaTime;
+            final float time = currentTime + deltaTime;
+
             if (!isIterationStep) {
                 if (time <= 0) {
                     // start REVERSE
@@ -619,7 +625,7 @@ abstract class BaseTween<T> {
                     deltaTime -= delta;
                     currentTime = duration;
 
-                    if (isYoyoReverse(step)) {
+                    if (isStepAutoReverse(step)) {
                         forceStartValues();
                     }
                     else {
@@ -638,7 +644,7 @@ abstract class BaseTween<T> {
                     deltaTime -= delta;
                     currentTime = 0;
 
-                    if (isYoyoReverse(step)) {
+                    if (isStepAutoReverse(step)) {
                         forceEndValues();
                     }
                     else {

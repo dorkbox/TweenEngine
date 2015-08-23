@@ -120,7 +120,7 @@ class Tween extends BaseTween<Tween> {
 
 	/**
 	 * Used as parameter in {@link #repeat(int, float)} and
-	 * {@link #repeatYoyo(int, float)} methods.
+	 * {@link #repeatAutoReverse(int, float)} methods.
 	 */
 	public static final int INFINITY = -1;
 
@@ -994,10 +994,10 @@ class Tween extends BaseTween<Tween> {
         // Case iteration end has been reached
         if (!isIterationStep) {
             if (step > lastStep) {
-                accessor.setValues(target, type, isYoyoReverse(lastStep) ? startValues : targetValues);
+                accessor.setValues(target, type, isStepAutoReverse(lastStep) ? startValues : targetValues);
             }
             else {
-                accessor.setValues(target, type, isYoyoReverse(lastStep) ? targetValues : startValues);
+                accessor.setValues(target, type, isStepAutoReverse(lastStep) ? targetValues : startValues);
             }
             return;
         }
@@ -1014,9 +1014,9 @@ class Tween extends BaseTween<Tween> {
         // Case duration equals zero
         if (duration < 0.00000000001f) {
             if (delta > -0.00000000001f) {
-                accessor.setValues(target, type, isYoyoReverse(step) ? targetValues : startValues);
+                accessor.setValues(target, type, isStepAutoReverse(step) ? targetValues : startValues);
             } else {
-                accessor.setValues(target, type, isYoyoReverse(step) ? startValues : targetValues);
+                accessor.setValues(target, type, isStepAutoReverse(step) ? startValues : targetValues);
             }
             return;
         }
@@ -1024,7 +1024,7 @@ class Tween extends BaseTween<Tween> {
 
 		// Normal behavior
 
-        final float time = isYoyoReverse(step) ? duration - getCurrentTime() : getCurrentTime();
+        final float time = isStepAutoReverse(step) ? duration - getCurrentTime() : getCurrentTime();
         final float tweenValue = equation.compute(time / duration);
 
         final float[] accessorBuffer = this.accessorBuffer;

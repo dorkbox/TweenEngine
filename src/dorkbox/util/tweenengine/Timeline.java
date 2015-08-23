@@ -388,7 +388,7 @@ class Timeline extends BaseTween<Timeline> {
     void updateOverride(final int step, final int lastStep, final boolean isIterationStep, final float delta) {
         if (!isIterationStep && step > lastStep) {
             assert delta >= 0;
-            final float dt = isYoyoReverse(lastStep) ? -delta - 1 : delta + 1;
+            final float dt = isStepAutoReverse(lastStep) ? -delta - 1 : delta + 1;
 
             for (int i = 0, n = children.size(); i < n; i++) {
                 children.get(i)
@@ -399,7 +399,7 @@ class Timeline extends BaseTween<Timeline> {
 
         if (!isIterationStep && step < lastStep) {
             assert delta <= 0;
-            final float dt = isYoyoReverse(lastStep) ? delta + 1 : -delta - 1;
+            final float dt = isStepAutoReverse(lastStep) ? delta + 1 : -delta - 1;
 
             for (int i = children.size() - 1; i >= 0; i--) {
                 children.get(i)
@@ -411,7 +411,7 @@ class Timeline extends BaseTween<Timeline> {
 		assert isIterationStep;
 
         if (step > lastStep) {
-            if (isYoyoReverse(step)) {
+            if (isStepAutoReverse(step)) {
                 forceEndValues();
                 for (int i = 0, n = children.size(); i < n; i++) {
                     children.get(i)
@@ -428,7 +428,7 @@ class Timeline extends BaseTween<Timeline> {
 
         }
         else if (step < lastStep) {
-            if (isYoyoReverse(step)) {
+            if (isStepAutoReverse(step)) {
                 forceStartValues();
                 for (int i = children.size() - 1; i >= 0; i--) {
                     children.get(i)
@@ -445,7 +445,7 @@ class Timeline extends BaseTween<Timeline> {
 
         }
         else {
-            final float dt = isYoyoReverse(step) ? -delta : delta;
+            final float dt = isStepAutoReverse(step) ? -delta : delta;
             //noinspection Duplicates
             if (delta >= 0) {
                 for (int i = 0, n = children.size(); i < n; i++) {

@@ -190,7 +190,7 @@ class ConsoleTests {
                                     .beginParallel().push(bugs[1].t)
                                         //.push(bugs[2].t) third tween not even needed
                                     .end()
-                                    .repeatYoyo(1, 0.5f)
+                                    .repeatAutoReverse(1, 0.5f)
                                     .start();
 
         while (!timeline.isFinished()) {
