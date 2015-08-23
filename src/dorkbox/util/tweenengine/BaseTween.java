@@ -54,7 +54,7 @@ abstract class BaseTween<T> {
 	// General
 	private int step;
 	private int repeatCount;
-	private boolean isIterationStep;
+	private boolean isInDelay = true;
 	private boolean isAutoReverse;
 
 	// Timings
@@ -86,7 +86,7 @@ abstract class BaseTween<T> {
     void reset() {
         step = -2;
         repeatCount = 0;
-        isIterationStep = isAutoReverse = false;
+        isInDelay = isAutoReverse = false;
 
         delay = duration = repeatDelay = currentTime = 0;
         isStarted = isInitialized = isFinished = isKilled = isPaused = false;
@@ -165,8 +165,10 @@ abstract class BaseTween<T> {
 
 	/**
 	 * Stops and resets the tween or timeline, and sends it to its pool, for
-	 * later reuse. Note that if you use a {@link TweenManager}, this method
-	 * is automatically called once the animation is finished.
+	 * later reuse.
+     * <p>
+     * If you use a {@link TweenManager}, this method is automatically called
+     * once the animation is complete.
 	 */
 	public
     void free() {
@@ -438,14 +440,14 @@ abstract class BaseTween<T> {
 	}
 
 	protected
-    void updateOverride(final int step, final int lastStep, final boolean isIterationStep, final float delta) {
+    void updateOverride(final int step, final int lastStep, final boolean isInDelay, final float delta) {
 	}
 
 	protected
     void forceToStart() {
         currentTime = -delay;
         step = -1;
-        isIterationStep = false;
+        isInDelay = true;
 
         if (isStepAutoReverse(0)) {
             forceEndValues();
@@ -461,7 +463,7 @@ abstract class BaseTween<T> {
         int count = repeatCount << 1;
 
         step = count + 1;
-        isIterationStep = false;
+        isInDelay = true;
 
         if (isStepAutoReverse(count)) {
             forceStartValues();
@@ -547,7 +549,8 @@ abstract class BaseTween<T> {
             if (time >= delay) {
                 initializeOverride();
                 isInitialized = true;
-                isIterationStep = true;
+                isInDelay = false;
+
                 step = 0;
                 deltaTime -= delay - currentTime;
                 currentTime = 0;
@@ -559,11 +562,11 @@ abstract class BaseTween<T> {
 
 		if (isInitialized) {
             // restart an iteration when it used to be in reverse
-            if (!isIterationStep && repeatCount >= 0 ) {
+            if (isInDelay && repeatCount >= 0 ) {
                 if (step < 0 && time >= 0) {
                     assert step == -1;
 
-                    isIterationStep = true;
+                    isInDelay = false;
                     step = 0;
                     float delta2 = 0 - currentTime;
                     deltaTime -= delta2;
@@ -571,13 +574,13 @@ abstract class BaseTween<T> {
 
                     callCallbacks(TweenCallback.Events.BEGIN);
                     callCallbacks(TweenCallback.Events.START);
-                    updateOverride(step, step - 1, isIterationStep, delta2);
+                    updateOverride(step, step - 1, isInDelay, delta2);
                 }
                 else {
                     int count = repeatCount << 1;
                     if (step > count && time < 0) {
                         assert step == count + 1;
-                        isIterationStep = true;
+                        isInDelay = false;
                         step = count;
                         float delta2 = 0 - currentTime;
                         deltaTime -= delta2;
@@ -585,7 +588,7 @@ abstract class BaseTween<T> {
 
                         callCallbacks(TweenCallback.Events.BACK_BEGIN);
                         callCallbacks(TweenCallback.Events.BACK_START);
-                        updateOverride(step, step + 1, isIterationStep, delta2);
+                        updateOverride(step, step + 1, isInDelay, delta2);
                     }
                 }
             }
@@ -596,10 +599,10 @@ abstract class BaseTween<T> {
             while (isValid(step)) {
                 time = currentTime + deltaTime;
 
-                if (!isIterationStep) {
+                if (isInDelay) {
                     if (time <= 0) {
                         // start REVERSE
-                        isIterationStep = true;
+                        isInDelay = false;
                         step -= 1;
 
                         float deltaChange = 0 - currentTime;
@@ -614,11 +617,11 @@ abstract class BaseTween<T> {
                         }
 
                         callCallbacks(TweenCallback.Events.BACK_START);
-                        updateOverride(step, step + 1, isIterationStep, deltaChange);
+                        updateOverride(step, step + 1, isInDelay, deltaChange);
                     }
                     else if (time >= repeatDelay) {
                         // start FORWARDS
-                        isIterationStep = true;
+                        isInDelay = false;
                         step += 1;
 
                         float deltaChange = repeatDelay - currentTime;
@@ -635,11 +638,11 @@ abstract class BaseTween<T> {
 //                    if (snapToEndpoints) {
 //                        forceStartValues();
 //                    } else {
-//                        updateOverride(step, step, isIterationStep, deltaChange);
+//                        updateOverride(step, step, isInDelay, deltaChange);
 //                    }
 
                         callCallbacks(TweenCallback.Events.START);
-                        updateOverride(step, step - 1, isIterationStep, deltaChange);
+                        updateOverride(step, step - 1, isInDelay, deltaChange);
                     } else {
                         // no transition change, just regular updates
                         float deltaChange = deltaTime;
@@ -650,10 +653,10 @@ abstract class BaseTween<T> {
                     }
                 }
                 else {
-                    // isIterationStep = true
+                    // isInDelay = true
                     if (time < 0) {
                         // finish REVERSE
-                        isIterationStep = false;
+                        isInDelay = true;
                         step -= 1;
 
                         float deltaChange = 0 - currentTime;
@@ -663,7 +666,7 @@ abstract class BaseTween<T> {
 //                    if (snapToEndpoints) {
                         forceStartValues();
 //                    } else {
-//                        updateOverride(step, step, isIterationStep, deltaChange);
+//                        updateOverride(step, step, isInDelay, deltaChange);
 //                    }
 
                         callCallbacks(TweenCallback.Events.BACK_END);
@@ -677,14 +680,14 @@ abstract class BaseTween<T> {
                     }
                     else if (time > duration) {
                         // finish FORWARDS
-                        isIterationStep = false;
+                        isInDelay = true;
                         step += 1;
 
                         float deltaChange = duration - currentTime;
                         deltaTime -= deltaChange;
                         currentTime = duration;
 
-                        updateOverride(step, step - 1, isIterationStep, deltaChange);
+                        updateOverride(step, step - 1, isInDelay, deltaChange);
 //                    forceEndValues();
 
                         callCallbacks(TweenCallback.Events.END);
@@ -700,7 +703,7 @@ abstract class BaseTween<T> {
                         deltaTime -= deltaChange;
                         currentTime += deltaChange;
 
-                        updateOverride(step, step, isIterationStep, deltaChange);
+                        updateOverride(step, step, isInDelay, deltaChange);
 
                         break;
                     }

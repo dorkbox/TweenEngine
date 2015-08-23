@@ -385,9 +385,9 @@ class Timeline extends BaseTween<Timeline> {
 
 	@Override
 	protected
-    void updateOverride(final int step, final int lastStep, final boolean isIterationStep, final float delta) {
+    void updateOverride(final int step, final int lastStep, final boolean isInDelay, final float delta) {
         // Case iteration end has been reached
-        if (!isIterationStep) {
+        if (isInDelay) {
             if (step > lastStep) {
                 assert delta >= 0;
 

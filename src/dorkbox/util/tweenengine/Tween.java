@@ -980,7 +980,7 @@ class Tween extends BaseTween<Tween> {
 
 	@Override
 	protected
-    void updateOverride(final int step, final int lastStep, final boolean isIterationStep, final float delta) {
+    void updateOverride(final int step, final int lastStep, final boolean isInDelay, final float delta) {
         final Object target = this.target;
         if (target == null || equation == null) {
             return;
@@ -993,7 +993,7 @@ class Tween extends BaseTween<Tween> {
 
 
         // Case iteration end has been reached
-        if (!isIterationStep) {
+        if (isInDelay) {
             if (step > lastStep) {
                 accessor.setValues(target, type, isStepAutoReverse(lastStep) ? startValues : targetValues);
             }
