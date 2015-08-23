@@ -16,7 +16,7 @@ by: Aurelien Ribon
 
 # Changelog #
 
-See the [Changelog](Changelog) page.
+See the [Changelog](https://github.com/dorkbox/TweenEngine/wiki) page.
 
 # Introduction #
 
@@ -39,13 +39,14 @@ Tween.call(...); // calls a method (useful with a delay)
 
 // Current options are:
 
+callback.setTriggers(flags);
+
 myTween.delay(0.5f);
 myTween.repeat(2, 0.5f);
 myTween.repeatYoyo(2, 0.5f);
 myTween.pause();
 myTween.resume();
-myTween.setCallback(callback);
-myTween.setCallbackTriggers(flags);
+myTween.addCallback(callback);
 myTween.setUserData(obj);
 
 // You can of course chain everything:
@@ -98,14 +99,16 @@ Main features are:
 
   * Supports every interpolation function defined by Robert Penner: http://www.robertpenner.com/easing/
   * Can be used with any object. You just have to implement the TweenAccessor interface when you want interpolation capacities.
-  * Every attribute can be interpolated. The only requirement is that what you want to interpolate can be represented as a float number.
+  * Any attribute can be interpolated. The only requirement is that what you want to interpolate can be represented as a float number.
   * One line is sufficient to create and start a simple interpolation.
   * Delays can be specified, to trigger the interpolation only after some time.
   * Many callbacks can be specified (when tweens complete, start, end, etc.).
-  * Tweens and Timelines are pooled by default. If enabled, there won't be any object allocation during runtime! You can safely use it in Android game development without fearing the garbage collector.
+  * Tweens and Timelines are pooled - there won't be any object allocation during runtime! You can safely use it in Android game
+  development without fearing the garbage collector.
   * Tweens can be sequenced when used in Timelines.
-  * Tweens can act on more than one value at a time, so a single tween can change the whole position (X and Y) of a sprite for instance !
-  * Tweens and Timelines can be repeated, with a yoyo style option.
+  * Tweens can be run in parallel when used in Timelines.
+  * Tweens can act on more than one value at a time, so a single tween can change the whole position (X and Y) of a sprite for instance!
+  * Tweens and Timelines can be repeated, also with a yoyo style option.
   * Simple timers can be built with Tween.call().
   * **Source code extensively documented!**
 
