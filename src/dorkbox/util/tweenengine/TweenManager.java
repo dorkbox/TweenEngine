@@ -7,7 +7,11 @@ import java.util.List;
 /**
  * A TweenManager updates all your tweens and timelines at once.
  * Its main interest is that it handles the tween/timeline life-cycles for you,
- * as well as the pooling constraints (if object pooling is enabled).
+ * as well as releasing pooled objected.
+ * <p/>
+ *
+ * If you don't use a TweenManager, you must make sure to release the tween
+ * objects back to the pool manually {@link BaseTween#free()}
  * <p/>
  *
  * Just give it a bunch of tweens or timelines and call update() periodically,
