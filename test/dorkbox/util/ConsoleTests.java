@@ -18,6 +18,7 @@ package dorkbox.util;
 import dorkbox.util.tweenengine.BaseTween;
 import dorkbox.util.tweenengine.Timeline;
 import dorkbox.util.tweenengine.Tween;
+import dorkbox.util.tweenengine.TweenAccessor;
 import dorkbox.util.tweenengine.TweenCallback;
 import dorkbox.util.tweenengine.primitives.MutableFloat;
 
@@ -32,7 +33,6 @@ class ConsoleTests {
         // Tests
 
         float step = 0.0001f;
-
         System.out.println("-----------------------------------------------");
         System.out.println("Tween (v:value, lt:localTime, gt:globalTime)");
         System.out.println("-----------------------------------------------");
@@ -42,6 +42,8 @@ class ConsoleTests {
         System.out.println("Timeline (v:value, lt:localTime, gt:globalTime)");
         System.out.println("-----------------------------------------------");
         testTimeline(step);
+
+        Bugtest21();
     }
 
     private static
@@ -166,5 +168,85 @@ class ConsoleTests {
                 System.out.println(str);
             }
         };
+    }
+
+    private static
+    void Bugtest21() {
+        final int terminalwidth = 50;
+        final float dt = 0.02f;
+        Bugtest[] bugs;
+
+
+        Tween.registerAccessor(Bugtest.class, new A());
+
+        bugs = new Bugtest[2];
+
+        bugs[0] = new Bugtest('a');
+        bugs[1] = new Bugtest('b');
+        //bugs[2]=new Bugtest('c');
+
+        Timeline timeline = Timeline.createSequence()
+                                    .push(bugs[0].t)
+                                    .beginParallel().push(bugs[1].t)
+                                        //.push(bugs[2].t) third tween not even needed
+                                    .end()
+                                    .repeatYoyo(1, 0.5f)
+                                    .start();
+
+        while (!timeline.isFinished()) {
+            char[] prog = new char[terminalwidth + 1];
+
+            //just for drawing
+            for (int i = 0; i <= terminalwidth; i++) {
+                prog[i] = '-';
+            }
+            for (int i = 0; i < bugs.length; i++) {
+                prog[(int) (bugs[i].val * terminalwidth)] = bugs[i].name;
+            }
+
+            timeline.update(dt);
+            System.out.print(prog);
+            System.out.println();//" t="+time);
+
+            try {
+                Thread.sleep(50);
+            } catch (Throwable ignored) {
+            }
+        }
+    }
+
+    static
+    class A implements TweenAccessor<Bugtest> {
+        public
+        int getValues(Bugtest b, int m, float[] val) {
+            val[0] = b.val;
+            return 1;
+        }
+
+        public
+        void setValues(Bugtest b, int m, float[] val) {
+            b.val = val[0];
+        }
+    }
+
+
+    static
+    class Bugtest {
+        public float val = 0; // tweened
+        public char name;
+        public Tween t;
+
+
+        Bugtest(char name) {
+            this.name = name;
+            t = Tween.to(this, 0, 1)
+                     .target(1).addCallback(new TweenCallback(TweenCallback.Events.BACK_COMPLETE) {
+                                @Override
+                                public
+                                void onEvent(final int type, final BaseTween<?> source) {
+                                    System.err.println("Back complete");
+                                }
+                            });
+        }
     }
 }
