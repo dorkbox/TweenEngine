@@ -991,6 +991,7 @@ class Tween extends BaseTween<Tween> {
         final float[] targetValues = this.targetValues;
         final int type = this.type;
 
+
         // Case iteration end has been reached
         if (!isIterationStep) {
             if (step > lastStep) {
@@ -1005,7 +1006,6 @@ class Tween extends BaseTween<Tween> {
 
 
 		// Validation
-        assert isIterationStep;
         assert getCurrentTime() >= 0;
         final float duration = this.duration;
 
@@ -1023,7 +1023,6 @@ class Tween extends BaseTween<Tween> {
 
 
 		// Normal behavior
-
         final float time = isStepAutoReverse(step) ? duration - getCurrentTime() : getCurrentTime();
         final float tweenValue = equation.compute(time / duration);
 

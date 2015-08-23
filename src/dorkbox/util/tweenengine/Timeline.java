@@ -386,29 +386,29 @@ class Timeline extends BaseTween<Timeline> {
 	@Override
 	protected
     void updateOverride(final int step, final int lastStep, final boolean isIterationStep, final float delta) {
-        if (!isIterationStep && step > lastStep) {
-            assert delta >= 0;
-            final float dt = isStepAutoReverse(lastStep) ? -delta - 1 : delta + 1;
+        // Case iteration end has been reached
+        if (!isIterationStep) {
+            if (step > lastStep) {
+                assert delta >= 0;
 
-            for (int i = 0, n = children.size(); i < n; i++) {
-                children.get(i)
-                        .update(dt);
+                final float dt = isStepAutoReverse(lastStep) ? -delta - 1 : delta + 1;
+                for (int i = 0, n = children.size(); i < n; i++) {
+                    children.get(i)
+                            .update(dt);
+                }
             }
+            else {
+                assert delta <= 0;
+
+                final float dt = isStepAutoReverse(lastStep) ? delta + 1 : -delta - 1;
+                for (int i = children.size() - 1; i >= 0; i--) {
+                    children.get(i)
+                            .update(dt);
+                }
+            }
+
             return;
         }
-
-        if (!isIterationStep && step < lastStep) {
-            assert delta <= 0;
-            final float dt = isStepAutoReverse(lastStep) ? delta + 1 : -delta - 1;
-
-            for (int i = children.size() - 1; i >= 0; i--) {
-                children.get(i)
-                        .update(dt);
-            }
-            return;
-        }
-
-		assert isIterationStep;
 
         if (step > lastStep) {
             if (isStepAutoReverse(step)) {
@@ -425,7 +425,6 @@ class Timeline extends BaseTween<Timeline> {
                             .update(delta);
                 }
             }
-
         }
         else if (step < lastStep) {
             if (isStepAutoReverse(step)) {

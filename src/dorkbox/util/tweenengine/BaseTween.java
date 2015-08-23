@@ -581,6 +581,7 @@ abstract class BaseTween<T> {
 
             if (step < 0 && time >= 0) {
                 assert step == -1;
+
                 isIterationStep = true;
                 step = 0;
                 float delta = 0 - currentTime;
@@ -680,9 +681,9 @@ abstract class BaseTween<T> {
                     currentTime = 0;
 
 //                    if (snapToEndpoints) {
-//                        forceStartValues();
+                        forceStartValues();
 //                    } else {
-                        updateOverride(step, step, isIterationStep, delta);
+//                        updateOverride(step, step, isIterationStep, delta);
 //                    }
 
                     callCallbacks(TweenCallback.Events.BACK_END);
