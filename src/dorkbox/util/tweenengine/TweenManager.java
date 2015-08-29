@@ -187,6 +187,7 @@ class TweenManager {
         }
 
         if (!isPaused) {
+            // when running in reverse, we change the order at which we iterate over objects
             //noinspection Duplicates
             if (delta >= 0) {
                 for (int i = 0, n = objects.size(); i < n; i++) {

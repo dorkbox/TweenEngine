@@ -115,11 +115,33 @@ class TweenCallback {
      * <p/>
      *
      * <pre> {@code
-     * forward :      BEGIN                                   COMPLETE
-     * forward :      START    END      START    END      START    END
-     * |--------------[XXXXXXXXXX]------[XXXXXXXXXX]------[XXXXXXXXXX]
-     * backward:      bEND  bSTART      bEND  bSTART      bEND  bSTART
-     * backward:      bCOMPLETE                                 bBEGIN
+     *
+     * DELAY - (delay) initial start delay, only happens once, during init
+     * R.DELAY - (repeatDelay) delay between repeat iterations, if there are more than one.
+     *
+     * there are two modes for repeat. LINEAR and AUTO_REVERSE
+     *
+     * LINEAR:
+     *                BEGIN                                     COMPLETE
+     *                START      END                 START      END
+     *                v          v                   v          v
+     * |---[DELAY]----[XXXXXXXXXX]->>-[R.DELAY]-->>--[XXXXXXXXXX]
+     *
+     *
+     * AUTO_REVERSE
+     *                BEGIN                   COMPLETE
+     *                START      END
+     *                v          v            v
+     * |---[DELAY]----[XXXXXXXXXX]->>-[R.DELAY]  ╶╮
+     *            ╭╴  [R.DELAY]-<<-[XXXXXXXXXX] <─╯
+     *            │   ^            ^          ^
+     *            │                bEND       bSTART
+     *            │   bCOMPLETE               bBEGIN
+     *            │
+     *            ╰╴> [XXXXXXXXXX]->>-[R.DELAY]  ╶╮
+     *            ╭╴  [R.DELAY]-<<-[XXXXXXXXXX] <─╯
+     *            ╰╴> [XXXXXXXXXX]->>-[R.DELAY]  ...
+     *
      * }</pre>
      *
      * @param triggers one or more triggers, separated by the '|' operator.
@@ -133,17 +155,19 @@ class TweenCallback {
 
     public static final
     class Events {
-        public static final int BEGIN = 0x01;
-        public static final int START = 0x02;
-        public static final int END = 0x04;
-        public static final int COMPLETE = 0x08;
-        public static final int BACK_BEGIN = 0x10;
-        public static final int BACK_START = 0x20;
-        public static final int BACK_END = 0x40;
-        public static final int BACK_COMPLETE = 0x80;
-        public static final int ANY_FORWARD = 0x0F;
-        public static final int ANY_BACKWARD = 0xF0;
-        public static final int ANY = 0xFF;
+        public static final int BEGIN = 1 << 0;         // 00000001
+        public static final int START = 1 << 1;         // 00000010
+        public static final int END = 1 << 2;           // 00000100
+        public static final int COMPLETE = 1 << 3;      // 00001000
+
+        public static final int BACK_BEGIN = 1 << 4;    // 00010000
+        public static final int BACK_START = 1 << 5;    // 00100000
+        public static final int BACK_END = 1 << 6;      // 01000000
+        public static final int BACK_COMPLETE = 1 << 7; // 10000000
+
+        public static final int ANY_FORWARD = 0x0F;     // 00001111
+        public static final int ANY_BACKWARD = 0xF0;    // 11110000
+        public static final int ANY = 0xFF;             // 11111111
 
         private
         Events() {

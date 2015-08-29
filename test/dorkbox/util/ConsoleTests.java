@@ -32,16 +32,16 @@ class ConsoleTests {
     void main(String[] args) {
         // Tests
 
-        float step = 0.0001f;
-        System.out.println("-----------------------------------------------");
-        System.out.println("Tween (v:value, lt:localTime, gt:globalTime)");
-        System.out.println("-----------------------------------------------");
-        testTween(step);
-
-        System.out.println("-----------------------------------------------");
-        System.out.println("Timeline (v:value, lt:localTime, gt:globalTime)");
-        System.out.println("-----------------------------------------------");
-        testTimeline(step);
+//        float step = 0.0001f;
+//        System.out.println("-----------------------------------------------");
+//        System.out.println("Tween (v:value, lt:localTime, gt:globalTime)");
+//        System.out.println("-----------------------------------------------");
+//        testTween(step);
+//
+//        System.out.println("-----------------------------------------------");
+//        System.out.println("Timeline (v:value, lt:localTime, gt:globalTime)");
+//        System.out.println("-----------------------------------------------");
+//        testTimeline(step);
 
         Bugtest21();
     }
@@ -81,12 +81,11 @@ class ConsoleTests {
         MutableFloat target1 = new MutableFloat(0);
         MutableFloat target2 = new MutableFloat(0);
         MutableFloat target3 = new MutableFloat(0);
-        Tween t1 = Tween.call(buildCallback("t1"));
-        Tween t2 = Tween.call(buildCallback("t2"));
-        Tween t3 = Tween.call(buildCallback("t3"));
+        Tween t1 = Tween.call(buildCallback("t1", TweenCallback.Events.ANY));
+        Tween t2 = Tween.call(buildCallback("t2", TweenCallback.Events.ANY));
+        Tween t3 = Tween.call(buildCallback("t3", TweenCallback.Events.ANY));
 
-        TweenCallback tl1 = buildCallback("TL");
-        tl1.setTriggers(TweenCallback.Events.ANY);
+        TweenCallback tl1 = buildCallback("TL", TweenCallback.Events.ANY);
         Timeline tl = Timeline.createSequence()
                               .push(t1)
                               .pushPause(1)
@@ -143,8 +142,8 @@ class ConsoleTests {
     }
 
     private static
-    TweenCallback buildCallback(final String name) {
-        return new TweenCallback() {
+    TweenCallback buildCallback(final String name, final int flags) {
+        return new TweenCallback(flags) {
             @Override
             public
             void onEvent(int type, BaseTween<?> source) {
@@ -179,21 +178,26 @@ class ConsoleTests {
 
         Tween.registerAccessor(Bugtest.class, new A());
 
-        bugs = new Bugtest[2];
-
-        bugs[0] = new Bugtest('a');
-        bugs[1] = new Bugtest('b');
-        //bugs[2]=new Bugtest('c');
+        bugs = new Bugtest[]{
+                        new Bugtest('a'),
+                        new Bugtest('b'),
+//                        new Bugtest('c')
+        };
 
         Timeline timeline = Timeline.createSequence()
+                                    .addCallback(buildCallback("TL", TweenCallback.Events.ANY))
                                     .push(bugs[0].t)
-                                    .beginParallel().push(bugs[1].t)
-                                        //.push(bugs[2].t) third tween not even needed
+                                    .beginParallel()
+                                        .push(bugs[1].t)
+//                                        .push(bugs[2].t) // third tween not even needed
                                     .end()
-                                    .repeatAutoReverse(1, 0.5f)
+//                                    .repeatAutoReverse(2, 0.5f)
+                                    .repeat(2, 0.5f)
                                     .start();
 
         while (!timeline.isFinished()) {
+            timeline.update(dt);
+
             char[] prog = new char[terminalwidth + 1];
 
             //just for drawing
@@ -201,12 +205,19 @@ class ConsoleTests {
                 prog[i] = '-';
             }
             for (int i = 0; i < bugs.length; i++) {
-                prog[(int) (bugs[i].val * terminalwidth)] = bugs[i].name;
+                Bugtest bug = bugs[i];
+                int i1 = (int) (bug.val * terminalwidth);
+                prog[i1] = bug.name;
             }
 
-            timeline.update(dt);
             System.out.print(prog);
+            for (int i = 0; i < bugs.length; i++) {
+                Bugtest bug = bugs[i];
+                System.out.print(" \t\t" + bug.val);
+            }
             System.out.println();//" t="+time);
+
+
 
             try {
                 Thread.sleep(50);
@@ -240,13 +251,8 @@ class ConsoleTests {
         Bugtest(char name) {
             this.name = name;
             t = Tween.to(this, 0, 1)
-                     .target(1).addCallback(new TweenCallback(TweenCallback.Events.BACK_COMPLETE) {
-                                @Override
-                                public
-                                void onEvent(final int type, final BaseTween<?> source) {
-                                    System.err.println("Back complete");
-                                }
-                            });
+                     .target(1).addCallback(buildCallback(""+name, TweenCallback.Events.ANY));
+            t.name = name;
         }
     }
 }

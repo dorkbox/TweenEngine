@@ -158,9 +158,10 @@ class Timeline extends BaseTween<Timeline> {
 
 	private enum Modes {SEQUENCE, PARALLEL}
 
+
 	private final List<BaseTween<?>> children = new ArrayList<BaseTween<?>>(10);
-	private Timeline current;
-	private Timeline parent;
+    protected Timeline parent;
+    private Timeline current;
 	private Modes mode;
 	private boolean isBuilt;
 
@@ -179,7 +180,6 @@ class Timeline extends BaseTween<Timeline> {
 
 		children.clear();
 		current = parent = null;
-
 		isBuilt = false;
 	}
 
@@ -203,6 +203,7 @@ class Timeline extends BaseTween<Timeline> {
         if (isBuilt) {
             throw new RuntimeException("You can't push anything to a timeline once it is started");
         }
+
         current.children.add(tween);
         return this;
 	}
@@ -302,7 +303,7 @@ class Timeline extends BaseTween<Timeline> {
             throw new RuntimeException("Nothing to end...");
         }
 
-        current = current.parent;
+        current = (Timeline) current.parent;
         return this;
 	}
 
@@ -364,6 +365,10 @@ class Timeline extends BaseTween<Timeline> {
     Timeline start() {
         super.start();
 
+        if (this.parent == null) {
+            this.name = '*';
+        }
+
         for (int i = 0, n = children.size(); i < n; i++) {
             final BaseTween<?> obj = children.get(i);
             obj.start();
@@ -383,89 +388,60 @@ class Timeline extends BaseTween<Timeline> {
         pool.release(this);
     }
 
-	@Override
-	protected
-    void updateOverride(final int step, final int lastStep, final boolean isInDelay, final float delta) {
-        // Case iteration end has been reached
-        if (isInDelay) {
-            if (step > lastStep) {
-                assert delta >= 0;
-
-                final float dt = isStepAutoReverse(lastStep) ? -delta - 1 : delta + 1;
-                for (int i = 0, n = children.size(); i < n; i++) {
-                    children.get(i)
-                            .update(dt);
-                }
+    public
+    void update(float delta) {
+        if (this.parent == null) {
+            // ONLY modify the incoming delta if we are the parent timeline!
+            if (isInReverse()) {
+                // if we are now in reverse, flip the incoming delta.
+                super.update(-delta);
+            } else {
+                super.update(delta);
             }
-            else {
-                assert delta <= 0;
-
-                final float dt = isStepAutoReverse(lastStep) ? delta + 1 : -delta - 1;
-                for (int i = children.size() - 1; i >= 0; i--) {
-                    children.get(i)
-                            .update(dt);
-                }
-            }
-
-            return;
-        }
-
-        if (step > lastStep) {
-            if (isStepAutoReverse(step)) {
-                forceEndValues();
-                for (int i = 0, n = children.size(); i < n; i++) {
-                    children.get(i)
-                            .update(delta);
-                }
-            }
-            else {
-                forceStartValues();
-                for (int i = 0, n = children.size(); i < n; i++) {
-                    children.get(i)
-                            .update(delta);
-                }
-            }
-        }
-        else if (step < lastStep) {
-            if (isStepAutoReverse(step)) {
-                forceStartValues();
-                for (int i = children.size() - 1; i >= 0; i--) {
-                    children.get(i)
-                            .update(delta);
-                }
-            }
-            else {
-                forceEndValues();
-                for (int i = children.size() - 1; i >= 0; i--) {
-                    children.get(i)
-                            .update(delta);
-                }
-            }
-
         }
         else {
-            final float dt = isStepAutoReverse(step) ? -delta : delta;
-            //noinspection Duplicates
-            if (delta >= 0) {
-                for (int i = 0, n = children.size(); i < n; i++) {
-                    children.get(i)
-                            .update(dt);
-                }
-            }
-            else {
-                for (int i = children.size() - 1; i >= 0; i--) {
-                    children.get(i)
-                            .update(dt);
-                }
-            }
+            super.update(delta);
         }
-	}
+    }
 
 	// -------------------------------------------------------------------------
 	// BaseTween impl.
 	// -------------------------------------------------------------------------
 
-	@Override
+    @Override
+    protected
+    void doUpdate(final boolean animationDirection, final boolean changedDirection, float delta) {
+        if (changedDirection) {
+            // have to specify that all of our children are no longer "finished", otherwise they won't update their values
+
+            // also have to adjust children for any delays in myself.
+            final float delay = getRepeatDelay();
+            if (delay > 0F) {
+                // this adjustment is necessary because we are modifying the previous timeline value with the next current
+                // and we have to "undo" the update delta
+                if (delta > 0F) {
+                    delta = delay-delta;
+                }
+                else {
+                    delta = -delay-delta;
+                }
+            }
+
+            for (int i = 0, n = children.size(); i < n; i++) {
+                final BaseTween<?> baseTween = children.get(i);
+                baseTween.forceRestart = true;
+                baseTween.update(delta);
+            }
+        }
+        else {
+            for (int i = 0, n = children.size(); i < n; i++) {
+                children.get(i)
+                        .update(delta);
+            }
+        }
+    }
+
+    @Override
 	protected
     void forceStartValues() {
         for (int i = children.size() - 1; i >= 0; i--) {

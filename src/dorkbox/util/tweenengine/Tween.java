@@ -978,9 +978,77 @@ class Tween extends BaseTween<Tween> {
         }
 	}
 
-	@Override
-	protected
-    void updateOverride(final int step, final int lastStep, final boolean isInDelay, final float delta) {
+
+    protected
+    void doUpdate(final boolean animationDirection, final boolean changedDirection, float delta) {
+        final Object target = this.target;
+        final TweenEquation equation = this.equation;
+
+        if (target == null || equation == null) {
+            return;
+        }
+
+        final float duration = this.duration;
+        // When there is an "instant on/off" tween, via Tween.set()
+        if (duration < 0.00000000001f) {
+            // set values to their start/end point
+
+            if (delta > -0.00000000001f) {
+                accessor.setValues(target, type, isInReverse() ? startValues : targetValues);
+            }
+            else {
+                accessor.setValues(target, type, isInReverse() ? targetValues : startValues);
+            }
+
+            return;
+        }
+
+
+        // Normal behavior
+        final float time = currentTime;
+        final float tweenValue = equation.compute(time / duration);
+
+        final float[] accessorBuffer = this.accessorBuffer;
+        final int combinedAttrsCnt = this.combinedAttrsCnt;
+
+        final int waypointsCnt = this.waypointsCount;
+        final TweenPath path = this.path;
+
+        final float[] startValues = this.startValues;
+        final float[] targetValues = this.targetValues;
+
+        if (waypointsCnt == 0 || path == null) {
+            for (int i = 0; i < combinedAttrsCnt; i++) {
+                accessorBuffer[i] = startValues[i] + tweenValue * (targetValues[i] - startValues[i]);
+            }
+
+        }
+        else {
+            final float[] waypoints = this.waypoints;
+            final float[] pathBuffer = this.pathBuffer;
+
+            for (int i = 0; i < combinedAttrsCnt; i++) {
+                pathBuffer[0] = startValues[i];
+                pathBuffer[1 + waypointsCnt] = targetValues[i];
+                for (int ii = 0; ii < waypointsCnt; ii++) {
+                    pathBuffer[ii + 1] = waypoints[ii * combinedAttrsCnt + i];
+                }
+
+                accessorBuffer[i] = path.compute(tweenValue, pathBuffer, waypointsCnt + 2);
+            }
+        }
+
+        accessor.setValues(target, type, accessorBuffer);
+    }
+
+
+	private
+    void updateOverride(final int step,
+                        final int lastStep,
+                        final boolean isForwardStep,
+                        final boolean hasTransition,
+                        final boolean isInDelay,
+                        final float delta) {
         final Object target = this.target;
         if (target == null || equation == null) {
             return;
@@ -994,11 +1062,13 @@ class Tween extends BaseTween<Tween> {
 
         // Case iteration end has been reached
         if (isInDelay) {
-            if (step > lastStep) {
-                accessor.setValues(target, type, isStepAutoReverse(lastStep) ? startValues : targetValues);
+            if (isForwardStep) {
+//                accessor.setValues(target, type, isStepAutoReverse(lastStep) ? startValues : targetValues);
+                accessor.setValues(target, type, targetValues);
             }
             else {
-                accessor.setValues(target, type, isStepAutoReverse(lastStep) ? targetValues : startValues);
+//                accessor.setValues(target, type, isStepAutoReverse(lastStep) ? targetValues : startValues);
+                accessor.setValues(target, type, startValues);
             }
             return;
         }
@@ -1011,47 +1081,51 @@ class Tween extends BaseTween<Tween> {
 
         assert getCurrentTime() <= duration;
 
-        // Case duration equals zero
-        if (duration < 0.00000000001f) {
-            if (delta > -0.00000000001f) {
-                accessor.setValues(target, type, isStepAutoReverse(step) ? targetValues : startValues);
-            } else {
-                accessor.setValues(target, type, isStepAutoReverse(step) ? startValues : targetValues);
-            }
-            return;
-        }
-
+//        // Case duration equals zero
+//        if (duration < 0.00000000001f) {
+//            // Nudge our values to their start/end points??
+//            if (delta > -0.00000000001f) {
+////                accessor.setValues(target, type, isStepAutoReverse(step) ? targetValues : startValues);
+//                accessor.setValues(target, type, startValues);
+//            } else {
+////                accessor.setValues(target, type, isStepAutoReverse(step) ? startValues : targetValues);
+//                accessor.setValues(target, type, targetValues);
+//            }
+//            return;
+//        }
+//
 
 		// Normal behavior
-        final float time = isStepAutoReverse(step) ? duration - getCurrentTime() : getCurrentTime();
-        final float tweenValue = equation.compute(time / duration);
-
-        final float[] accessorBuffer = this.accessorBuffer;
-        final int combinedAttrsCnt = this.combinedAttrsCnt;
-
-        final int waypointsCnt = this.waypointsCount;
-        final TweenPath path = this.path;
-
-        if (waypointsCnt == 0 || path == null) {
-            for (int i = 0; i < combinedAttrsCnt; i++) {
-                accessorBuffer[i] = startValues[i] + tweenValue * (targetValues[i] - startValues[i]);
-            }
-
-        }
-        else {
-            final float[] pathBuffer = this.pathBuffer;
-            for (int i = 0; i < combinedAttrsCnt; i++) {
-                pathBuffer[0] = startValues[i];
-                pathBuffer[1 + waypointsCnt] = targetValues[i];
-                for (int ii = 0; ii < waypointsCnt; ii++) {
-                    pathBuffer[ii + 1] = waypoints[ii * combinedAttrsCnt + i];
-                }
-
-                accessorBuffer[i] = path.compute(tweenValue, pathBuffer, waypointsCnt + 2);
-            }
-        }
-
-        accessor.setValues(target, type, accessorBuffer);
+//        final float time = isStepAutoReverse(step) ? duration - getCurrentTime() : getCurrentTime();
+//        final float time = getCurrentTime();
+//        final float tweenValue = equation.compute(time / duration);
+//
+//        final float[] accessorBuffer = this.accessorBuffer;
+//        final int combinedAttrsCnt = this.combinedAttrsCnt;
+//
+//        final int waypointsCnt = this.waypointsCount;
+//        final TweenPath path = this.path;
+//
+//        if (waypointsCnt == 0 || path == null) {
+//            for (int i = 0; i < combinedAttrsCnt; i++) {
+//                accessorBuffer[i] = startValues[i] + tweenValue * (targetValues[i] - startValues[i]);
+//            }
+//
+//        }
+//        else {
+//            final float[] pathBuffer = this.pathBuffer;
+//            for (int i = 0; i < combinedAttrsCnt; i++) {
+//                pathBuffer[0] = startValues[i];
+//                pathBuffer[1 + waypointsCnt] = targetValues[i];
+//                for (int ii = 0; ii < waypointsCnt; ii++) {
+//                    pathBuffer[ii + 1] = waypoints[ii * combinedAttrsCnt + i];
+//                }
+//
+//                accessorBuffer[i] = path.compute(tweenValue, pathBuffer, waypointsCnt + 2);
+//            }
+//        }
+//
+//        accessor.setValues(target, type, accessorBuffer);
 	}
 
 	// -------------------------------------------------------------------------

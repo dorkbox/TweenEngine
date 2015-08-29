@@ -52,25 +52,35 @@ import java.util.List;
 public
 abstract class BaseTween<T> {
 	// General
-	private int step;
+	private int repeatCountOrig;
 	private int repeatCount;
-	private boolean isInDelay = true;
-	private boolean isAutoReverse;
+	private boolean isTweenRunning;
+	private boolean canAutoReverse;
+    protected boolean forceRestart; // necessary for a parent timeline to tell a tween to restart because of direction change
 
 	// Timings
-	protected float delay;
+	protected float delay;  // this is the delay at the start of a timeline/tween. Is reapplied on repeats & change direction
 	protected float duration;
 
 	private float repeatDelay;
-	private float currentTime;
 
-	private boolean isStarted; // true when the object is started
-	private boolean isInitialized; // true after the delay
-	private boolean isFinished; // true when all repetitions are done
-	private boolean isKilled; // true if kill() was called
-	private boolean isPaused; // true if pause() was called
+    // represents the amount of time spent in the current iteration or delay
+    // package local because our timeline has to be able to adjust for delays when switching to reverse
+    protected float currentTime;
 
-    private boolean snapToEndpoints;
+    // Direction state
+    protected static final boolean FORWARDS = true;
+    private static final boolean REVERSE = false;
+    private boolean cachedDirection;
+
+	private boolean isStarted; // TRUE when the object is started
+	private boolean isInitialized; // TRUE after the delay
+	private boolean isKilled; // TRUE if kill() was called
+	private boolean isPaused; // TRUE if pause() was called
+
+    // TRUE when all repetitions are done, changed by timeline if direction
+    // changes since a tween might not have repetitions, but a timeline can
+    protected boolean isFinished;
 
 	// Misc
 	private List<TweenCallback> callbacks = new ArrayList<TweenCallback>();
@@ -79,14 +89,16 @@ abstract class BaseTween<T> {
 	// Package access
 	boolean isAutoRemoveEnabled;
 	boolean isAutoStartEnabled;
+    public char name = '.';
 
-	// -------------------------------------------------------------------------
+    // -------------------------------------------------------------------------
 
 	protected
     void reset() {
-        step = -2;
-        repeatCount = 0;
-        isInDelay = isAutoReverse = false;
+        forceRestart = false;
+        repeatCount = repeatCountOrig = 0;
+        isTweenRunning = canAutoReverse = false;
+        cachedDirection = FORWARDS;
 
         delay = duration = repeatDelay = currentTime = 0;
         isStarted = isInitialized = isFinished = isKilled = isPaused = false;
@@ -206,8 +218,9 @@ abstract class BaseTween<T> {
             throw new RuntimeException("You can't change the repetitions of a tween or timeline once it is started");
         }
         repeatCount = count;
-        repeatDelay = delay >= 0 ? delay : 0;
-        isAutoReverse = false;
+        repeatCountOrig = count;
+        repeatDelay = delay >= 0F ? delay : 0F;
+        canAutoReverse = false;
         return (T) this;
 	}
 
@@ -228,8 +241,9 @@ abstract class BaseTween<T> {
             throw new RuntimeException("You can't change the repetitions of a tween or timeline once it is started");
         }
         repeatCount = count;
-        repeatDelay = delay >= 0 ? delay : 0;
-        isAutoReverse = true;
+        repeatCountOrig = count;
+        repeatDelay = delay >= 0F ? delay : 0F;
+        canAutoReverse = true;
         return (T) this;
 	}
 
@@ -246,19 +260,6 @@ abstract class BaseTween<T> {
 		userData = data;
 		return (T) this;
 	}
-
-    /**
-     * Specifies for the update function, when an endpoint is reached, to force
-     * the value of the target to the start (or end) values. This is to guarantee
-     * that the values at the start/end of a tween are as defined, instead of
-     * calculated
-     */
-    @SuppressWarnings("unchecked")
-    public
-    T snapToEndpoints() {
-        this.snapToEndpoints = true;
-        return (T) this;
-    }
 
     /**
      * Starts or restarts the object unmanaged. You will need to take care of
@@ -293,6 +294,14 @@ abstract class BaseTween<T> {
 	// Getters
 	// -------------------------------------------------------------------------
 
+    /**
+     * Gets the current time point of a Timeline/Tween.
+     */
+    public
+    float getCurrentTime() {
+        return currentTime;
+    }
+
 	/**
 	 * Gets the delay of the tween or timeline. Nothing will happen before
 	 * this delay.
@@ -310,12 +319,28 @@ abstract class BaseTween<T> {
 		return duration;
 	}
 
+    /**
+     * Returns the complete duration, including initial delay and repetitions.
+     * <p>
+     * The formula is as follows:
+     * <pre>
+     * fullDuration = delay + duration + ((repeatDelay + duration) * repeatCount)
+     * </pre>
+     */
+    public
+    float getFullDuration() {
+        if (repeatCountOrig < 0) {
+            return -1;
+        }
+        return delay + duration + (repeatDelay + duration) * repeatCountOrig;
+    }
+
 	/**
 	 * Gets the number of iterations that will be played.
 	 */
 	public
     int getRepeatCount() {
-		return repeatCount;
+		return repeatCountOrig;
 	}
 
 	/**
@@ -327,21 +352,6 @@ abstract class BaseTween<T> {
 	}
 
 	/**
-	 * Returns the complete duration, including initial delay and repetitions.
-	 * The formula is as follows:
-	 * <pre>
-	 * fullDuration = delay + duration + (repeatDelay + duration) * repeatCount
-	 * </pre>
-	 */
-	public
-    float getFullDuration() {
-        if (repeatCount < 0) {
-            return -1;
-        }
-        return delay + duration + (repeatDelay + duration) * repeatCount;
-    }
-
-	/**
 	 * Gets the attached data, or null if none.
 	 */
 	public
@@ -349,29 +359,27 @@ abstract class BaseTween<T> {
 		return userData;
 	}
 
-	/**
-	 * Gets the id of the current step. Values are as follows:<br/>
-	 * <ul>
-	 * <li>even numbers mean that an iteration is playing,<br/>
-	 * <li>odd numbers mean that we are between two iterations,<br/>
-	 * <li>-2 means that the initial delay has not ended,<br/>
-	 * <li>-1 means that we are before the first iteration,<br/>
-	 * <li>repeatCount*2 + 1 means that we are after the last iteration
-	 */
-	public
-    int getStep() {
-		return step;
-	}
+    /**
+     * @return true if the current step is in the forwards iteration, and it's not waiting during a delay.
+     */
+    public final
+    boolean isTweenRunning() {
+        return isTweenRunning;
+    }
 
-	/**
-	 * Gets the local time.
-	 */
-	public
-    float getCurrentTime() {
-		return currentTime;
-	}
+    /**
+     * Reverse direction can be impacted by a negative value for {@link #update(float)},
+     * or via a tween reversing direction because of {@link #repeatAutoReverse(int, float)}
+     *
+     * @return true if the current tween stage is in the reverse direction.
+     */
+    public final
+    boolean isInReverse() {
+        // direction => TRUE == (FORWARDS)
+        return !cachedDirection;
+    }
 
-	/**
+    /**
 	 * Returns true if the tween or timeline has been started.
 	 */
 	public
@@ -391,8 +399,11 @@ abstract class BaseTween<T> {
 
 	/**
 	 * Returns true if the tween is finished (i.e. if the tween has reached
-	 * its end or has been killed). If you don't use a TweenManager, you may
-	 * want to call {@link BaseTween#free()} to reuse the object later.
+	 * its end or has been killed). A tween may be restarted by a timeline
+     * when there is a direction change in the timeline.
+     *
+     * If you don't use a TweenManager, you may want to call
+     * {@link BaseTween#free()} to reuse the object later.
 	 */
 	public
     boolean isFinished() {
@@ -403,8 +414,8 @@ abstract class BaseTween<T> {
 	 * Returns true if the tween automatically reverse when complete.
 	 */
 	public
-    boolean isAutoReverse() {
-		return isAutoReverse;
+    boolean canAutoReverse() {
+		return canAutoReverse;
 	}
 
 	/**
@@ -431,6 +442,9 @@ abstract class BaseTween<T> {
     protected abstract
     boolean containsTarget(final Object target, final int tweenType);
 
+    protected abstract
+    void doUpdate(final boolean animationDirection, final boolean changedDirection, float delta);
+
 	// -------------------------------------------------------------------------
 	// Protected API
 	// -------------------------------------------------------------------------
@@ -439,17 +453,14 @@ abstract class BaseTween<T> {
     void initializeOverride() {
 	}
 
-	protected
-    void updateOverride(final int step, final int lastStep, final boolean isInDelay, final float delta) {
-	}
-
-	protected
+    /**
+     * Force tween to start values and adjust time to point of iteration start
+     */
+    protected
     void forceToStart() {
-        currentTime = -delay;
-        step = -1;
-        isInDelay = true;
+        currentTime = 0;  //fixme
 
-        if (isStepAutoReverse(0)) {
+        if (!isInReverse()) {
             forceEndValues();
         }
         else {
@@ -457,15 +468,14 @@ abstract class BaseTween<T> {
         }
     }
 
+    /**
+     * Force tween to end values and adjust time to point of iteration end
+     */
 	protected
     void forceToEnd(final float time) {
-        currentTime = time - getFullDuration();
-        int count = repeatCount << 1;
+        currentTime = time - getFullDuration(); //fixme
 
-        step = count + 1;
-        isInDelay = true;
-
-        if (isStepAutoReverse(count)) {
+        if (!isInReverse()) {
             forceStartValues();
         }
         else {
@@ -482,27 +492,6 @@ abstract class BaseTween<T> {
                 callback.onEvent(type, this);
             }
         }
-    }
-
-    /**
-     * @return true if the step is in the middle of the reverse iteration
-     */
-    public final
-    boolean isStepAutoReverse(final int step) {
-        return isAutoReverse && Math.abs(step % 4) == 2;
-    }
-
-    /**
-     * @return true if the step is in the middle of an iteration. See {@link BaseTween#getStep()}
-     */
-    public final
-    boolean isInIteration(final int step) {
-        return Math.abs(step % 2) == 0;
-    }
-
-    protected
-    boolean isValid(final int step) {
-        return repeatCount < 0 || (step >= 0 && step <= repeatCount << 1);
     }
 
     protected
@@ -524,7 +513,7 @@ abstract class BaseTween<T> {
 	// Update engine
 	// -------------------------------------------------------------------------
 
-	/**
+    /**
 	 * Updates the tween or timeline state. <b>You may want to use a
 	 * TweenManager to update objects for you.</b>
 	 * <p>
@@ -538,182 +527,414 @@ abstract class BaseTween<T> {
 	 */
 	@SuppressWarnings("FieldRepeatedlyAccessedInMethod")
     public
-    void update(final float delta) {
-		if (!isStarted || isPaused || isKilled) return;
+    void update(float delta) {
+        if (!isStarted || isPaused || isKilled)
+            return;
 
-        float deltaTime = delta;
-        float time = currentTime + deltaTime;
+        // the INITIAL, incoming delta from the app, will be positive or negative.
+        boolean direction = delta > 0F;
 
-		if (!isInitialized) {
-            // only run if we have passed the specified delay
-            if (time >= delay) {
+        // This is NOT final, because it's possible to change directions
+        float originalDelta = delta;
+
+
+        /* DELAY start is INCLUSIVE, the end is EXCLUSIVE, meaning:
+         * delay = 0-5, the delay is over when time=5
+         *
+         *    0          <5
+         *    v           v
+         *    [---DELAY---]
+         */
+
+
+        boolean changedDirection = false;
+        final boolean isInitialized = this.isInitialized;
+        if (!isInitialized) {
+            final float newTime = currentTime + delta;
+
+            // only start running if we have passed the specified delay in the FORWARDS direction. (tweens must always start off forwards)
+            if (newTime >= delay) {
                 initializeOverride();
-                isInitialized = true;
-                isInDelay = false;
 
-                step = 0;
-                deltaTime -= delay - currentTime;
+                this.forceRestart = false;
+                this.isInitialized = true;
+                this.isTweenRunning = true;
+
+                cachedDirection = direction;
+
+                changedDirection = true;  // to trigger a BEGIN state callback
+
+                // adjust the delta so that it is shifted based on the length of (previous) delay
+                delta -= delay - currentTime;
+
+                // reset the currentTime so that we always start at 0
                 currentTime = 0;
-
-                callCallbacks(TweenCallback.Events.BEGIN);
-                callCallbacks(TweenCallback.Events.START);
             }
-		}
+            else {
+                // shortcut out so we don't have to worry about any other checks
+                currentTime += delta;
+                return;
+            }
+        }
 
-		if (isInitialized) {
-            // restart an iteration when it used to be in reverse
-            if (isInDelay && repeatCount >= 0 ) {
-                if (step < 0 && time >= 0) {
-                    assert step == -1;
 
-                    isInDelay = false;
-                    step = 0;
-                    float delta2 = 0 - currentTime;
-                    deltaTime -= delta2;
-                    currentTime = 0;
+        // Manage direction change transition points, so that we can keep track of which direction we are currently stepping
+        if (forceRestart) {
+            float currentTime = this.currentTime;
+            final float newTime = currentTime + delta;
 
-                    callCallbacks(TweenCallback.Events.BEGIN);
-                    callCallbacks(TweenCallback.Events.START);
-                    updateOverride(step, step - 1, isInDelay, delta2);
+            // Specified via the delta which direction our reset affects
+            if (direction) {
+                if (newTime >= 0) {
+                    // adjust the delta so that it is shifted
+                    delta += this.currentTime;
+
+                    // reset the currentTime so that we always start at 0
+                    this.currentTime = 0;
                 }
                 else {
-                    int count = repeatCount << 1;
-                    if (step > count && time < 0) {
-                        assert step == count + 1;
-                        isInDelay = false;
-                        step = count;
-                        float delta2 = 0 - currentTime;
-                        deltaTime -= delta2;
-                        currentTime = duration;
+                    // shortcut out so we don't have to worry about any other checks
+                    this.currentTime += delta;
+                    return;
+                }
+            }
+            else {
+                if (newTime <= 0) {
+                    // adjust the delta so that it is shifted
+                    delta = newTime;
 
-                        callCallbacks(TweenCallback.Events.BACK_BEGIN);
-                        callCallbacks(TweenCallback.Events.BACK_START);
-                        updateOverride(step, step + 1, isInDelay, delta2);
-                    }
+                    // reset the currentTime so that we always start where it should
+                    this.currentTime = duration;
+                }
+                else {
+                    // shortcut out so we don't have to worry about any other checks
+                    this.currentTime += delta;
+                    return;
                 }
             }
 
+            // we successfully waited for the delay
+            // this is here, instead of inside each block above, to cut down on repeated code
 
-            // update the animations as long as our step is valid
+            // if we change directions, we have to reset our state, because clearly we are now going in the opposite direction (as specified
+            // by the negative delta
+            forceRestart = false;
+            isFinished = false;
+            isTweenRunning = true;
 
-            while (isValid(step)) {
-                time = currentTime + deltaTime;
+            changedDirection = true;  // to trigger a BEGIN state callback
+        }
 
-                if (isInDelay) {
-                    if (time <= 0) {
-                        // start REVERSE
-                        isInDelay = false;
-                        step -= 1;
+        /*
+         * DELAY - (delay) initial start delay, only happens once, during init
+         * R.DELAY - (repeatDelay) delay between repeat iterations, if there are more than one.
+         *
+         * there are two modes for repeat. LINEAR and AUTO_REVERSE
+         *
+         * LINEAR:
+         *                BEGIN                                     COMPLETE
+         *                START      END                 START      END
+         *                v          v                   v          v
+         * |---[DELAY]----[XXXXXXXXXX]->>-[R.DELAY]-->>--[XXXXXXXXXX]
+         *
+         *
+         * AUTO_REVERSE
+         *                BEGIN                   COMPLETE
+         *                START      END
+         *                v          v            v
+         * |---[DELAY]----[XXXXXXXXXX]->>-[R.DELAY]  ╶╮
+         *            ╭╴  [R.DELAY]-<<-[XXXXXXXXXX] <─╯
+         *            │   ^            ^          ^
+         *            │                bEND       bSTART
+         *            │   bCOMPLETE               bBEGIN
+         *            │
+         *            ╰╴> [XXXXXXXXXX]->>-[R.DELAY]  ╶╮
+         *            ╭╴  [R.DELAY]-<<-[XXXXXXXXXX] <─╯
+         *            ╰╴> [XXXXXXXXXX]->>-[R.DELAY]  ...
+         *
+         */
 
-                        float deltaChange = 0 - currentTime;
-                        deltaTime -= deltaChange;
+        // forwards always goes from 0 -> duration
+        // reverse always goes from duration -> 0
+        // canAutoReverse - only present with repeatDelay, and will cause an animation to reverse once iteration + repeatDelay is complete
+
+        // first we have to fire all of our events and adjust our state. Once done adjusting state and firing events to our callbacks
+        // it will break from this loop. If we are finished, it will run update directly (and then return, instead of breaking from loop)
+        if (!this.isFinished) {
+            while (true) {
+                final float newTime = currentTime + delta;
+
+                if (direction) {
+                    // {FORWARDS}
+
+                    if (isTweenRunning) {
+                        // {FORWARDS} [ITERATION CHECK]
+
+                        // detect when we are BEGIN or START
+                        if (currentTime == 0F) {
+                            if (changedDirection) {
+                                callCallbacks(TweenCallback.Events.BEGIN);
+
+                                if (!isInitialized) {
+                                    // only pass along "change direction" if we are already initialized. Logic only occurs at init
+                                    changedDirection = false;
+                                }
+                            }
+
+                            callCallbacks(TweenCallback.Events.START);
+                        }
+
+                        if (newTime <= duration) {
+                            // still inside our iteration, done with events.
+
+                            // adjust our time by our original delta value
+                            currentTime += delta;
+                            break;
+                        }
+
+
+                        // we have gone past our iteration point
+
+                        // adjust the delta so that it is shifted based on the length of (previous) iteration
+                        delta -= duration - currentTime;
+
+                        // set our currentTime for the callbacks to be accurate
                         currentTime = duration;
-
-                        if (isStepAutoReverse(step)) {
-                            forceStartValues();
-                        }
-                        else {
-                            forceEndValues();
-                        }
-
-                        callCallbacks(TweenCallback.Events.BACK_START);
-                        updateOverride(step, step + 1, isInDelay, deltaChange);
-                    }
-                    else if (time >= repeatDelay) {
-                        // start FORWARDS
-                        isInDelay = false;
-                        step += 1;
-
-                        float deltaChange = repeatDelay - currentTime;
-                        deltaTime -= deltaChange;
-                        currentTime = 0;
-
-                        if (isStepAutoReverse(step)) {
-                            forceEndValues();
-                        }
-                        else {
-                            forceStartValues();
-                        }
-
-//                    if (snapToEndpoints) {
-//                        forceStartValues();
-//                    } else {
-//                        updateOverride(step, step, isInDelay, deltaChange);
-//                    }
-
-                        callCallbacks(TweenCallback.Events.START);
-                        updateOverride(step, step - 1, isInDelay, deltaChange);
-                    } else {
-                        // no transition change, just regular updates
-                        float deltaChange = deltaTime;
-                        deltaTime -= deltaChange;
-                        currentTime += deltaChange;
-
-                        break;
-                    }
-                }
-                else {
-                    // isInDelay = true
-                    if (time < 0) {
-                        // finish REVERSE
-                        isInDelay = true;
-                        step -= 1;
-
-                        float deltaChange = 0 - currentTime;
-                        deltaTime -= deltaChange;
-                        currentTime = 0;
-
-//                    if (snapToEndpoints) {
-                        forceStartValues();
-//                    } else {
-//                        updateOverride(step, step, isInDelay, deltaChange);
-//                    }
-
-                        callCallbacks(TweenCallback.Events.BACK_END);
-
-                        if (step < 0 && repeatCount >= 0) {
-                            callCallbacks(TweenCallback.Events.BACK_COMPLETE);
-                        }
-                        else {
-                            currentTime = repeatDelay;
-                        }
-                    }
-                    else if (time > duration) {
-                        // finish FORWARDS
-                        isInDelay = true;
-                        step += 1;
-
-                        float deltaChange = duration - currentTime;
-                        deltaTime -= deltaChange;
-                        currentTime = duration;
-
-                        updateOverride(step, step - 1, isInDelay, deltaChange);
-//                    forceEndValues();
 
                         callCallbacks(TweenCallback.Events.END);
 
-                        if (step > repeatCount << 1 && repeatCount >= 0) {
-                            callCallbacks(TweenCallback.Events.COMPLETE);
-                        }
-                        currentTime = 0;
+                        // now set our currentTime to start measuring the delay/iteration (both start at 0)
+                        currentTime = 0F;
+
+                        // flip our state
+                        isTweenRunning = !isTweenRunning;
+
+                        // we loop to continue into [DELAY CHECK], where it will determine what to do next
                     }
                     else {
-                        // no transition change, just regular updates
-                        float deltaChange = deltaTime;
-                        deltaTime -= deltaChange;
-                        currentTime += deltaChange;
+                        // {FORWARDS} [DELAY CHECK]
 
-                        updateOverride(step, step, isInDelay, deltaChange);
+                        // tween is NOT running, we are in:
+                        //  - COMPLETE state
+                        //  - DELAY state
 
-                        break;
+                        if (repeatCount > 0) {
+                            // we can repeat OR autoReverse
+
+                            if (newTime <= repeatDelay) {
+                                // still inside our repeat delay, done with events.
+
+                                // adjust our time by our original delta value
+                                currentTime += delta;
+                                break;
+                            }
+
+                            // we are done waiting through the delay, we can progress to adjusting for iteration
+                            repeatCount--;
+
+                            // adjust the delta so that it is shifted based on the length of (previous) repeat delay
+                            delta -= repeatDelay - currentTime;
+
+                            // flip our state
+                            isTweenRunning = !isTweenRunning;
+
+
+                            // we can only autoReverse when in combination with repeatCount.
+                            if (canAutoReverse) {
+                                currentTime = duration + repeatDelay;
+                                callCallbacks(TweenCallback.Events.COMPLETE);
+
+                                // setup state correctly for reverse direction iteration -- delay happens after iteration, and don't
+                                // want to "double-dip" our delay time
+                                currentTime = duration;
+
+                                // flip direction to {REVERSE}
+                                changedDirection = true;
+                                direction = REVERSE;
+                                cachedDirection = REVERSE;
+
+                                delta = -delta;
+                                originalDelta = -originalDelta;
+                            } else {
+                                // now set our currentTime to start measuring the next repeat iteration
+                                currentTime = 0F;
+                            }
+
+                            // we loop to continue into [ITERATION CHECK]
+                        }
+                        else {
+                            // {FINISHED}
+                            // no repeats left, so we're done
+
+                            // really are done (so no more event notification loops)
+                            this.isFinished = true;
+
+                            // save, because we have to continue counting this value, so reversing/etc still correctly tracks
+                            final float currentTime = this.currentTime;
+
+                            // force it to the end value
+                            this.currentTime = duration;
+
+                            // make sure that we manage our children BEFORE we mark as complete!
+                            // we use originalDelta here because we have to trickle-down the logic to all children. If we use delta, the incorrect value
+                            // will trickle-down
+                            doUpdate(FORWARDS, changedDirection, originalDelta);
+
+                            // when AUTO-REVERSE, COMPLETE is at the end of each cycle, or if we are out of repeats.
+                            if (!canAutoReverse || repeatCount <= 0) {
+                                // we're done going forwards
+                                callCallbacks(TweenCallback.Events.COMPLETE);
+                            }
+
+                            // now restore the time
+                            this.currentTime = currentTime;
+
+                            return;
+                        }
                     }
+
+                    // end {FORWARDS}
+                }
+                else {
+                    // {REVERSE}
+
+                    // in reverse, all of the checks are OPPOSITE
+
+                    if (isTweenRunning) {
+                        // {REVERSE} [ITERATION CHECK]
+
+                        // detect when we are BEGIN or START
+                        if (currentTime == duration) {
+                            if (changedDirection) {
+                                callCallbacks(TweenCallback.Events.BACK_BEGIN);
+                            }
+
+                            callCallbacks(TweenCallback.Events.BACK_START);
+                        }
+
+                        if (newTime >= 0F) {
+                            // still inside our iteration, done with events.
+
+                            // adjust our time by our original delta value
+                            currentTime += delta;
+                            break;
+                        }
+
+
+                        // we have gone past our iteration point
+
+                        // adjust the delta so that it is shifted based on the length of (previous) iteration
+                        // this is easy, because the amount of time past 0 is the new delta (because we start at 0).
+                        delta += currentTime;
+
+                        // set our currentTime for the callbacks to be accurate
+                        currentTime = 0F;
+
+                        callCallbacks(TweenCallback.Events.BACK_END);
+
+                        // set our currentTime for the callbacks to be accurate
+                        if (repeatCount > 0) {
+                            currentTime = repeatDelay;
+                        }
+                        else {
+                            currentTime = duration;
+                        }
+
+                        // flip our state
+                        isTweenRunning = !isTweenRunning;
+
+                        // we loop to continue into [DELAY CHECK], where it will determine what to do next
+                    }
+                    else {
+                        // {REVERSE} [DELAY CHECK]
+
+                        // tween is NOT running, we are in:
+                        //  - COMPLETE state
+                        //  - DELAY state
+
+                        if (repeatCount > 0) {
+                            // we can repeat (and maybe autoReverse)
+
+                            if (newTime >= 0F) {
+                                // still inside our repeat delay, done with events.
+
+                                // adjust our time by our original delta value
+                                currentTime += delta;
+                                break;
+                            }
+
+                            // we are done waiting through the delay, we can progress to adjusting for iteration
+                            repeatCount--;
+
+                            // adjust the delta so that it is shifted based on the length of (previous) iteration
+                            // this is easy, because the amount of time past 0 is the new delta (because we start at 0).
+                            delta += currentTime;
+
+                            // flip our state
+                            isTweenRunning = !isTweenRunning;
+
+                            // we can only autoReverse when in combination with repeatCount.
+                            if (canAutoReverse) {
+                                // setup state correctly for reverse direction iteration -- delay happens after iteration, and don't
+                                // want to "double-dip" our delay time
+                                currentTime = 0F;
+                                callCallbacks(TweenCallback.Events.BACK_COMPLETE);
+
+                                // flip direction to {FORWARDS}
+                                changedDirection = true;
+                                direction = FORWARDS;
+                                cachedDirection = FORWARDS;
+
+                                delta = -delta;
+                                originalDelta = -originalDelta;
+                            } else {
+                                // now set our currentTime to start measuring the iteration
+                                currentTime = 0F;
+                            }
+
+                            // we loop to continue into [ITERATION CHECK]
+                        }
+                        else {
+                            // {FINISHED}
+                            // no repeats left, so we're done
+
+                            // really are done (so no more event notification loops)
+                            this.isFinished = true;
+
+                            // force it to the end value (don't save old value, it's not necessary)
+                            this.currentTime = 0F;
+
+                            // make sure that we manage our children BEFORE we mark as complete!
+                            // we use originalDelta here because we have to trickle-down the logic to all children. If we use delta, the incorrect value
+                            // will trickle-down
+                            doUpdate(REVERSE, changedDirection, originalDelta);
+
+                            // we're done going reverse
+                            callCallbacks(TweenCallback.Events.BACK_COMPLETE);
+
+                            return;
+                        }
+                    }
+
+                    // end {REVERSE}
                 }
             }
 
-            // calculate if our timeline/tween is finished
-            isFinished = repeatCount >= 0 && (step < 0 || step > repeatCount << 1);
-		}
+            // when done with all the adjustments and notifications, update the object
+            // we use originalDelta here because we have to trickle-down the logic to all children. If we use delta, the incorrect value
+            // will trickle-down
+            doUpdate(direction, changedDirection, originalDelta);
+        }
+        else {
+            // otherwise, we don't run (since we've finished running)
+            // -- however we still have to keep track of currentTime, so reversing/etc still correctly tracks delays, etc
+            currentTime += originalDelta;
+        }
+    }
 
-		currentTime += deltaTime;
-	}
+    @Override
+    public
+    String toString() {
+        return this.name + "";
+    }
 }
