@@ -172,7 +172,8 @@ class ConsoleTests {
     private static
     void Bugtest21() {
         final int terminalwidth = 50;
-        final float dt = 0.02f;
+//        final float dt = 0.02f;
+        final float dt = 0.04f;
         Bugtest[] bugs;
 
 
@@ -187,10 +188,10 @@ class ConsoleTests {
         Timeline timeline = Timeline.createSequence()
                                     .addCallback(buildCallback("TL", TweenCallback.Events.ANY))
                                     .push(bugs[0].t)
-                                    .beginParallel()
-                                        .push(bugs[1].t)
-//                                        .push(bugs[2].t) // third tween not even needed
-                                    .end()
+//                                    .beginParallel()
+//                                        .push(bugs[1].t)
+////                                        .push(bugs[2].t) // third tween not even needed
+//                                    .end()
 //                                    .repeatAutoReverse(2, 0.5f)
                                     .repeat(2, 0.5f)
                                     .start();

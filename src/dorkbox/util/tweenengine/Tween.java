@@ -340,7 +340,7 @@ class Tween extends BaseTween<Tween> {
 	public static
     Tween set(final Object target, final int tweenType) {
 		Tween tween = pool.takeUninterruptibly();
-		tween.setup(target, tweenType, 0);
+		tween.setup(target, tweenType, 0F);
 		tween.ease(Quad.INOUT);
 		return tween;
 	}
@@ -454,7 +454,7 @@ class Tween extends BaseTween<Tween> {
 
 	private void
     setup(final Object target, final int tweenType, final float duration) {
-        if (duration < 0) {
+        if (duration < 0F) {
             throw new RuntimeException("Duration can't be negative");
         }
 
@@ -980,7 +980,7 @@ class Tween extends BaseTween<Tween> {
 
 
     protected
-    void doUpdate(final boolean animationDirection, final boolean changedDirection, float delta) {
+    void doUpdate(final boolean animationDirection, final boolean changedDirection, final float restartAdjustment, float delta) {
         final Object target = this.target;
         final TweenEquation equation = this.equation;
 
@@ -989,15 +989,17 @@ class Tween extends BaseTween<Tween> {
         }
 
         final float duration = this.duration;
-        // When there is an "instant on/off" tween, via Tween.set()
-        if (duration < 0.00000000001f) {
+        /*
+         * When DURATION is not specified, it means that this object is either START value or END value. Delay still applies
+         * to this. This is via Tween.set()
+         */
+        if (duration == 0F) {
             // set values to their start/end point
-
-            if (delta > -0.00000000001f) {
-                accessor.setValues(target, type, isInReverse() ? startValues : targetValues);
+            if (delta > 0F) {
+                accessor.setValues(target, type, animationDirection ? targetValues : startValues);
             }
             else {
-                accessor.setValues(target, type, isInReverse() ? targetValues : startValues);
+                accessor.setValues(target, type, animationDirection ? startValues : targetValues);
             }
 
             return;
@@ -1150,7 +1152,16 @@ class Tween extends BaseTween<Tween> {
         accessor.setValues(target, type, targetValues);
 	}
 
-	@Override
+    @Override
+    protected
+    void forceEndValues(final float time) {
+        if (target == null) {
+            return;
+        }
+        accessor.setValues(target, type, targetValues);
+    }
+
+    @Override
 	protected
     boolean containsTarget(final Object target) {
 		return this.target == target;

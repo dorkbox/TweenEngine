@@ -410,27 +410,46 @@ class Timeline extends BaseTween<Timeline> {
 
     @Override
     protected
-    void doUpdate(final boolean animationDirection, final boolean changedDirection, float delta) {
-        if (changedDirection) {
+    void doUpdate(final boolean animationDirection, final boolean forceRestart, final float restartAdjustment, float delta) {
+        if (forceRestart) {
             // have to specify that all of our children are no longer "finished", otherwise they won't update their values
 
-            // also have to adjust children for any delays in myself.
-            final float delay = getRepeatDelay();
-            if (delay > 0F) {
-                // this adjustment is necessary because we are modifying the previous timeline value with the next current
-                // and we have to "undo" the update delta
+            if (restartAdjustment != 0F) {
                 if (delta > 0F) {
-                    delta = delay-delta;
+                    delta = restartAdjustment-delta;
                 }
                 else {
-                    delta = -delay-delta;
+                    delta = -restartAdjustment-delta;
                 }
             }
 
-            for (int i = 0, n = children.size(); i < n; i++) {
-                final BaseTween<?> baseTween = children.get(i);
-                baseTween.forceRestart = true;
-                baseTween.update(delta);
+            // optimized forceStart/End method
+            if (animationDirection) {
+                // {FORWARDS}
+
+//                for (int i = children.size() - 1; i >= 0; i--) {
+//                    final BaseTween<?> obj = children.get(i);
+//                    obj.forceRestart = true;
+//                    obj.forceToStart();
+//                    obj.update(delta);
+//                }
+            } else {
+                // {REVERSE}
+
+//                float duration = this.duration;
+//                for (int i = 0, n = children.size(); i < n; i++) {
+//                    final BaseTween<?> obj = children.get(i);
+//                    obj.forceRestart = true;
+//                    obj.forceToEnd(duration);
+//                    obj.update(delta);
+//                }
+            }
+
+
+            for (int i = children.size() - 1; i >= 0; i--) {
+                final BaseTween<?> obj = children.get(i);
+                obj.forceRestart = true;
+                obj.update(delta);
             }
         }
         else {
@@ -453,10 +472,17 @@ class Timeline extends BaseTween<Timeline> {
 	@Override
 	protected
     void forceEndValues() {
-        final float duration = this.duration;
+        // timelines have to adjust the children end values so that reverse still works w/ proper delays
+        // a parent timeline duration will always be greater than all children.
+        forceEndValues(this.duration);
+    }
+
+    protected
+    void forceEndValues(final float time) {
+        // timelines have to adjust the children end values so that reverse still works w/ proper delays
         for (int i = 0, n = children.size(); i < n; i++) {
             final BaseTween<?> obj = children.get(i);
-            obj.forceToEnd(duration);
+            obj.forceToEnd(time);
         }
     }
 
