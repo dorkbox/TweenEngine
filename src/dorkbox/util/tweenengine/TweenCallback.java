@@ -30,10 +30,10 @@
  */
 package dorkbox.util.tweenengine;
 
+
 /**
- * TweenCallbacks are used to trigger actions at some specific times. They are
- * used in both Tweens and Timelines. The moment when the callback is
- * triggered depends on its registered triggers:
+ * Specifies the triggers for a callback. The available triggers, listed as
+ * members of the {@link TweenCallback.Events} class, are:
  * <p/>
  *
  * <b>BEGIN</b>: right after the delay (if any)<br/>
@@ -47,17 +47,34 @@ package dorkbox.util.tweenengine;
  * <p/>
  *
  * <pre> {@code
- * forward :      BEGIN                                   COMPLETE
- * forward :      START    END      START    END      START    END
- * |--------------[XXXXXXXXXX]------[XXXXXXXXXX]------[XXXXXXXXXX]
- * backward:      bEND  bSTART      bEND  bSTART      bEND  bSTART
- * backward:      bCOMPLETE                                 bBEGIN
- * }</pre>
  *
- * @see Tween
- * @see Timeline
- * @author Aurelien Ribon | http://www.aurelienribon.com/
- * @author dorkbox, llc
+ * DELAY - (delay) initial start delay, only happens once, during init
+ * R.DELAY - (repeatDelay) delay between repeat iterations, if there are more than one.
+ *
+ * there are two modes for repeat. LINEAR and AUTO_REVERSE
+ *
+ * LINEAR:
+ *                BEGIN                                     COMPLETE
+ *                START      END                 START      END
+ *                v          v                   v          v
+ * |---[DELAY]----[XXXXXXXXXX]->>-[R.DELAY]-->>--[XXXXXXXXXX]
+ *
+ *
+ * AUTO_REVERSE
+ *                BEGIN      COMPLETE
+ *                START      END
+ *                v          v
+ * |---[DELAY]----[XXXXXXXXXX]──────────-─────╮
+ *            ╭╴  [XXXXXXXXXX]-<<-[R.DELAY] <─╯
+ *            │   ^          ^
+ *            │   bEND       bSTART
+ *            │   bCOMPLETE  bBEGIN
+ *            │
+ *            ╰╴> [R.DELAY]->>-[XXXXXXXXXX]  ╶╮
+ *            ╭╴  [XXXXXXXXXX]-<<-[R.DELAY] <─╯
+ *            ╰╴> [R.DELAY]->>-[XXXXXXXXXX]  ...
+ *
+ * }</pre>
  */
 @SuppressWarnings("unused")
 public abstract
@@ -68,36 +85,6 @@ class TweenCallback {
     TweenCallback() {
     }
 
-
-    /**
-     * Specifies the triggers for a callback. The available triggers, listed as
-     * members of the {@link TweenCallback.Events} class, are:
-     * <p/>
-     *
-     * <b>BEGIN</b>: right after the delay (if any)<br/>
-     * <b>START</b>: at each iteration beginning<br/>
-     * <b>END</b>: at each iteration ending, before the repeat delay<br/>
-     * <b>COMPLETE</b>: at last END event<br/>
-     * <b>BACK_BEGIN</b>: at the beginning of the first backward iteration<br/>
-     * <b>BACK_START</b>: at each backward iteration beginning, after the repeat delay<br/>
-     * <b>BACK_END</b>: at each backward iteration ending<br/>
-     * <b>BACK_COMPLETE</b>: at last BACK_END event
-     * <p/>
-     *
-     * <pre> {@code
-     * forward :      BEGIN                                   COMPLETE
-     * forward :      START    END      START    END      START    END
-     * |--------------[XXXXXXXXXX]------[XXXXXXXXXX]------[XXXXXXXXXX]
-     * backward:      bEND  bSTART      bEND  bSTART      bEND  bSTART
-     * backward:      bCOMPLETE                                 bBEGIN
-     * }</pre>
-     *
-     * @param triggers one or more triggers, separated by the '|' operator.
-     */
-    public
-    TweenCallback(final int triggers) {
-        this.triggers = triggers;
-    }
 
     /**
      * Specifies the triggers for a callback. The available triggers, listed as
@@ -129,18 +116,71 @@ class TweenCallback {
      *
      *
      * AUTO_REVERSE
-     *                BEGIN                   COMPLETE
+     *                BEGIN      COMPLETE
      *                START      END
-     *                v          v            v
-     * |---[DELAY]----[XXXXXXXXXX]->>-[R.DELAY]  ╶╮
-     *            ╭╴  [R.DELAY]-<<-[XXXXXXXXXX] <─╯
-     *            │   ^            ^          ^
-     *            │                bEND       bSTART
-     *            │   bCOMPLETE               bBEGIN
+     *                v          v
+     * |---[DELAY]----[XXXXXXXXXX]──────────-─────╮
+     *            ╭╴  [XXXXXXXXXX]-<<-[R.DELAY] <─╯
+     *            │   ^          ^
+     *            │   bEND       bSTART
+     *            │   bCOMPLETE  bBEGIN
      *            │
-     *            ╰╴> [XXXXXXXXXX]->>-[R.DELAY]  ╶╮
-     *            ╭╴  [R.DELAY]-<<-[XXXXXXXXXX] <─╯
-     *            ╰╴> [XXXXXXXXXX]->>-[R.DELAY]  ...
+     *            ╰╴> [R.DELAY]->>-[XXXXXXXXXX]  ╶╮
+     *            ╭╴  [XXXXXXXXXX]-<<-[R.DELAY] <─╯
+     *            ╰╴> [R.DELAY]->>-[XXXXXXXXXX]  ...
+     *
+     * }</pre>
+     *
+     * @param triggers one or more triggers, separated by the '|' operator.
+     */
+    public
+    TweenCallback(final int triggers) {
+        this.triggers = triggers;
+    }
+
+
+    /**
+     * Specifies the triggers for a callback. The available triggers, listed as
+     * members of the {@link TweenCallback.Events} class, are:
+     * <p/>
+     *
+     * <b>BEGIN</b>: right after the delay (if any)<br/>
+     * <b>START</b>: at each iteration beginning<br/>
+     * <b>END</b>: at each iteration ending, before the repeat delay<br/>
+     * <b>COMPLETE</b>: at last END event<br/>
+     * <b>BACK_BEGIN</b>: at the beginning of the first backward iteration<br/>
+     * <b>BACK_START</b>: at each backward iteration beginning, after the repeat delay<br/>
+     * <b>BACK_END</b>: at each backward iteration ending<br/>
+     * <b>BACK_COMPLETE</b>: at last BACK_END event
+     * <p/>
+     *
+     * <pre> {@code
+     *
+     * DELAY - (delay) initial start delay, only happens once, during init
+     * R.DELAY - (repeatDelay) delay between repeat iterations, if there are more than one.
+     *
+     * there are two modes for repeat. LINEAR and AUTO_REVERSE
+     *
+     * LINEAR:
+     *                BEGIN                                     COMPLETE
+     *                START      END                 START      END
+     *                v          v                   v          v
+     * |---[DELAY]----[XXXXXXXXXX]->>-[R.DELAY]-->>--[XXXXXXXXXX]
+     *
+     *
+     * AUTO_REVERSE
+     *                BEGIN      COMPLETE
+     *                START      END
+     *                v          v
+     * |---[DELAY]----[XXXXXXXXXX]──────────-─────╮
+     *            ╭╴  [XXXXXXXXXX]-<<-[R.DELAY] <─╯
+     *            │   ^          ^
+     *            │   bEND       bSTART
+     *            │   bCOMPLETE  bBEGIN
+     *            │
+     *            ╰╴> [R.DELAY]->>-[XXXXXXXXXX]  ╶╮
+     *            ╭╴  [XXXXXXXXXX]-<<-[R.DELAY] <─╯
+     *            ╰╴> [R.DELAY]->>-[XXXXXXXXXX]  ...
      *
      * }</pre>
      *
@@ -155,7 +195,7 @@ class TweenCallback {
 
     public static final
     class Events {
-        public static final int BEGIN = 1 << 0;         // 00000001
+        public static final int BEGIN = 1;              // 00000001
         public static final int START = 1 << 1;         // 00000010
         public static final int END = 1 << 2;           // 00000100
         public static final int COMPLETE = 1 << 3;      // 00001000

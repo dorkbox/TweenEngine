@@ -52,7 +52,7 @@ class ConsoleTests {
         TweenCallback t1 = buildCallback("t", target);
         t1.setTriggers(TweenCallback.Events.ANY);
 
-        Tween t = Tween.to(target, 0, 1.0f)
+        Tween t = Tween.to(target, 0, 1000)
                        .target(1)
                        .repeat(2, 1)
                        .delay(1)
@@ -135,7 +135,7 @@ class ConsoleTests {
                                        ? "BACK_END     "
                                        : type == TweenCallback.Events.BACK_COMPLETE ? "BACK_COMPLETE" : "???";
 
-                String str = String.format(Locale.US, "%s %s   lt %.2f   v %.2f", name, t, source.getCurrentTime(), target.floatValue());
+                String str = String.format(Locale.US, "%s %s   lt %.2f   v %.2", name, t, source.getCurrentTime(), target.floatValue());
                 System.out.println(str);
             }
         };
@@ -163,7 +163,7 @@ class ConsoleTests {
                                        ? "BACK_END     "
                                        : type == TweenCallback.Events.BACK_COMPLETE ? "BACK_COMPLETE" : "???";
 
-                String str = String.format(Locale.US, "%s %s   lt %.2f", name, t, source.getCurrentTime());
+                String str = String.format(Locale.US, "%s %s   lt %d", name, t, source.getCurrentTime());
                 System.out.println(str);
             }
         };
@@ -172,8 +172,8 @@ class ConsoleTests {
     private static
     void Bugtest21() {
         final int terminalwidth = 50;
-//        final float dt = 0.02f;
-        final float dt = 0.04f;
+//        final int dt = 20;
+        final int dt = 40;
         Bugtest[] bugs;
 
 
@@ -192,8 +192,8 @@ class ConsoleTests {
 //                                        .push(bugs[1].t)
 ////                                        .push(bugs[2].t) // third tween not even needed
 //                                    .end()
-//                                    .repeatAutoReverse(2, 0.5f)
-                                    .repeat(2, 0.5f)
+//                                    .repeatAutoReverse(5, 500)
+                                    .repeat(1, 500)
                                     .start();
 
         while (!timeline.isFinished()) {
@@ -217,8 +217,6 @@ class ConsoleTests {
                 System.out.print(" \t\t" + bug.val);
             }
             System.out.println();//" t="+time);
-
-
 
             try {
                 Thread.sleep(50);
@@ -251,7 +249,7 @@ class ConsoleTests {
 
         Bugtest(char name) {
             this.name = name;
-            t = Tween.to(this, 0, 1)
+            t = Tween.to(this, 0, 1000)
                      .target(1).addCallback(buildCallback(""+name, TweenCallback.Events.ANY));
             t.name = name;
         }

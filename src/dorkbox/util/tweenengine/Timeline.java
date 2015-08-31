@@ -160,6 +160,7 @@ class Timeline extends BaseTween<Timeline> {
 
 
 	private final List<BaseTween<?>> children = new ArrayList<BaseTween<?>>(10);
+    private BaseTween<?>[] childrenArray = null;
     protected Timeline parent;
     private Timeline current;
 	private Modes mode;
@@ -179,6 +180,7 @@ class Timeline extends BaseTween<Timeline> {
 		super.reset();
 
 		children.clear();
+        childrenArray = null;
 		current = parent = null;
 		isBuilt = false;
 	}
@@ -231,18 +233,18 @@ class Timeline extends BaseTween<Timeline> {
 	 * Adds a pause to the timeline. The pause may be negative if you want to
 	 * overlap the preceding and following children.
 	 *
-	 * @param timeInSeconds A positive or negative duration in milliseconds, for example .2F for 200 milliseconds
+	 * @param time A positive or negative duration in milliseconds
      *
 	 * @return The current timeline, for chaining instructions.
 	 */
 	public
-    Timeline pushPause(final float timeInSeconds) {
+    Timeline pushPause(final int time) {
         if (isBuilt) {
             throw new RuntimeException("You can't push anything to a timeline once it is started");
         }
 
         current.children.add(Tween.mark()
-                                  .delay(timeInSeconds));
+                                  .delay(time));
         return this;
 	}
 
@@ -252,7 +254,6 @@ class Timeline extends BaseTween<Timeline> {
 	 *
 	 * @return The current timeline, for chaining instructions.
 	 */
-	@SuppressWarnings("FieldRepeatedlyAccessedInMethod")
     public
     Timeline beginSequence() {
         if (isBuilt) {
@@ -273,7 +274,6 @@ class Timeline extends BaseTween<Timeline> {
 	 *
 	 * @return The current timeline, for chaining instructions.
 	 */
-	@SuppressWarnings("FieldRepeatedlyAccessedInMethod")
     public
     Timeline beginParallel() {
         if (isBuilt) {
@@ -293,7 +293,6 @@ class Timeline extends BaseTween<Timeline> {
 	 *
 	 * @return The current timeline, for chaining instructions.
 	 */
-	@SuppressWarnings("FieldRepeatedlyAccessedInMethod")
     public
     Timeline end() {
         if (isBuilt) {
@@ -303,7 +302,7 @@ class Timeline extends BaseTween<Timeline> {
             throw new RuntimeException("Nothing to end...");
         }
 
-        current = (Timeline) current.parent;
+        current = current.parent;
         return this;
 	}
 
@@ -345,7 +344,7 @@ class Timeline extends BaseTween<Timeline> {
 
             switch (mode) {
                 case SEQUENCE:
-                    final float tDelay = duration;
+                    final int tDelay = duration;
                     duration += obj.getFullDuration();
                     obj.delay += tDelay;
                     break;
@@ -369,10 +368,15 @@ class Timeline extends BaseTween<Timeline> {
             this.name = '*';
         }
 
-        for (int i = 0, n = children.size(); i < n; i++) {
+        int size = children.size();
+        for (int i = 0; i < size; i++) {
             final BaseTween<?> obj = children.get(i);
             obj.start();
         }
+
+        // setup our children array, so update iterations are faster
+        childrenArray = new BaseTween[size];
+        children.toArray(childrenArray);
 
         return this;
     }
@@ -388,8 +392,59 @@ class Timeline extends BaseTween<Timeline> {
         pool.release(this);
     }
 
+    /**
+     * Updates the tween or timeline state. <b>You may want to use a
+     * TweenManager to update objects for you.</b>
+     * <p>
+     * Slow motion, fast motion and backward play can be easily achieved by
+     * tweaking this delta time.
+     * <p>
+     * Multiply it by -1 to play the animation backward, or by 0.5
+     * to play it twice-as-slow than its normal speed.
+     * <p>
+     * <p>
+     * <b>THIS IS NOT PREFERRED</b>
+     *
+     * @param delta A delta time in SECONDS between now and the last call.
+     */
     public
-    void update(float delta) {
+    void update(final float delta) {
+        // from: http://nicolas.limare.net/pro/notes/2014/12/12_arit_speed/
+        //    Floating-point operations are always slower than integer ops at same data size.
+        // internally we also want to use INTEGER, since we want consistent timelines
+
+        if (this.parent == null) {
+            // ONLY modify the incoming delta if we are the parent timeline!
+            if (isInReverse()) {
+                // if we are now in reverse, flip the incoming delta.
+                super.update((int) (delta * -1000F));
+            } else {
+                super.update((int) (delta * 1000F));
+            }
+        }
+        else {
+            super.update((int) (delta * 1000F));
+        }
+    }
+
+    /**
+     * Updates the tween or timeline state. <b>You may want to use a
+     * TweenManager to update objects for you.</b>
+     * <p>
+     * Slow motion, fast motion and backward play can be easily achieved by
+     * tweaking this delta time.
+     * <p>
+     * Multiply it by -1 to play the animation backward, or by 0.5
+     * to play it twice-as-slow than its normal speed.
+     *
+     * @param delta A delta time in MILLI-SECONDS between now and the last call.
+     */
+    public
+    void update(final int delta) {
+        // from: http://nicolas.limare.net/pro/notes/2014/12/12_arit_speed/
+        //    Floating-point operations are always slower than integer ops at same data size.
+        // internally we also want to use INTEGER, since we want consistent timelines
+
         if (this.parent == null) {
             // ONLY modify the incoming delta if we are the parent timeline!
             if (isInReverse()) {
@@ -408,90 +463,31 @@ class Timeline extends BaseTween<Timeline> {
 	// BaseTween impl.
 	// -------------------------------------------------------------------------
 
+
     @Override
     protected
-    void doUpdate(final boolean animationDirection, final boolean forceRestart, final float restartAdjustment, float delta) {
-        if (forceRestart) {
-            // have to specify that all of our children are no longer "finished", otherwise they won't update their values
-
-            if (restartAdjustment != 0F) {
-                if (delta > 0F) {
-                    delta = restartAdjustment-delta;
-                }
-                else {
-                    delta = -restartAdjustment-delta;
-                }
-            }
-
-            // optimized forceStart/End method
-            if (animationDirection) {
-                // {FORWARDS}
-
-//                for (int i = children.size() - 1; i >= 0; i--) {
-//                    final BaseTween<?> obj = children.get(i);
-//                    obj.forceRestart = true;
-//                    obj.forceToStart();
-//                    obj.update(delta);
-//                }
-            } else {
-                // {REVERSE}
-
-//                float duration = this.duration;
-//                for (int i = 0, n = children.size(); i < n; i++) {
-//                    final BaseTween<?> obj = children.get(i);
-//                    obj.forceRestart = true;
-//                    obj.forceToEnd(duration);
-//                    obj.update(delta);
-//                }
-            }
-
-
-            for (int i = children.size() - 1; i >= 0; i--) {
-                final BaseTween<?> obj = children.get(i);
-                obj.forceRestart = true;
-                obj.update(delta);
-            }
-        }
-        else {
-            for (int i = 0, n = children.size(); i < n; i++) {
-                children.get(i)
-                        .update(delta);
-            }
+    void forceRestart(final boolean direction, final int restartAdjustment) {
+        for (int i = 0, n = childrenArray.length; i < n; i++) {
+            final BaseTween<?> tween = childrenArray[i];
+            tween.forceRestart(direction, restartAdjustment);
         }
     }
 
     @Override
-	protected
-    void forceStartValues() {
-        for (int i = children.size() - 1; i >= 0; i--) {
-            final BaseTween<?> obj = children.get(i);
-            obj.forceToStart();
-        }
-    }
-
-	@Override
-	protected
-    void forceEndValues() {
-        // timelines have to adjust the children end values so that reverse still works w/ proper delays
-        // a parent timeline duration will always be greater than all children.
-        forceEndValues(this.duration);
-    }
-
     protected
-    void forceEndValues(final float time) {
-        // timelines have to adjust the children end values so that reverse still works w/ proper delays
-        for (int i = 0, n = children.size(); i < n; i++) {
-            final BaseTween<?> obj = children.get(i);
-            obj.forceToEnd(time);
+    void doUpdate(final boolean animationDirection, final int delta) {
+        for (int i = 0, n = childrenArray.length; i < n; i++) {
+            final BaseTween<?> tween = childrenArray[i];
+            tween.update(delta);
         }
     }
 
 	@Override
 	protected
     boolean containsTarget(final Object target) {
-        for (int i = 0, n = children.size(); i < n; i++) {
-            final BaseTween<?> obj = children.get(i);
-            if (obj.containsTarget(target)) {
+        for (int i = 0, n = childrenArray.length; i < n; i++) {
+            final BaseTween<?> tween = childrenArray[i];
+            if (tween.containsTarget(target)) {
                 return true;
             }
         }
@@ -501,9 +497,9 @@ class Timeline extends BaseTween<Timeline> {
 	@Override
     protected
     boolean containsTarget(final Object target, final int tweenType) {
-        for (int i = 0, n = children.size(); i < n; i++) {
-            final BaseTween<?> obj = children.get(i);
-            if (obj.containsTarget(target, tweenType)) {
+        for (int i = 0, n = childrenArray.length; i < n; i++) {
+            final BaseTween<?> tween = childrenArray[i];
+            if (tween.containsTarget(target, tweenType)) {
                 return true;
             }
         }

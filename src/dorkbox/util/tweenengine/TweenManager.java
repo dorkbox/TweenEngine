@@ -165,9 +165,12 @@ class TweenManager {
 	}
 
 	/**
-	 * Updates every tweens with a delta time ang handles the tween life-cycles
-	 * automatically. If a tween is finished, it will be removed from the
-	 * manager. The delta time represents the elapsed time between now and the
+	 * Updates every tweens with a delta time in SECONDS and handles the
+     * tween life-cycles automatically.
+     * <p/>
+     * If a tween is finished, it will be removed from the manager.
+     * <p/>
+     * The delta time represents the elapsed time in SECONDS between now and the
 	 * last update call. Each tween or timeline manages its local time, and adds
 	 * this delta to its local time to update itself.
 	 * <p/>
@@ -175,9 +178,38 @@ class TweenManager {
 	 * Slow motion, fast motion and backward play can be easily achieved by
 	 * tweaking this delta time. Multiply it by -1 to play the animation
 	 * backward, or by 0.5 to play it twice slower than its normal speed.
+     * <p>
+     * <p>
+     * <b>THIS IS NOT PREFERRED</b>
 	 */
 	public
     void update(final float delta) {
+        // from: http://nicolas.limare.net/pro/notes/2014/12/12_arit_speed/
+        //    Floating-point operations are always slower than integer ops at same data size.
+        // internally we also want to use INTEGER, since we want consistent timelines as well
+        final int deltaMSeconds = (int) (delta * 1000F);
+        update(delta);
+    }
+
+    /**
+     * Updates every tweens with a delta time in MILLI-SECONDS and handles the
+     * tween life-cycles automatically.
+     * <p/>
+     * If a tween is finished, it will be removed from the manager.
+     * <p/>
+     * The delta time represents the elapsed time in MILLI-SECONDS between now and the
+     * last update call. Each tween or timeline manages its local time, and adds
+     * this delta to its local time to update itself.
+     * <p/>
+     *
+     * Slow motion, fast motion and backward play can be easily achieved by
+     * tweaking this delta time. Multiply it by -1 to play the animation
+     * backward, or by 0.5 to play it twice slower than its normal speed.
+     *
+     * @param delta A delta time in MILLI-SECONDS between now and the last call.
+     */
+    public
+    void update(final int delta) {
         for (int i = objects.size() - 1; i >= 0; i--) {
             final BaseTween<?> obj = objects.get(i);
             if (obj.isFinished() && obj.isAutoRemoveEnabled) {

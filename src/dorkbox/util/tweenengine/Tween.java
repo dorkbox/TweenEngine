@@ -119,8 +119,8 @@ class Tween extends BaseTween<Tween> {
 	// -------------------------------------------------------------------------
 
 	/**
-	 * Used as parameter in {@link #repeat(int, float)} and
-	 * {@link #repeatAutoReverse(int, float)} methods.
+	 * Used as parameter in {@link #repeat(int, int)} and
+	 * {@link #repeatAutoReverse(int, int)} methods.
 	 */
 	public static final int INFINITY = -1;
 
@@ -254,12 +254,12 @@ class Tween extends BaseTween<Tween> {
 	 *
 	 * @param target The target object of the interpolation.
 	 * @param tweenType The desired type of interpolation, used for TweenAccessor methods.
-	 * @param duration The duration of the interpolation, in seconds.
+	 * @param duration The duration of the interpolation, in MILLI-SECONDS.
      *
 	 * @return The generated Tween.
 	 */
 	public static
-    Tween to(final Object target, final int tweenType, final float duration) {
+    Tween to(final Object target, final int tweenType, final int duration) {
 		Tween tween = pool.takeUninterruptibly();
 		tween.setup(target, tweenType, duration);
 		tween.ease(Quad.INOUT);
@@ -294,14 +294,14 @@ class Tween extends BaseTween<Tween> {
 	 *
 	 * @param target The target object of the interpolation.
 	 * @param tweenType The desired type of interpolation.
-	 * @param duration The duration of the interpolation, in seconds.
+	 * @param durationInMilliSeconds The duration of the interpolation, in MILLI-SECONDS.
      *
 	 * @return The generated Tween.
 	 */
 	public static
-    Tween from(final Object target, final int tweenType, final float duration) {
+    Tween from(final Object target, final int tweenType, final int durationInMilliSeconds) {
 		Tween tween = pool.takeUninterruptibly();
-		tween.setup(target, tweenType, duration);
+		tween.setup(target, tweenType, durationInMilliSeconds);
 		tween.ease(Quad.INOUT);
 		tween.path(TweenPaths.catmullRom);
 		tween.isFrom = true;
@@ -340,7 +340,7 @@ class Tween extends BaseTween<Tween> {
 	public static
     Tween set(final Object target, final int tweenType) {
 		Tween tween = pool.takeUninterruptibly();
-		tween.setup(target, tweenType, 0F);
+		tween.setup(target, tweenType, 0);
 		tween.ease(Quad.INOUT);
 		return tween;
 	}
@@ -453,15 +453,15 @@ class Tween extends BaseTween<Tween> {
 	}
 
 	private void
-    setup(final Object target, final int tweenType, final float duration) {
-        if (duration < 0F) {
+    setup(final Object target, final int tweenType, final int durationInMilliSeconds) {
+        if (duration < 0) {
             throw new RuntimeException("Duration can't be negative");
         }
 
         this.target = target;
         this.targetClass = target != null ? findTargetClass() : null;
         this.type = tweenType;
-        this.duration = duration;
+        this.duration = durationInMilliSeconds;
 	}
 
 	private
@@ -980,7 +980,7 @@ class Tween extends BaseTween<Tween> {
 
 
     protected
-    void doUpdate(final boolean animationDirection, final boolean changedDirection, final float restartAdjustment, float delta) {
+    void doUpdate(final boolean animationDirection, final int delta) {
         final Object target = this.target;
         final TweenEquation equation = this.equation;
 
@@ -988,9 +988,10 @@ class Tween extends BaseTween<Tween> {
             return;
         }
 
-        final float duration = this.duration;
+        final int duration = this.duration;
+
         /*
-         * When DURATION is not specified, it means that this object is either START value or END value. Delay still applies
+         * When DURATION is not specified (is 0F), it means that this object is either START value or END value. Delay still applies
          * to this. This is via Tween.set()
          */
         if (duration == 0F) {
@@ -1005,10 +1006,21 @@ class Tween extends BaseTween<Tween> {
             return;
         }
 
+        final int time = currentTime;
+
+        // do we lock to start/end values when we are at or beyond start/end time
+        // --  don't even bother with calculating the tween equation value
+        if (time <= 0) {
+            accessor.setValues(target, type, startValues);
+            return;
+        }
+        else if (time >= duration) {
+            accessor.setValues(target, type, targetValues);
+            return;
+        }
 
         // Normal behavior
-        final float time = currentTime;
-        final float tweenValue = equation.compute(time / duration);
+        final float tweenValue = equation.compute((float) time / (float) duration);
 
         final float[] accessorBuffer = this.accessorBuffer;
         final int combinedAttrsCnt = this.combinedAttrsCnt;
@@ -1134,32 +1146,32 @@ class Tween extends BaseTween<Tween> {
 	// BaseTween impl.
 	// -------------------------------------------------------------------------
 
-	@Override
-	protected
-    void forceStartValues() {
-        if (target == null) {
-            return;
-        }
-        accessor.setValues(target, type, startValues);
-    }
-
-	@Override
-	protected
-    void forceEndValues() {
-        if (target == null) {
-            return;
-        }
-        accessor.setValues(target, type, targetValues);
-	}
-
-    @Override
-    protected
-    void forceEndValues(final float time) {
-        if (target == null) {
-            return;
-        }
-        accessor.setValues(target, type, targetValues);
-    }
+//	@Override
+//	protected
+//    void forceStartValues() {
+//        if (target == null) {
+//            return;
+//        }
+//        accessor.setValues(target, type, startValues);
+//    }
+//
+//	@Override
+//	protected
+//    void forceEndValues() {
+//        if (target == null) {
+//            return;
+//        }
+//        accessor.setValues(target, type, targetValues);
+//	}
+//
+//    @Override
+//    protected
+//    void forceEndValues(final float time) {
+//        if (target == null) {
+//            return;
+//        }
+//        accessor.setValues(target, type, targetValues);
+//    }
 
     @Override
 	protected
