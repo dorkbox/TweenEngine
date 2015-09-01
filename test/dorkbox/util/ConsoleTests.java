@@ -188,12 +188,12 @@ class ConsoleTests {
         Timeline timeline = Timeline.createSequence()
                                     .addCallback(buildCallback("TL", TweenCallback.Events.ANY))
                                     .push(bugs[0].t)
-//                                    .beginParallel()
-//                                        .push(bugs[1].t)
-////                                        .push(bugs[2].t) // third tween not even needed
-//                                    .end()
-//                                    .repeatAutoReverse(5, 500)
-                                    .repeat(1, 500)
+                                    .beginParallel()
+                                        .push(bugs[1].t)
+//                                        .push(bugs[2].t) // third tween not even needed
+                                    .end()
+                                    .repeatAutoReverse(2, 500)
+//                                    .repeat(2, 500)
                                     .start();
 
         while (!timeline.isFinished()) {

@@ -624,7 +624,7 @@ abstract class BaseTween<T> {
                 if (!isTweenRunning) {
                     if (direction) {
                         // {FORWARDS}
-                        if (newTime <= 0) {
+                        if (newTime < 0) {
                             // still inside our repeat delay
 
                             // adjust our time
@@ -633,8 +633,9 @@ abstract class BaseTween<T> {
                             break;
                         } else {
                             // have to specify that the children should restart
+                            newTime = delta;
 
-                            // have to offset currentTime, so currentTime + repeatDelay - duration ==> 0
+                            // have to offset currentTime, so currentTime + (repeatDelay + (-duration)) ==> 0
                             currentTime = duration - repeatDelay;
                             forceRestart(FORWARDS, -duration); // makes 0  (already waited the repeat delay)
                         }
@@ -649,11 +650,13 @@ abstract class BaseTween<T> {
                             // break because we have to make sure that our children are updated (to preserve reversing delays/behavior)
                             break;
                         } else {
+                            // have to specify that the children should restart
                             delta = newTime;
                             newTime = duration+delta; // delta is negative here
 
-                            // have to specify that the children should restart
-                            forceRestart(REVERSE, duration); // make duration  (already waited the repeat delay)
+                            // have to offset currentTime, so currentTime + (repeatDelay + (0)) ==> duration
+                            currentTime = duration - repeatDelay;
+                            forceRestart(REVERSE, 0); // make duration  (already waited the repeat delay)
                         }
                     }
                 }
@@ -772,7 +775,7 @@ abstract class BaseTween<T> {
 
                     // adjust the delta so that it is shifted based on the length of (previous) iteration
                     // this is easy, because the amount of time past 0 is the new delta (because we start at 0).
-                    delta += currentTime;
+//                    delta += currentTime;
 
                     // set our currentTime for the callbacks to be accurate
                     currentTime = 0;
@@ -805,7 +808,7 @@ abstract class BaseTween<T> {
                         isInCycle = false;
 
                         // now adjust the time so PARENT reversing/etc works
-                        this.currentTime = delta;
+                        this.currentTime = 0;
 
                         return;
                     }
@@ -824,7 +827,7 @@ abstract class BaseTween<T> {
                         delta = -delta;
 
                         // setup delays, if there are any
-                        currentTime = -repeatDelay;
+                        currentTime = -repeatDelay-delta;
                     } else {
                         // LINEAR
                         // cannot go linear in reverse... nothing to do.
