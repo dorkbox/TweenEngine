@@ -173,7 +173,7 @@ class ConsoleTests {
     void Bugtest21() {
         final int terminalwidth = 50;
 //        final int dt = 20;
-        final int dt = 40;
+        final int dt = 50;
         Bugtest[] bugs;
 
 
@@ -199,30 +199,35 @@ class ConsoleTests {
         while (!timeline.isFinished()) {
             timeline.update(dt);
 
-            char[] prog = new char[terminalwidth + 1];
-
-            //just for drawing
-            for (int i = 0; i <= terminalwidth; i++) {
-                prog[i] = '-';
-            }
-            for (int i = 0; i < bugs.length; i++) {
-                Bugtest bug = bugs[i];
-                int i1 = (int) (bug.val * terminalwidth);
-                prog[i1] = bug.name;
-            }
-
-            System.out.print(prog);
-            for (int i = 0; i < bugs.length; i++) {
-                Bugtest bug = bugs[i];
-                System.out.print(" \t\t" + bug.val);
-            }
-            System.out.println();//" t="+time);
+            drawConsole(terminalwidth, bugs);
 
             try {
                 Thread.sleep(50);
             } catch (Throwable ignored) {
             }
         }
+    }
+
+    private static
+    void drawConsole(final int terminalWidth, final Bugtest[] bugs) {
+        char[] prog = new char[terminalWidth + 1];
+
+        //just for drawing
+        for (int i = 0; i <= terminalWidth; i++) {
+            prog[i] = '-';
+        }
+        for (int i = 0; i < bugs.length; i++) {
+            Bugtest bug = bugs[i];
+            int i1 = (int) (bug.val * terminalWidth);
+            prog[i1] = bug.name;
+        }
+
+        System.out.print(prog);
+        for (int i = 0; i < bugs.length; i++) {
+            Bugtest bug = bugs[i];
+            System.out.print(" \t\t" + bug.val + "," + bug.t.getCurrentTime());
+        }
+        System.out.println();//" t="+time);
     }
 
     static

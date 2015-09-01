@@ -467,9 +467,12 @@ class Timeline extends BaseTween<Timeline> {
     @Override
     protected
     void forceRestart(final boolean direction, final int restartAdjustment) {
+        int timelineAdjusted = getRepeatDelay() + restartAdjustment;
+
+        super.forceRestart(direction, timelineAdjusted);
         for (int i = 0, n = childrenArray.length; i < n; i++) {
             final BaseTween<?> tween = childrenArray[i];
-            tween.forceRestart(direction, restartAdjustment);
+            tween.forceRestart(direction, timelineAdjusted);
         }
     }
 

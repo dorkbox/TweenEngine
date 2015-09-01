@@ -446,7 +446,7 @@ abstract class BaseTween<T> {
 	// -------------------------------------------------------------------------
 
 	protected
-    void initializeOverride() {
+    void doInitialize() {
 	}
 
 	@SuppressWarnings("Convert2streamapi")
@@ -513,12 +513,10 @@ abstract class BaseTween<T> {
         isFinished = false;
 
         if (direction) {
-            // reset the currentTime so that we always start at 0
-            currentTime = 0;
+            currentTime += restartAdjustment;
         }
         else {
-            // reset current time to starting position
-            currentTime = duration;
+            currentTime += restartAdjustment;
         }
     }
 
@@ -551,8 +549,13 @@ abstract class BaseTween<T> {
             final int newTime = currentTime + delta;
 
             // only start running if we have passed the specified delay in the FORWARDS direction. (tweens must always start off forwards)
-            if (newTime >= delay) {
-                initializeOverride();
+            if (newTime <= delay) {
+                // shortcut out so we don't have to worry about any other checks
+                currentTime += delta;
+                return;
+            }
+            else {
+                doInitialize();
 
                 this.isInitialized = true;
                 this.isTweenRunning = true;
@@ -564,11 +567,6 @@ abstract class BaseTween<T> {
 
                 // reset the currentTime so that we always start at 0
                 currentTime = 0;
-            }
-            else {
-                // shortcut out so we don't have to worry about any other checks
-                currentTime += delta;
-                return;
             }
         }
 
@@ -607,12 +605,12 @@ abstract class BaseTween<T> {
         // reverse always goes from duration -> 0
         // canAutoReverse - only present with repeatDelay, and will cause an animation to reverse once iteration + repeatDelay is complete
 
-        /* DELAY: start is INCLUSIVE, end is EXCLUSIVE, meaning:
-         * delay = 0-5, the delay is over when time=5
+        /* DELAY: start and end are INCLUSIVE, meaning:
+         * delay = 0-5, the delay is over when time>5
          *
-         *    0          <5
-         *    v           v
-         *    [---DELAY---]
+         *    0           5    6         100
+         *    v           v    v         v
+         *    [---DELAY---]->>-[XXXXXXXXX]
          */
 
 
@@ -634,12 +632,11 @@ abstract class BaseTween<T> {
                             // break because we have to make sure that our children are updated (to preserve reversing delays/behavior)
                             break;
                         } else {
-                            // reset to beginning
-                            isTweenRunning = true;
-                            currentTime = 0;
-
                             // have to specify that the children should restart
-                            forceRestart(FORWARDS, -repeatDelay);
+
+                            // have to offset currentTime, so currentTime + repeatDelay - duration ==> 0
+                            currentTime = duration - repeatDelay;
+                            forceRestart(FORWARDS, -duration); // makes 0  (already waited the repeat delay)
                         }
                     }
                     else {
@@ -648,18 +645,15 @@ abstract class BaseTween<T> {
                             // still inside our repeat delay
 
                             // adjust our time
-                            this.currentTime = newTime;
+                            currentTime = newTime;
                             // break because we have to make sure that our children are updated (to preserve reversing delays/behavior)
                             break;
                         } else {
-                            isTweenRunning = true;
-                            currentTime = duration;
-
                             delta = newTime;
                             newTime = duration+delta; // delta is negative here
 
                             // have to specify that the children should restart
-                            forceRestart(REVERSE, repeatDelay); // have to account for update w/ originalDelta
+                            forceRestart(REVERSE, duration); // make duration  (already waited the repeat delay)
                         }
                     }
                 }
@@ -696,15 +690,15 @@ abstract class BaseTween<T> {
                     // set our currentTime for the callbacks to be accurate and updates to lock to start/end values
                     currentTime = duration;
 
+                    // flip our state
+                    isTweenRunning = !isTweenRunning;
+
                     // make sure that we manage our children BEFORE we do anything else!
                     // we use originalDelta here because we have to trickle-down the logic to all children. If we use delta, the incorrect value
                     // will trickle-down
                     doUpdate(FORWARDS, originalDelta);
 
                     callCallbacks(TweenCallback.Events.END);
-
-                    // flip our state
-                    isTweenRunning = !isTweenRunning;
 
                     ////////////////////////////////////////////
                     ////////////////////////////////////////////
@@ -746,11 +740,11 @@ abstract class BaseTween<T> {
                         // LINEAR
 
                         repeatCount--;
-                        currentTime = -delta;
+                        currentTime = -repeatDelay;
+
+                        return;
 
                         // keeps going forwards this cycle until done!
-
-
                     }
                 }
                 else {
@@ -766,7 +760,7 @@ abstract class BaseTween<T> {
                         callCallbacks(TweenCallback.Events.BACK_START);
                     }
 
-                    if (newTime > 0) {
+                    if (newTime >= 0) {
                         // still inside our iteration, done with events.
 
                         // adjust our time by our delta value
@@ -837,11 +831,6 @@ abstract class BaseTween<T> {
                     }
                 }
             }
-
-            // when done with all the adjustments and notifications, update the object
-            // we use originalDelta here because we have to trickle-down the logic to all children. If we use delta, the incorrect value
-            // will trickle-down
-            doUpdate(direction, originalDelta);
         }
         else {
             // the time that a tween/timeline runs OVER (when it is done running), must always have consideration of the
@@ -854,6 +843,13 @@ abstract class BaseTween<T> {
                 currentTime -= originalDelta;
             }
         }
+
+        // when done with all the adjustments and notifications, update the object
+        // we use originalDelta here because we have to trickle-down the logic to all children. If we use delta, the incorrect value
+        // will trickle-down.
+        // We update ALL following objects. If a tween is before start (reverse) or past end (forwards), this it will "snap" to the
+        // start/end endpoints
+        doUpdate(direction, originalDelta);
     }
 
     @Override

@@ -952,7 +952,7 @@ class Tween extends BaseTween<Tween> {
 
 	@Override
 	protected
-    void initializeOverride() {
+    void doInitialize() {
         if (target == null) {
             return;
         }
@@ -984,7 +984,7 @@ class Tween extends BaseTween<Tween> {
         final Object target = this.target;
         final TweenEquation equation = this.equation;
 
-        if (target == null || equation == null) {
+        if (target == null || equation == null || isFinished) {
             return;
         }
 
