@@ -182,7 +182,7 @@ class ConsoleTests {
         bugs = new Bugtest[]{
                         new Bugtest('a'),
                         new Bugtest('b'),
-//                        new Bugtest('c')
+                        new Bugtest('c')
         };
 
         Timeline timeline = Timeline.createSequence()
@@ -190,7 +190,9 @@ class ConsoleTests {
                                     .push(bugs[0].t)
                                     .beginParallel()
                                         .push(bugs[1].t)
-//                                        .push(bugs[2].t) // third tween not even needed
+                                        .beginSequence()
+                                            .push(bugs[2].t) // third tween not even needed
+                                        .end()
                                     .end()
                                     .repeatAutoReverse(2, 500)
 //                                    .repeat(2, 500)
@@ -223,9 +225,11 @@ class ConsoleTests {
         }
 
         System.out.print(prog);
+        System.out.print("\t");
         for (int i = 0; i < bugs.length; i++) {
             Bugtest bug = bugs[i];
-            System.out.print(" \t\t" + bug.val + "," + bug.t.getCurrentTime());
+            System.out.print("\t" + String.format(Locale.US, "%.2f", bug.val) + "," +
+                             String.format(Locale.US, "%3d", bug.t.getCurrentTime()));
         }
         System.out.println();//" t="+time);
     }
