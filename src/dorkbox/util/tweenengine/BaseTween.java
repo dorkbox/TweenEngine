@@ -512,12 +512,7 @@ abstract class BaseTween<T> {
         isTweenRunning = true;
         isFinished = false;
 
-        if (direction) {
-            currentTime += restartAdjustment;
-        }
-        else {
-            currentTime += restartAdjustment;
-        }
+        currentTime += restartAdjustment;
     }
 
     /**
@@ -530,16 +525,18 @@ abstract class BaseTween<T> {
      * Multiply it by -1 to play the animation backward, or by 0.5
      * to play it twice-as-slow than its normal speed.
 	 *
-	 * @param delta A delta time in MILLI-SECONDS between now and the last call.
+	 * @param delta A delta time in MILLI-SECONDS between the previous call and this call.
 	 */
 	@SuppressWarnings("FieldRepeatedlyAccessedInMethod")
     public
     void update(int delta) {
+        // All events and updates are on the "downbeat" (newTime) not on the "upbeat" (currentTime)
+
         if (!isStarted || isPaused || isKilled)
             return;
 
         // the INITIAL, incoming delta from the app, will be positive or negative.
-        boolean direction = delta > 0;
+        boolean direction = delta >= 0;
 
         // This is NOT final, because it's possible to change directions
         int originalDelta = delta;
@@ -549,9 +546,9 @@ abstract class BaseTween<T> {
             final int newTime = currentTime + delta;
 
             // only start running if we have passed the specified delay in the FORWARDS direction. (tweens must always start off forwards)
-            if (newTime <= delay) {
+            if (newTime < delay) {
                 // shortcut out so we don't have to worry about any other checks
-                currentTime += delta;
+                currentTime = newTime;
                 return;
             }
             else {
@@ -562,11 +559,13 @@ abstract class BaseTween<T> {
 
                 cachedDirection = direction;
 
-                // adjust the delta so that it is shifted based on the length of (previous) delay
-                delta -= delay - currentTime;
+                // ALSO always have to make sure our STARTING position is ALWAYS 0
 
-                // reset the currentTime so that we always start at 0
-                currentTime = 0;
+                // we have to make adjustments, since we just passed the delay, and the ACTUAL delta that is used, is the
+                // part past the delay
+                originalDelta = newTime - delay;
+                delta = originalDelta;
+                currentTime = -delta;
             }
         }
 
@@ -605,10 +604,10 @@ abstract class BaseTween<T> {
         // reverse always goes from duration -> 0
         // canAutoReverse - only present with repeatDelay, and will cause an animation to reverse once iteration + repeatDelay is complete
 
-        /* DELAY: start and end are INCLUSIVE, meaning:
+        /* DELAY: endpoints are
          * delay = 0-5, the delay is over when time>5
          *
-         *    0           5    6         100
+         *    0           5    6         9
          *    v           v    v         v
          *    [---DELAY---]->>-[XXXXXXXXX]
          */
@@ -620,7 +619,7 @@ abstract class BaseTween<T> {
             while (true) {
                 int newTime = currentTime + delta;
 
-                // are we still allowed to run, are we waiting for a REPEAT delay to complete?
+                // are we still allowed to run, are we waiting for a REPEAT DELAY to complete?
                 if (!isTweenRunning) {
                     if (direction) {
                         // {FORWARDS}
@@ -632,17 +631,14 @@ abstract class BaseTween<T> {
                             // break because we have to make sure that our children are updated (to preserve reversing delays/behavior)
                             break;
                         } else {
-                            // have to specify that the children should restart
-                            newTime = delta;
-
                             // have to offset currentTime, so currentTime + (repeatDelay + (-duration)) ==> 0
                             currentTime = duration - repeatDelay;
-                            forceRestart(FORWARDS, -duration); // makes 0  (already waited the repeat delay)
+                            forceRestart(FORWARDS, -duration-originalDelta); // makes 0  (already waited the repeat delay)
                         }
                     }
                     else {
                         // {REVERSE}
-                        if (newTime >= 0) {
+                        if (newTime > 0) {
                             // still inside our repeat delay
 
                             // adjust our time
@@ -656,7 +652,8 @@ abstract class BaseTween<T> {
 
                             // have to offset currentTime, so currentTime + (repeatDelay + (0)) ==> duration
                             currentTime = duration - repeatDelay;
-                            forceRestart(REVERSE, 0); // make duration  (already waited the repeat delay)
+                            // x2 so that the children have delta when done, instead of double-dipping the delta value
+                            forceRestart(REVERSE, -(2*originalDelta)); // make duration  (already waited the repeat delay).
                         }
                     }
                 }
@@ -667,21 +664,19 @@ abstract class BaseTween<T> {
                 if (direction) {
                     // {FORWARDS}
 
-                    // detect when we are BEGIN or START
-                    if (currentTime == 0) {
-                        if (!isInCycle) {
-                            isInCycle = true;
-                            callCallbacks(TweenCallback.Events.BEGIN);
+                    if (newTime < duration) {
+                        // still inside our iteration
+                        currentTime = newTime;
+
+                        if (newTime == 0) {
+                            if (!isInCycle) {
+                                isInCycle = true;
+                                callCallbacks(TweenCallback.Events.BEGIN);
+                            }
+
+                            callCallbacks(TweenCallback.Events.START);
                         }
 
-                        callCallbacks(TweenCallback.Events.START);
-                    }
-
-                    if (newTime < duration) {
-                        // still inside our iteration, done with events.
-
-                        // adjust our time
-                        currentTime = newTime;
                         break;
                     }
 
@@ -753,21 +748,24 @@ abstract class BaseTween<T> {
                 else {
                     // {REVERSE}
 
-                    // detect when we are BEGIN or START
-                    if (currentTime == duration) {
-                        if (!isInCycle) {
-                            isInCycle = true;
-                            callCallbacks(TweenCallback.Events.BACK_BEGIN);
-                        }
-
-                        callCallbacks(TweenCallback.Events.BACK_START);
-                    }
-
-                    if (newTime >= 0) {
+                    if (newTime > 0) {
                         // still inside our iteration, done with events.
 
                         // adjust our time by our delta value
                         currentTime = newTime;
+
+
+                        if (newTime == duration) {
+                            // detect when we are BEGIN or START
+                            if (!isInCycle) {
+                                isInCycle = true;
+                                callCallbacks(TweenCallback.Events.BACK_BEGIN);
+                            }
+
+                            callCallbacks(TweenCallback.Events.BACK_START);
+                        }
+
+
                         break;
                     }
 

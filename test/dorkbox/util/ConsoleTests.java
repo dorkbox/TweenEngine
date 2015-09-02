@@ -172,8 +172,8 @@ class ConsoleTests {
     private static
     void Bugtest21() {
         final int terminalwidth = 50;
-//        final int dt = 20;
-        final int dt = 50;
+//        final int dt = 23;
+        final int dt = 51;
         Bugtest[] bugs;
 
 
@@ -182,18 +182,19 @@ class ConsoleTests {
         bugs = new Bugtest[]{
                         new Bugtest('a'),
                         new Bugtest('b'),
-                        new Bugtest('c')
+//                        new Bugtest('c')
         };
 
         Timeline timeline = Timeline.createSequence()
                                     .addCallback(buildCallback("TL", TweenCallback.Events.ANY))
+                                    .delay(250)
                                     .push(bugs[0].t)
-                                    .beginParallel()
+//                                    .beginParallel()
                                         .push(bugs[1].t)
-                                        .beginSequence()
-                                            .push(bugs[2].t) // third tween not even needed
-                                        .end()
-                                    .end()
+////                                        .beginSequence()
+////                                            .push(bugs[2].t) // third tween not even needed
+////                                        .end()
+//                                    .end()
                                     .repeatAutoReverse(2, 500)
 //                                    .repeat(2, 500)
                                     .start();
@@ -201,7 +202,7 @@ class ConsoleTests {
         while (!timeline.isFinished()) {
             timeline.update(dt);
 
-            drawConsole(terminalwidth, bugs);
+            drawConsole(timeline, terminalwidth, bugs);
 
             try {
                 Thread.sleep(50);
@@ -211,7 +212,7 @@ class ConsoleTests {
     }
 
     private static
-    void drawConsole(final int terminalWidth, final Bugtest[] bugs) {
+    void drawConsole(final Timeline timeline, final int terminalWidth, final Bugtest[] bugs) {
         char[] prog = new char[terminalWidth + 1];
 
         //just for drawing
@@ -225,11 +226,12 @@ class ConsoleTests {
         }
 
         System.out.print(prog);
-        System.out.print("\t");
+        System.out.print(String.format(Locale.US, "\t%s:%4d", timeline.isInReverse() ? "R" : "F", timeline.getCurrentTime()));
+
         for (int i = 0; i < bugs.length; i++) {
             Bugtest bug = bugs[i];
-            System.out.print("\t" + String.format(Locale.US, "%.2f", bug.val) + "," +
-                             String.format(Locale.US, "%3d", bug.t.getCurrentTime()));
+            System.out.print('\t' + String.format(Locale.US, "%s:%.2f", timeline.isInReverse() ? "R" : "F", bug.val) + "," +
+                             String.format(Locale.US, "%4d", bug.t.getCurrentTime()));
         }
         System.out.println();//" t="+time);
     }
