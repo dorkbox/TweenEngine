@@ -541,6 +541,8 @@ abstract class BaseTween<T> {
 	@SuppressWarnings("FieldRepeatedlyAccessedInMethod")
     public
     void update(int delta) {
+        // redone by dorkbox, llc
+
         if (!isStarted || isPaused || isKilled)
             return;
 
@@ -742,7 +744,6 @@ abstract class BaseTween<T> {
                         repeatCount--;
 
                         // setup delays, if there are any. have to adjust for any "extra" time wrapped beyond duration
-//                        currentTime = repeatDelay - delta;
                         currentTime = -delta;
                         addRepeatDelay(repeatDelay);
 
@@ -835,7 +836,6 @@ abstract class BaseTween<T> {
                         repeatCount--;
 
                         // setup delays, if there are any
-//                        currentTime = -repeatDelay;
                         addRepeatDelay(-repeatDelay);
                         return;
                     }

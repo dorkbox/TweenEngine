@@ -175,9 +175,9 @@ class ConsoleTests {
 
         // if the delta step doesn't line up with duration or delays, it won't line up. The event order/notifications will be
         // correct.
-//        final int dt = 25;
+        int dt = 25;
 //        final int dt = 50;
-        final int dt = 23;
+//        final int dt = 23;
 //        final int dt = 51;
         Bugtest[] bugs;
 
@@ -202,11 +202,14 @@ class ConsoleTests {
                                     .end()
 //                                    .repeatAutoReverse(1, 500)
 //                                    .repeatAutoReverse(2, 500)
-                                    .repeatAutoReverse(4, 500)
-//                                    .repeat(1, 500)
+//                                    .repeatAutoReverse(4, 500)
+                                    .repeat(1, 500)
                                     .start();
 
         while (!timeline.isFinished()) {
+            if (timeline.getCurrentTime() == 1275) {
+                dt = -dt;
+            }
             timeline.update(dt);
 
             drawConsole(timeline, terminalwidth, bugs);
