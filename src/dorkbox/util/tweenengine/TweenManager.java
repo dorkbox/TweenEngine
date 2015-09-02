@@ -186,7 +186,7 @@ class TweenManager {
     void update(final float delta) {
         // from: http://nicolas.limare.net/pro/notes/2014/12/12_arit_speed/
         //    Floating-point operations are always slower than integer ops at same data size.
-        // internally we also want to use INTEGER, since we want consistent timelines as well
+        // internally we use INTEGER, since we want consistent timelines & events
         final int deltaMSeconds = (int) (delta * 1000F);
         update(delta);
     }
@@ -206,10 +206,10 @@ class TweenManager {
      * tweaking this delta time. Multiply it by -1 to play the animation
      * backward, or by 0.5 to play it twice slower than its normal speed.
      *
-     * @param delta A delta time in MILLI-SECONDS between now and the last call.
+     * @param elapsedMillis A delta time in MILLI-SECONDS between now and the last call.
      */
     public
-    void update(final int delta) {
+    void update(final int elapsedMillis) {
         for (int i = objects.size() - 1; i >= 0; i--) {
             final BaseTween<?> obj = objects.get(i);
             if (obj.isFinished() && obj.isAutoRemoveEnabled) {
@@ -221,16 +221,16 @@ class TweenManager {
         if (!isPaused) {
             // when running in reverse, we change the order at which we iterate over objects
             //noinspection Duplicates
-            if (delta >= 0) {
+            if (elapsedMillis >= 0) {
                 for (int i = 0, n = objects.size(); i < n; i++) {
                     objects.get(i)
-                           .update(delta);
+                           .update(elapsedMillis);
                 }
             }
             else {
                 for (int i = objects.size() - 1; i >= 0; i--) {
                     objects.get(i)
-                           .update(delta);
+                           .update(elapsedMillis);
                 }
             }
         }

@@ -952,7 +952,7 @@ class Tween extends BaseTween<Tween> {
 
 	@Override
 	protected
-    void doInitialize() {
+    void initialize() {
         if (target == null) {
             return;
         }
@@ -989,24 +989,33 @@ class Tween extends BaseTween<Tween> {
         }
 
         final int duration = this.duration;
+        final int time = currentTime;
 
         /*
-         * When DURATION is not specified (is 0F), it means that this object is either START value or END value. Delay still applies
+         * When DURATION is not specified (is 0), it means that this object is either START value or END value. Delay still applies
          * to this. This is via Tween.set()
          */
-        if (duration == 0F) {
-            // set values to their start/end point
-            if (delta > 0F) {
-                accessor.setValues(target, type, animationDirection ? targetValues : startValues);
-            }
-            else {
-                accessor.setValues(target, type, animationDirection ? startValues : targetValues);
+        if (duration == 0) {
+            if (animationDirection) {
+                if (time < 0) {
+                    accessor.setValues(target, type, startValues);
+                }
+                else {
+                    accessor.setValues(target, type, targetValues);
+                }
+            } else {
+                if (time > 0) {
+                    accessor.setValues(target, type, targetValues);
+                }
+                else {
+                    accessor.setValues(target, type, startValues);
+                }
             }
 
             return;
         }
 
-        final int time = currentTime;
+
 
         // do we lock to start/end values when we are at or beyond start/end time
         // --  don't even bother with calculating the tween equation value
@@ -1035,7 +1044,6 @@ class Tween extends BaseTween<Tween> {
             for (int i = 0; i < combinedAttrsCnt; i++) {
                 accessorBuffer[i] = startValues[i] + tweenValue * (targetValues[i] - startValues[i]);
             }
-
         }
         else {
             final float[] waypoints = this.waypoints;
@@ -1055,123 +1063,10 @@ class Tween extends BaseTween<Tween> {
         accessor.setValues(target, type, accessorBuffer);
     }
 
-
-	private
-    void updateOverride(final int step,
-                        final int lastStep,
-                        final boolean isForwardStep,
-                        final boolean hasTransition,
-                        final boolean isInDelay,
-                        final float delta) {
-        final Object target = this.target;
-        if (target == null || equation == null) {
-            return;
-        }
-
-        final TweenAccessor<Object> accessor = this.accessor;
-        final float[] startValues = this.startValues;
-        final float[] targetValues = this.targetValues;
-        final int type = this.type;
-
-
-        // Case iteration end has been reached
-        if (isInDelay) {
-            if (isForwardStep) {
-//                accessor.setValues(target, type, isStepAutoReverse(lastStep) ? startValues : targetValues);
-                accessor.setValues(target, type, targetValues);
-            }
-            else {
-//                accessor.setValues(target, type, isStepAutoReverse(lastStep) ? targetValues : startValues);
-                accessor.setValues(target, type, startValues);
-            }
-            return;
-        }
-
-
-
-		// Validation
-        assert getCurrentTime() >= 0;
-        final float duration = this.duration;
-
-        assert getCurrentTime() <= duration;
-
-//        // Case duration equals zero
-//        if (duration < 0.00000000001f) {
-//            // Nudge our values to their start/end points??
-//            if (delta > -0.00000000001f) {
-////                accessor.setValues(target, type, isStepAutoReverse(step) ? targetValues : startValues);
-//                accessor.setValues(target, type, startValues);
-//            } else {
-////                accessor.setValues(target, type, isStepAutoReverse(step) ? startValues : targetValues);
-//                accessor.setValues(target, type, targetValues);
-//            }
-//            return;
-//        }
-//
-
-		// Normal behavior
-//        final float time = isStepAutoReverse(step) ? duration - getCurrentTime() : getCurrentTime();
-//        final float time = getCurrentTime();
-//        final float tweenValue = equation.compute(time / duration);
-//
-//        final float[] accessorBuffer = this.accessorBuffer;
-//        final int combinedAttrsCnt = this.combinedAttrsCnt;
-//
-//        final int waypointsCnt = this.waypointsCount;
-//        final TweenPath path = this.path;
-//
-//        if (waypointsCnt == 0 || path == null) {
-//            for (int i = 0; i < combinedAttrsCnt; i++) {
-//                accessorBuffer[i] = startValues[i] + tweenValue * (targetValues[i] - startValues[i]);
-//            }
-//
-//        }
-//        else {
-//            final float[] pathBuffer = this.pathBuffer;
-//            for (int i = 0; i < combinedAttrsCnt; i++) {
-//                pathBuffer[0] = startValues[i];
-//                pathBuffer[1 + waypointsCnt] = targetValues[i];
-//                for (int ii = 0; ii < waypointsCnt; ii++) {
-//                    pathBuffer[ii + 1] = waypoints[ii * combinedAttrsCnt + i];
-//                }
-//
-//                accessorBuffer[i] = path.compute(tweenValue, pathBuffer, waypointsCnt + 2);
-//            }
-//        }
-//
-//        accessor.setValues(target, type, accessorBuffer);
-	}
-
 	// -------------------------------------------------------------------------
 	// BaseTween impl.
 	// -------------------------------------------------------------------------
 
-//	@Override
-//	protected
-//    void forceStartValues() {
-//        if (target == null) {
-//            return;
-//        }
-//        accessor.setValues(target, type, startValues);
-//    }
-//
-//	@Override
-//	protected
-//    void forceEndValues() {
-//        if (target == null) {
-//            return;
-//        }
-//        accessor.setValues(target, type, targetValues);
-//	}
-//
-//    @Override
-//    protected
-//    void forceEndValues(final float time) {
-//        if (target == null) {
-//            return;
-//        }
-//        accessor.setValues(target, type, targetValues);
-//    }
 
     @Override
 	protected

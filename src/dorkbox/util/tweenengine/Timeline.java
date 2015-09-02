@@ -411,15 +411,15 @@ class Timeline extends BaseTween<Timeline> {
     void update(final float delta) {
         // from: http://nicolas.limare.net/pro/notes/2014/12/12_arit_speed/
         //    Floating-point operations are always slower than integer ops at same data size.
-        // internally we also want to use INTEGER, since we want consistent timelines
+        // internally we use INTEGER, since we want consistent timelines & events
 
         if (this.parent == null) {
             // ONLY modify the incoming delta if we are the parent timeline!
-            if (isInReverse()) {
+            if (getDirection()) {
+                super.update((int) (delta * 1000F));
+            } else {
                 // if we are now in reverse, flip the incoming delta.
                 super.update((int) (delta * -1000F));
-            } else {
-                super.update((int) (delta * 1000F));
             }
         }
         else {
@@ -441,17 +441,13 @@ class Timeline extends BaseTween<Timeline> {
      */
     public
     void update(final int delta) {
-        // from: http://nicolas.limare.net/pro/notes/2014/12/12_arit_speed/
-        //    Floating-point operations are always slower than integer ops at same data size.
-        // internally we also want to use INTEGER, since we want consistent timelines
-
         if (this.parent == null) {
             // ONLY modify the incoming delta if we are the parent timeline!
-            if (isInReverse()) {
+            if (getDirection()) {
+                super.update(delta);
+            } else {
                 // if we are now in reverse, flip the incoming delta.
                 super.update(-delta);
-            } else {
-                super.update(delta);
             }
         }
         else {
@@ -463,16 +459,27 @@ class Timeline extends BaseTween<Timeline> {
 	// BaseTween impl.
 	// -------------------------------------------------------------------------
 
+    @Override
+    protected
+    void addRepeatDelay(final int repeatDelay) {
+        super.addRepeatDelay(repeatDelay);
+
+        for (int i = 0, n = childrenArray.length; i < n; i++) {
+            final BaseTween<?> tween = childrenArray[i];
+            tween.addRepeatDelay(repeatDelay);
+        }
+    }
 
     @Override
     protected
-    void forceRestart(final boolean direction, final int restartAdjustment) {
-        int timelineAdjusted = getRepeatDelay() + restartAdjustment;
+    void forceRestart(final int restartAdjustment) {
+//        final int adjustment = getRepeatDelay() + restartAdjustment;
 
-        super.forceRestart(direction, timelineAdjusted);
+        super.forceRestart(restartAdjustment);
+
         for (int i = 0, n = childrenArray.length; i < n; i++) {
             final BaseTween<?> tween = childrenArray[i];
-            tween.forceRestart(direction, timelineAdjusted);
+            tween.forceRestart(restartAdjustment);
         }
     }
 

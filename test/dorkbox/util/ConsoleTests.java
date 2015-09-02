@@ -172,8 +172,13 @@ class ConsoleTests {
     private static
     void Bugtest21() {
         final int terminalwidth = 50;
-//        final int dt = 23;
-        final int dt = 51;
+
+        // if the delta step doesn't line up with duration or delays, it won't line up. The event order/notifications will be
+        // correct.
+//        final int dt = 25;
+//        final int dt = 50;
+        final int dt = 23;
+//        final int dt = 51;
         Bugtest[] bugs;
 
 
@@ -189,14 +194,16 @@ class ConsoleTests {
                                     .addCallback(buildCallback("TL", TweenCallback.Events.ANY))
                                     .delay(250)
                                     .push(bugs[0].t)
-//                                    .beginParallel()
+                                    .beginParallel()
                                         .push(bugs[1].t)
 ////                                        .beginSequence()
 ////                                            .push(bugs[2].t) // third tween not even needed
 ////                                        .end()
-//                                    .end()
-                                    .repeatAutoReverse(2, 500)
-//                                    .repeat(2, 500)
+                                    .end()
+//                                    .repeatAutoReverse(1, 500)
+//                                    .repeatAutoReverse(2, 500)
+                                    .repeatAutoReverse(4, 500)
+//                                    .repeat(1, 500)
                                     .start();
 
         while (!timeline.isFinished()) {
@@ -226,11 +233,11 @@ class ConsoleTests {
         }
 
         System.out.print(prog);
-        System.out.print(String.format(Locale.US, "\t%s:%4d", timeline.isInReverse() ? "R" : "F", timeline.getCurrentTime()));
+        System.out.print(String.format(Locale.US, "\t%s:%4d", timeline.getDirection() ? "F" : "R", timeline.getCurrentTime()));
 
         for (int i = 0; i < bugs.length; i++) {
             Bugtest bug = bugs[i];
-            System.out.print('\t' + String.format(Locale.US, "%s:%.2f", timeline.isInReverse() ? "R" : "F", bug.val) + "," +
+            System.out.print("\t\t" + String.format(Locale.US, "%s:%.2f", timeline.getDirection() ? "F" : "R", bug.val) + "," +
                              String.format(Locale.US, "%4d", bug.t.getCurrentTime()));
         }
         System.out.println();//" t="+time);

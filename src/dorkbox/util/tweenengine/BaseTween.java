@@ -38,10 +38,17 @@ import java.util.List;
  * iteration engine used to play animations for any number of times, and in
  * any direction, at any speed.
  * <p/>
- *
+ * <p/>
  * It is responsible for calling the different callbacks at the right moments,
  * and for making sure that every callbacks are triggered, even if the update
  * engine gets a big delta time at once.
+ * <p/>
+ * <p/>
+ * Additionally, floating-point operations are always slower than integer ops at
+ * same data size, so internally we use INTEGER, since we want consistent
+ * timelines & events
+ *  <p/>
+ *  from: http://nicolas.limare.net/pro/notes/2014/12/12_arit_speed/
  *
  * @see Tween
  * @see Timeline
@@ -72,6 +79,7 @@ abstract class BaseTween<T> {
     private static final boolean REVERSE = false;
     private boolean cachedDirection;
 
+    private boolean triggerStartEvent;
 	private boolean isStarted; // TRUE when the object is started
 	private boolean isInitialized; // TRUE after the delay
 	private boolean isKilled; // TRUE if kill() was called
@@ -101,7 +109,8 @@ abstract class BaseTween<T> {
         cachedDirection = FORWARDS;
 
         delay = duration = repeatDelay = currentTime = 0;
-        isStarted = isInitialized = isFinished = isKilled = isPaused = isInCycle = false;
+        isStarted = isInitialized = isFinished = isKilled = isPaused = false;
+        triggerStartEvent = isInCycle = false;
 
         callbacks.clear();
         userData = null;
@@ -364,21 +373,23 @@ abstract class BaseTween<T> {
      * @return true if the current step is in the forwards iteration, and it's not waiting during a delay.
      */
     public final
-    boolean isTweenRunning() {
+    boolean isRunning() {
         return isTweenRunning;
     }
 
     /**
+     * Returns the direction the tween/timeline currently is in.
+     *  <p/>
      * Reverse direction can be impacted by a negative value for {@link #update(float)}
      * or {@link #update(int), or via a tween reversing direction because
      * of {@link #repeatAutoReverse(int, int)}
      *
-     * @return true if the current tween stage is in the reverse direction.
+     * @return true if the current tween stage is in the forwads direction, false if reverse
      */
     public final
-    boolean isInReverse() {
+    boolean getDirection() {
         // direction => TRUE == (FORWARDS)
-        return !cachedDirection;
+        return cachedDirection;
     }
 
     /**
@@ -446,7 +457,7 @@ abstract class BaseTween<T> {
 	// -------------------------------------------------------------------------
 
 	protected
-    void doInitialize() {
+    void initialize() {
 	}
 
 	@SuppressWarnings("Convert2streamapi")
@@ -507,11 +518,11 @@ abstract class BaseTween<T> {
 
     // Manage direction change transition points, so that we can keep track of which direction we are currently stepping
     protected
-    void forceRestart(final boolean direction, final int restartAdjustment) {
+    void forceRestart(final int restartAdjustment) {
         // reset to beginning
         isTweenRunning = true;
         isFinished = false;
-
+        triggerStartEvent = true;
         currentTime += restartAdjustment;
     }
 
@@ -530,8 +541,6 @@ abstract class BaseTween<T> {
 	@SuppressWarnings("FieldRepeatedlyAccessedInMethod")
     public
     void update(int delta) {
-        // All events and updates are on the "downbeat" (newTime) not on the "upbeat" (currentTime)
-
         if (!isStarted || isPaused || isKilled)
             return;
 
@@ -540,7 +549,6 @@ abstract class BaseTween<T> {
 
         // This is NOT final, because it's possible to change directions
         int originalDelta = delta;
-
 
         if (!isInitialized) {
             final int newTime = currentTime + delta;
@@ -552,10 +560,10 @@ abstract class BaseTween<T> {
                 return;
             }
             else {
-                doInitialize();
+                initialize();
 
-                this.isInitialized = true;
-                this.isTweenRunning = true;
+                isInitialized = true;
+                isTweenRunning = true;
 
                 cachedDirection = direction;
 
@@ -565,7 +573,8 @@ abstract class BaseTween<T> {
                 // part past the delay
                 originalDelta = newTime - delay;
                 delta = originalDelta;
-                currentTime = -delta;
+                currentTime = 0;
+                triggerStartEvent = true;
             }
         }
 
@@ -615,7 +624,7 @@ abstract class BaseTween<T> {
 
         // first we have to fire all of our events and adjust our state. Once done adjusting state and firing events to our callbacks
         // it will break from this loop. If we are finished, it will run update directly (and then return, instead of breaking from loop)
-        if (!this.isFinished) {
+        if (!isFinished) {
             while (true) {
                 int newTime = currentTime + delta;
 
@@ -632,8 +641,8 @@ abstract class BaseTween<T> {
                             break;
                         } else {
                             // have to offset currentTime, so currentTime + (repeatDelay + (-duration)) ==> 0
-                            currentTime = duration - repeatDelay;
-                            forceRestart(FORWARDS, -duration-originalDelta); // makes 0  (already waited the repeat delay)
+                            currentTime = duration - repeatDelay + originalDelta;
+                            forceRestart(0);
                         }
                     }
                     else {
@@ -651,9 +660,8 @@ abstract class BaseTween<T> {
                             newTime = duration+delta; // delta is negative here
 
                             // have to offset currentTime, so currentTime + (repeatDelay + (0)) ==> duration
-                            currentTime = duration - repeatDelay;
-                            // x2 so that the children have delta when done, instead of double-dipping the delta value
-                            forceRestart(REVERSE, -(2*originalDelta)); // make duration  (already waited the repeat delay).
+                            currentTime = duration - repeatDelay + originalDelta;
+                            forceRestart(0);
                         }
                     }
                 }
@@ -665,10 +673,10 @@ abstract class BaseTween<T> {
                     // {FORWARDS}
 
                     if (newTime < duration) {
-                        // still inside our iteration
-                        currentTime = newTime;
-
-                        if (newTime == 0) {
+                        if (newTime >= 0 && triggerStartEvent) {
+                            // check for newTime >=0, because we can have negative time when in a repeat-delay
+                            currentTime = 0; // this is reset below...
+                            triggerStartEvent = false;
                             if (!isInCycle) {
                                 isInCycle = true;
                                 callCallbacks(TweenCallback.Events.BEGIN);
@@ -677,6 +685,7 @@ abstract class BaseTween<T> {
                             callCallbacks(TweenCallback.Events.START);
                         }
 
+                        currentTime = newTime;
                         break;
                     }
 
@@ -686,6 +695,7 @@ abstract class BaseTween<T> {
                     delta = newTime - duration;
 
                     // set our currentTime for the callbacks to be accurate and updates to lock to start/end values
+                    int savedTime = currentTime;
                     currentTime = duration;
 
                     // flip our state
@@ -705,23 +715,23 @@ abstract class BaseTween<T> {
                     // 2: we flip to auto-reverse
                     // 3: we are in linear repeat mode
                     if (repeatCount <= 0) {
-                        // {FINISHED}
+                        // {FORWARDS}{FINISHED}
                         // no repeats left, so we're done
 
                         // really are done (so no more event notification loops)
-                        this.isFinished = true;
+                        isFinished = true;
 
                         // we're done going forwards
                         isInCycle = false;
                         callCallbacks(TweenCallback.Events.COMPLETE);
 
                         // now adjust the time so PARENT reversing/etc works
-                        this.currentTime = delta;
+                        currentTime = duration+delta;
 
                         return;
                     }
                     else if (canAutoReverse) {
-                        // {AUTO_REVERSE}
+                        // {FORWARDS}{AUTO_REVERSE}
 
                         // we're done going forwards
                         isInCycle = false;
@@ -731,32 +741,38 @@ abstract class BaseTween<T> {
                         cachedDirection = REVERSE;
                         repeatCount--;
 
-                        // setup delays, if there are any
-                        currentTime = repeatDelay;
+                        // setup delays, if there are any. have to adjust for any "extra" time wrapped beyond duration
+//                        currentTime = repeatDelay - delta;
+                        currentTime = -delta;
+                        addRepeatDelay(repeatDelay);
+
                         return;
                     } else {
-                        // LINEAR
+                        // {FORWARDS}{LINEAR}
 
                         repeatCount--;
-                        currentTime = -repeatDelay;
 
-                        return;
+                        //  have to adjust for any "extra" time wrapped beyond duration
+                        currentTime = delta + duration;
+                        forceRestart(-duration);
+                        addRepeatDelay(-repeatDelay);
+
+                        // have to re-put back settings
+                        isTweenRunning = false;
+                        triggerStartEvent = false;
 
                         // keeps going forwards this cycle until done!
+                        return;
                     }
                 }
                 else {
                     // {REVERSE}
 
                     if (newTime > 0) {
-                        // still inside our iteration, done with events.
-
-                        // adjust our time by our delta value
-                        currentTime = newTime;
-
-
-                        if (newTime == duration) {
-                            // detect when we are BEGIN or START
+                        if (newTime <= duration && triggerStartEvent) {
+                            // check for newTime <=duration, because we can have > duration time when in a repeat-delay
+                            currentTime = duration; // this is reset below...
+                            triggerStartEvent = false;
                             if (!isInCycle) {
                                 isInCycle = true;
                                 callCallbacks(TweenCallback.Events.BACK_BEGIN);
@@ -765,15 +781,11 @@ abstract class BaseTween<T> {
                             callCallbacks(TweenCallback.Events.BACK_START);
                         }
 
-
+                        currentTime = newTime;
                         break;
                     }
 
                     // we have gone past our iteration point
-
-                    // adjust the delta so that it is shifted based on the length of (previous) iteration
-                    // this is easy, because the amount of time past 0 is the new delta (because we start at 0).
-//                    delta += currentTime;
 
                     // set our currentTime for the callbacks to be accurate
                     currentTime = 0;
@@ -795,54 +807,48 @@ abstract class BaseTween<T> {
                     // 2: we flip to auto-reverse
                     // 3: we are in linear repeat mode
                     if (repeatCount <= 0) {
-                        // {FINISHED}
+                        // {REVERSE}{FINISHED}
                         // no repeats left, so we're done
 
                         // really are done (so no more event notification loops)
-                        this.isFinished = true;
+                        isFinished = true;
 
                         // we're done going forwards
                         callCallbacks(TweenCallback.Events.BACK_COMPLETE);
                         isInCycle = false;
 
                         // now adjust the time so PARENT reversing/etc works
-                        this.currentTime = 0;
+                        currentTime = newTime;
 
                         return;
                     }
                     else if (canAutoReverse) {
-                        // {AUTO_REVERSE}
+                        // {REVERSE}{AUTO_REVERSE}
 
                         // we're done going forwards
                         isInCycle = false;
                         callCallbacks(TweenCallback.Events.BACK_COMPLETE);
 
-                        // flip direction to {REVERSE}
-                        direction = FORWARDS;
+                        // flip direction to {FORWARDS}
                         cachedDirection = FORWARDS;
 
                         repeatCount--;
-                        delta = -delta;
 
                         // setup delays, if there are any
-                        currentTime = -repeatDelay-delta;
-                    } else {
+//                        currentTime = -repeatDelay;
+                        addRepeatDelay(-repeatDelay);
+                        return;
+                    }
+                    //else {
                         // LINEAR
                         // cannot go linear in reverse... nothing to do.
-                    }
+                    //}
                 }
             }
         }
         else {
-            // the time that a tween/timeline runs OVER (when it is done running), must always have consideration of the
-            // direction it was going, WHEN it ran over.
-            // this is so reversing still correctly tracks delays, etc
-            if (direction) {
+            // the time that a tween/timeline runs over when it is done running, so reversing still correctly tracks delays, etc
                 currentTime += originalDelta;
-            }
-            else {
-                currentTime -= originalDelta;
-            }
         }
 
         // when done with all the adjustments and notifications, update the object
@@ -851,6 +857,11 @@ abstract class BaseTween<T> {
         // We update ALL following objects. If a tween is before start (reverse) or past end (forwards), this it will "snap" to the
         // start/end endpoints
         doUpdate(direction, originalDelta);
+    }
+
+    protected
+    void addRepeatDelay(final int repeatDelay) {
+        currentTime += repeatDelay;
     }
 
     @Override

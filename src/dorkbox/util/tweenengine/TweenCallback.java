@@ -45,8 +45,10 @@ package dorkbox.util.tweenengine;
  * <b>BACK_END</b>: at each backward iteration ending<br/>
  * <b>BACK_COMPLETE</b>: at last BACK_END event
  * <p/>
- *
+ * <p/>
+ * Timeline events are ALWAYS happen before children events (begin/start), or after (complete/end)
  * <pre> {@code
+ *
  *
  * DELAY - (delay) initial start delay, only happens once, during init
  * R.DELAY - (repeatDelay) delay between repeat iterations, if there are more than one.
@@ -100,8 +102,10 @@ class TweenCallback {
      * <b>BACK_END</b>: at each backward iteration ending<br/>
      * <b>BACK_COMPLETE</b>: at last BACK_END event
      * <p/>
-     *
+     * <p/>
+     * Timeline events are ALWAYS happen before children events (begin/start), or after (complete/end)
      * <pre> {@code
+     *
      *
      * DELAY - (delay) initial start delay, only happens once, during init
      * R.DELAY - (repeatDelay) delay between repeat iterations, if there are more than one.
@@ -153,8 +157,10 @@ class TweenCallback {
      * <b>BACK_END</b>: at each backward iteration ending<br/>
      * <b>BACK_COMPLETE</b>: at last BACK_END event
      * <p/>
-     *
+     * <p/>
+     * Timeline events are ALWAYS happen before children events (begin/start), or after (complete/end)
      * <pre> {@code
+     *
      *
      * DELAY - (delay) initial start delay, only happens once, during init
      * R.DELAY - (repeatDelay) delay between repeat iterations, if there are more than one.
