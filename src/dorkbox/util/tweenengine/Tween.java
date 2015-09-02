@@ -33,7 +33,6 @@ package dorkbox.util.tweenengine;
 import dorkbox.util.objectPool.ObjectPool;
 import dorkbox.util.objectPool.ObjectPoolFactory;
 import dorkbox.util.objectPool.PoolableObject;
-import dorkbox.util.tweenengine.equations.Quad;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -262,7 +261,7 @@ class Tween extends BaseTween<Tween> {
     Tween to(final Object target, final int tweenType, final int duration) {
 		Tween tween = pool.takeUninterruptibly();
 		tween.setup(target, tweenType, duration);
-		tween.ease(Quad.INOUT);
+		tween.ease(TweenEquations.Quad_InOut);
 		tween.path(TweenPaths.catmullRom);
 		return tween;
 	}
@@ -302,7 +301,7 @@ class Tween extends BaseTween<Tween> {
     Tween from(final Object target, final int tweenType, final int durationInMilliSeconds) {
 		Tween tween = pool.takeUninterruptibly();
 		tween.setup(target, tweenType, durationInMilliSeconds);
-		tween.ease(Quad.INOUT);
+		tween.ease(TweenEquations.Quad_InOut);
 		tween.path(TweenPaths.catmullRom);
 		tween.isFrom = true;
 		return tween;
@@ -341,7 +340,7 @@ class Tween extends BaseTween<Tween> {
     Tween set(final Object target, final int tweenType) {
 		Tween tween = pool.takeUninterruptibly();
 		tween.setup(target, tweenType, 0);
-		tween.ease(Quad.INOUT);
+		tween.ease(TweenEquations.Quad_In);
 		return tween;
 	}
 
@@ -488,36 +487,68 @@ class Tween extends BaseTween<Tween> {
 	// Public API
 	// -------------------------------------------------------------------------
 
-	/**
-	 * Sets the easing equation of the tween. Existing equations are located in
-	 * <i>tweenengine.equations</i> package, but you can of course
-	 * implement your owns, see {@link TweenEquation}. You can also use the
-	 * {@link TweenEquations} static instances to quickly access all the
-	 * equations. Default equation is Quad.INOUT.
-	 * <p/>
-	 *
-	 * <b>Proposed equations are:</b><br/>
-	 * - Linear.INOUT,<br/>
-	 * - Quad.IN | OUT | INOUT,<br/>
-	 * - Cubic.IN | OUT | INOUT,<br/>
-	 * - Quart.IN | OUT | INOUT,<br/>
-	 * - Quint.IN | OUT | INOUT,<br/>
-	 * - Circ.IN | OUT | INOUT,<br/>
-	 * - Sine.IN | OUT | INOUT,<br/>
-	 * - Expo.IN | OUT | INOUT,<br/>
-	 * - Back.IN | OUT | INOUT,<br/>
-	 * - Bounce.IN | OUT | INOUT,<br/>
-	 * - Elastic.IN | OUT | INOUT
-	 *
-	 * @return The current tween, for chaining instructions.
-	 * @see TweenEquation
-	 * @see TweenEquations
-	 */
+    /**
+     * Sets the easing equation of the tween. Existing equations are located in
+     * {@link TweenEquations}, but you can of course implement your own, see
+     * {@link TweenEquation}.
+     * <p/>
+     * Default equation is Quad.INOUT.
+     * <p/>
+     *
+     * <b>Provided Equations are:</b><br/>
+     * - Linear.INOUT,<br/>
+     * - Quad.IN | OUT | INOUT,<br/>
+     * - Cubic.IN | OUT | INOUT,<br/>
+     * - Quart.IN | OUT | INOUT,<br/>
+     * - Quint.IN | OUT | INOUT,<br/>
+     * - Circle.IN | OUT | INOUT,<br/>
+     * - Sine.IN | OUT | INOUT,<br/>
+     * - Expo.IN | OUT | INOUT,<br/>
+     * - Back.IN | OUT | INOUT,<br/>
+     * - Bounce.IN | OUT | INOUT,<br/>
+     * - Elastic.IN | OUT | INOUT
+     *
+     * @return The current tween, for chaining instructions.
+     * @see TweenEquation
+     * @see TweenEquations
+     */
 	public
     Tween ease(final TweenEquation easeEquation) {
 		this.equation = easeEquation;
 		return this;
 	}
+
+    /**
+     * Sets the easing equation of the tween. Existing equations are located in
+     * {@link TweenEquations}, but you can of course implement your own, see
+     * {@link TweenEquation}.
+     * <p/>
+     * Default equation is Quad.INOUT.
+     * <p/>
+     *
+     * <b>Provided Equations are:</b><br/>
+     * - Linear.INOUT,<br/>
+     * - Quad.IN | OUT | INOUT,<br/>
+     * - Cubic.IN | OUT | INOUT,<br/>
+     * - Quart.IN | OUT | INOUT,<br/>
+     * - Quint.IN | OUT | INOUT,<br/>
+     * - Circle.IN | OUT | INOUT,<br/>
+     * - Sine.IN | OUT | INOUT,<br/>
+     * - Expo.IN | OUT | INOUT,<br/>
+     * - Back.IN | OUT | INOUT,<br/>
+     * - Bounce.IN | OUT | INOUT,<br/>
+     * - Elastic.IN | OUT | INOUT
+     *
+     * @return The current tween, for chaining instructions.
+     * @see TweenEquation
+     * @see TweenEquations
+     */
+    public
+    Tween ease(final TweenEquations easeEquation) {
+        this.equation = easeEquation.getEquation();
+        return this;
+    }
+
 
 	/**
 	 * Forces the tween to use the TweenAccessor registered with the given

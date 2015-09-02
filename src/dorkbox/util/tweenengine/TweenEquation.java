@@ -26,11 +26,11 @@ package dorkbox.util.tweenengine;
 public abstract
 class TweenEquation {
 
-	/**
+    /**
 	 * Computes the next value of the interpolation.
 	 *
 	 * @param time The current time, between 0 and 1.
-	 * @return The current value.
+	 * @return The corresponding value.
 	 */
     public abstract
     float compute(float time);
