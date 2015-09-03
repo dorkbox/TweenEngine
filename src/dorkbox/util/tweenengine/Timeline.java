@@ -442,6 +442,13 @@ class Timeline extends BaseTween<Timeline> {
     public
     void update(final int delta) {
         if (this.parent == null) {
+//            if (delta >= 0 != getDirection()) {
+//                super.update(-delta);
+//            } else {
+//                super.update(delta);
+//            }
+
+
             // ONLY modify the incoming delta if we are the parent timeline!
             if (getDirection()) {
                 super.update(delta);

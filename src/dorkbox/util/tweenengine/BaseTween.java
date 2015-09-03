@@ -626,12 +626,20 @@ abstract class BaseTween<T> {
 
         // first we have to fire all of our events and adjust our state. Once done adjusting state and firing events to our callbacks
         // it will break from this loop. If we are finished, it will run update directly (and then return, instead of breaking from loop)
-        if (!isFinished) {
-            while (true) {
-                int newTime = currentTime + delta;
 
-                // are we still allowed to run, are we waiting for a REPEAT DELAY to complete?
-                if (!isTweenRunning) {
+        do {
+            int newTime = currentTime + delta;
+
+            if (!isTweenRunning) {
+                if (isFinished) {
+                    // FINISHED RUNNING
+
+                    // the time that a tween/timeline runs over when it is done running, so reversing still correctly tracks delays, etc
+                    currentTime += originalDelta;
+                    break;
+                }
+                else {
+                    // REPEAT DELAY
                     if (direction) {
                         // {FORWARDS}
                         if (newTime < 0) {
@@ -667,189 +675,185 @@ abstract class BaseTween<T> {
                         }
                     }
                 }
+            }
 
 
-                // TWEEN IS RUNNING.
+            // TWEEN IS RUNNING.
 
-                if (direction) {
-                    // {FORWARDS}
+            if (direction) {
+                // {FORWARDS}
 
-                    if (newTime < duration) {
-                        if (newTime >= 0 && triggerStartEvent) {
-                            // check for newTime >=0, because we can have negative time when in a repeat-delay
-                            currentTime = 0; // this is reset below...
-                            triggerStartEvent = false;
-                            if (!isInCycle) {
-                                isInCycle = true;
-                                callCallbacks(TweenCallback.Events.BEGIN);
-                            }
-
-                            callCallbacks(TweenCallback.Events.START);
-                        }
-
-                        currentTime = newTime;
-                        break;
-                    }
-
-                    // we have gone past our iteration point
-
-                    // adjust the delta so that it is shifted based on the length of (previous) iteration
-                    delta = newTime - duration;
-
-                    // set our currentTime for the callbacks to be accurate and updates to lock to start/end values
-                    int savedTime = currentTime;
-                    currentTime = duration;
-
-                    // flip our state
-                    isTweenRunning = !isTweenRunning;
-
-                    // make sure that we manage our children BEFORE we do anything else!
-                    // we use originalDelta here because we have to trickle-down the logic to all children. If we use delta, the incorrect value
-                    // will trickle-down
-                    doUpdate(FORWARDS, originalDelta);
-
-                    callCallbacks(TweenCallback.Events.END);
-
-                    ////////////////////////////////////////////
-                    ////////////////////////////////////////////
-                    // THREE possible outcomes
-                    // 1: we are done running completely
-                    // 2: we flip to auto-reverse
-                    // 3: we are in linear repeat mode
-                    if (repeatCount <= 0) {
-                        // {FORWARDS}{FINISHED}
-                        // no repeats left, so we're done
-
-                        // really are done (so no more event notification loops)
-                        isFinished = true;
-
-                        // we're done going forwards
-                        isInCycle = false;
-                        callCallbacks(TweenCallback.Events.COMPLETE);
-
-                        // now adjust the time so PARENT reversing/etc works
-                        currentTime = duration+delta;
-
-                        return;
-                    }
-                    else if (canAutoReverse) {
-                        // {FORWARDS}{AUTO_REVERSE}
-
-                        // we're done going forwards
-                        isInCycle = false;
-                        callCallbacks(TweenCallback.Events.COMPLETE);
-
-                        // flip direction to {REVERSE}
-                        cachedDirection = REVERSE;
-                        repeatCount--;
-
-                        // setup delays, if there are any. have to adjust for any "extra" time wrapped beyond duration
-                        currentTime = -delta;
-                        addRepeatDelay(repeatDelay);
-
-                        return;
-                    } else {
-                        // {FORWARDS}{LINEAR}
-
-                        repeatCount--;
-
-                        //  have to adjust for any "extra" time wrapped beyond duration
-                        currentTime = delta + duration;
-                        forceRestart(-duration);
-                        addRepeatDelay(-repeatDelay);
-
-                        // have to re-put back settings
-                        isTweenRunning = false;
+                if (newTime < duration) {
+                    if (newTime >= 0 && triggerStartEvent) {
+                        // check for newTime >=0, because we can have negative time when in a repeat-delay
+                        currentTime = 0; // this is reset below...
                         triggerStartEvent = false;
-
-                        // keeps going forwards this cycle until done!
-                        return;
-                    }
-                }
-                else {
-                    // {REVERSE}
-
-                    if (newTime > 0) {
-                        if (newTime <= duration && triggerStartEvent) {
-                            // check for newTime <=duration, because we can have > duration time when in a repeat-delay
-                            currentTime = duration; // this is reset below...
-                            triggerStartEvent = false;
-                            if (!isInCycle) {
-                                isInCycle = true;
-                                callCallbacks(TweenCallback.Events.BACK_BEGIN);
-                            }
-
-                            callCallbacks(TweenCallback.Events.BACK_START);
+                        if (!isInCycle) {
+                            isInCycle = true;
+                            callCallbacks(TweenCallback.Events.BEGIN);
                         }
 
-                        currentTime = newTime;
-                        break;
+                        callCallbacks(TweenCallback.Events.START);
                     }
 
-                    // we have gone past our iteration point
+                    currentTime = newTime;
+                    break;
+                }
 
-                    // set our currentTime for the callbacks to be accurate
-                    currentTime = 0;
+                // we have gone past our iteration point
 
-                    // make sure that we manage our children BEFORE we do anything else!
-                    // we use originalDelta here because we have to trickle-down the logic to all children. If we use delta, the incorrect value
-                    // will trickle-down
-                    doUpdate(REVERSE,  originalDelta);
+                // adjust the delta so that it is shifted based on the length of (previous) iteration
+                delta = newTime - duration;
 
-                    callCallbacks(TweenCallback.Events.BACK_END);
+                // set our currentTime for the callbacks to be accurate and updates to lock to start/end values
+                int savedTime = currentTime;
+                currentTime = duration;
 
-                    // flip our state
-                    isTweenRunning = !isTweenRunning;
+                // flip our state
+                isTweenRunning = !isTweenRunning;
 
-                    ////////////////////////////////////////////
-                    ////////////////////////////////////////////
-                    // THREE possible outcomes
-                    // 1: we are done running completely
-                    // 2: we flip to auto-reverse
-                    // 3: we are in linear repeat mode
-                    if (repeatCount <= 0) {
-                        // {REVERSE}{FINISHED}
-                        // no repeats left, so we're done
+                // make sure that we manage our children BEFORE we do anything else!
+                // we use originalDelta here because we have to trickle-down the logic to all children. If we use delta, the incorrect value
+                // will trickle-down
+                doUpdate(FORWARDS, originalDelta);
 
-                        // really are done (so no more event notification loops)
-                        isFinished = true;
+                callCallbacks(TweenCallback.Events.END);
 
-                        // we're done going forwards
-                        callCallbacks(TweenCallback.Events.BACK_COMPLETE);
-                        isInCycle = false;
+                ////////////////////////////////////////////
+                ////////////////////////////////////////////
+                // THREE possible outcomes
+                // 1: we are done running completely
+                // 2: we flip to auto-reverse
+                // 3: we are in linear repeat mode
+                if (repeatCount <= 0) {
+                    // {FORWARDS}{FINISHED}
+                    // no repeats left, so we're done
 
-                        // now adjust the time so PARENT reversing/etc works
-                        currentTime = newTime;
+                    // really are done (so no more event notification loops)
+                    isFinished = true;
 
-                        return;
-                    }
-                    else if (canAutoReverse) {
-                        // {REVERSE}{AUTO_REVERSE}
+                    // we're done going forwards
+                    isInCycle = false;
+                    callCallbacks(TweenCallback.Events.COMPLETE);
 
-                        // we're done going forwards
-                        isInCycle = false;
-                        callCallbacks(TweenCallback.Events.BACK_COMPLETE);
+                    // now adjust the time so PARENT reversing/etc works
+                    currentTime = duration+delta;
 
-                        // flip direction to {FORWARDS}
-                        cachedDirection = FORWARDS;
+                    return;
+                }
+                else if (canAutoReverse) {
+                    // {FORWARDS}{AUTO_REVERSE}
 
-                        repeatCount--;
+                    // we're done going forwards
+                    isInCycle = false;
+                    callCallbacks(TweenCallback.Events.COMPLETE);
 
-                        // setup delays, if there are any
-                        addRepeatDelay(-repeatDelay);
-                        return;
-                    }
-                    //else {
-                        // LINEAR
-                        // cannot go linear in reverse... nothing to do.
-                    //}
+                    // flip direction to {REVERSE}
+                    cachedDirection = REVERSE;
+                    repeatCount--;
+
+                    // setup delays, if there are any. have to adjust for any "extra" time wrapped beyond duration
+                    currentTime = -delta;
+                    addRepeatDelay(repeatDelay);
+
+                    return;
+                } else {
+                    // {FORWARDS}{LINEAR}
+
+                    repeatCount--;
+
+                    //  have to adjust for any "extra" time wrapped beyond duration
+                    currentTime = delta + duration;
+                    forceRestart(-duration);
+                    addRepeatDelay(-repeatDelay);
+
+                    // have to re-put back settings
+                    isTweenRunning = false;
+                    triggerStartEvent = false;
+
+                    // keeps going forwards this cycle until done!
+                    return;
                 }
             }
-        }
-        else {
-            // the time that a tween/timeline runs over when it is done running, so reversing still correctly tracks delays, etc
-                currentTime += originalDelta;
-        }
+            else {
+                // {REVERSE}
+
+                if (newTime > 0) {
+                    if (newTime <= duration && triggerStartEvent) {
+                        // check for newTime <=duration, because we can have > duration time when in a repeat-delay
+                        currentTime = duration; // this is reset below...
+                        triggerStartEvent = false;
+                        if (!isInCycle) {
+                            isInCycle = true;
+                            callCallbacks(TweenCallback.Events.BACK_BEGIN);
+                        }
+
+                        callCallbacks(TweenCallback.Events.BACK_START);
+                    }
+
+                    currentTime = newTime;
+                    break;
+                }
+
+                // we have gone past our iteration point
+
+                // set our currentTime for the callbacks to be accurate
+                currentTime = 0;
+
+                // make sure that we manage our children BEFORE we do anything else!
+                // we use originalDelta here because we have to trickle-down the logic to all children. If we use delta, the incorrect value
+                // will trickle-down
+                doUpdate(REVERSE,  originalDelta);
+
+                callCallbacks(TweenCallback.Events.BACK_END);
+
+                // flip our state
+                isTweenRunning = !isTweenRunning;
+
+                ////////////////////////////////////////////
+                ////////////////////////////////////////////
+                // THREE possible outcomes
+                // 1: we are done running completely
+                // 2: we flip to auto-reverse
+                // 3: we are in linear repeat mode
+                if (repeatCount <= 0) {
+                    // {REVERSE}{FINISHED}
+                    // no repeats left, so we're done
+
+                    // really are done (so no more event notification loops)
+                    isFinished = true;
+
+                    // we're done going forwards
+                    callCallbacks(TweenCallback.Events.BACK_COMPLETE);
+                    isInCycle = false;
+
+                    // now adjust the time so PARENT reversing/etc works
+                    currentTime = newTime;
+
+                    return;
+                }
+                else if (canAutoReverse) {
+                    // {REVERSE}{AUTO_REVERSE}
+
+                    // we're done going forwards
+                    isInCycle = false;
+                    callCallbacks(TweenCallback.Events.BACK_COMPLETE);
+
+                    // flip direction to {FORWARDS}
+                    cachedDirection = FORWARDS;
+
+                    repeatCount--;
+
+                    // setup delays, if there are any
+                    addRepeatDelay(-repeatDelay);
+                    return;
+                }
+                //else {
+                    // LINEAR
+                    // cannot go linear in reverse... nothing to do.
+                //}
+            }
+        } while (true);
 
         // when done with all the adjustments and notifications, update the object
         // we use originalDelta here because we have to trickle-down the logic to all children. If we use delta, the incorrect value
