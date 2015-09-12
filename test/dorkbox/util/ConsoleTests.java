@@ -175,8 +175,8 @@ class ConsoleTests {
 
         // if the delta step doesn't line up with duration or delays, it won't line up. The event order/notifications will be
         // correct.
-        int dt = 25;
-//        final int dt = 50;
+//        int dt = 25;
+         int dt = 50;
 //        final int dt = 23;
 //        final int dt = 51;
         Bugtest[] bugs;
@@ -203,13 +203,20 @@ class ConsoleTests {
 //                                    .repeatAutoReverse(1, 500)
 //                                    .repeatAutoReverse(2, 500)
 //                                    .repeatAutoReverse(4, 500)
-                                    .repeat(1, 500)
+//                                    .repeat(1, 500)
+//                                    .repeat(4, 500)
                                     .start();
 
+        boolean permitFlip = true;
+
+
+        boolean flipped = false;
         while (!timeline.isFinished()) {
-            if (timeline.getCurrentTime() == 1275) {
+            if (permitFlip && !flipped && timeline.getCurrentTime() >= 1500) {
+                flipped = true;
                 dt = -dt;
             }
+
             timeline.update(dt);
 
             drawConsole(timeline, terminalwidth, bugs);
@@ -240,8 +247,10 @@ class ConsoleTests {
 
         for (int i = 0; i < bugs.length; i++) {
             Bugtest bug = bugs[i];
-            System.out.print("\t\t" + String.format(Locale.US, "%s:%.2f", timeline.getDirection() ? "F" : "R", bug.val) + "," +
-                             String.format(Locale.US, "%4d", bug.t.getCurrentTime()));
+            System.out.print("\t\t" + String.format(Locale.US, "%s:%.2f", bug.t.getDirection() ? "F" : "R", bug.val) +
+                             "," +
+                             String.format(Locale.US, "%4d%s", bug.t.getCurrentTime(), bug.t.isFinished() ? "*" : " ") +
+                            (bug.t.isInsideDelay() ? "D" : " "));
         }
         System.out.println();//" t="+time);
     }

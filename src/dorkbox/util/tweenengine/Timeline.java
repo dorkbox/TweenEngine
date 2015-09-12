@@ -365,7 +365,7 @@ class Timeline extends BaseTween<Timeline> {
         super.start();
 
         if (this.parent == null) {
-            this.name = '*';
+            this.name = '*'; // todo remove this
         }
 
         int size = children.size();
@@ -392,76 +392,6 @@ class Timeline extends BaseTween<Timeline> {
         pool.release(this);
     }
 
-    /**
-     * Updates the tween or timeline state. <b>You may want to use a
-     * TweenManager to update objects for you.</b>
-     * <p>
-     * Slow motion, fast motion and backward play can be easily achieved by
-     * tweaking this delta time.
-     * <p>
-     * Multiply it by -1 to play the animation backward, or by 0.5
-     * to play it twice-as-slow than its normal speed.
-     * <p>
-     * <p>
-     * <b>THIS IS NOT PREFERRED</b>
-     *
-     * @param delta A delta time in SECONDS between now and the last call.
-     */
-    public
-    void update(final float delta) {
-        // from: http://nicolas.limare.net/pro/notes/2014/12/12_arit_speed/
-        //    Floating-point operations are always slower than integer ops at same data size.
-        // internally we use INTEGER, since we want consistent timelines & events
-
-        if (this.parent == null) {
-            // ONLY modify the incoming delta if we are the parent timeline!
-            if (getDirection()) {
-                super.update((int) (delta * 1000F));
-            } else {
-                // if we are now in reverse, flip the incoming delta.
-                super.update((int) (delta * -1000F));
-            }
-        }
-        else {
-            super.update((int) (delta * 1000F));
-        }
-    }
-
-    /**
-     * Updates the tween or timeline state. <b>You may want to use a
-     * TweenManager to update objects for you.</b>
-     * <p>
-     * Slow motion, fast motion and backward play can be easily achieved by
-     * tweaking this delta time.
-     * <p>
-     * Multiply it by -1 to play the animation backward, or by 0.5
-     * to play it twice-as-slow than its normal speed.
-     *
-     * @param delta A delta time in MILLI-SECONDS between now and the last call.
-     */
-    public
-    void update(final int delta) {
-        if (this.parent == null) {
-//            if (delta >= 0 != getDirection()) {
-//                super.update(-delta);
-//            } else {
-//                super.update(delta);
-//            }
-
-
-            // ONLY modify the incoming delta if we are the parent timeline!
-            if (getDirection()) {
-                super.update(delta);
-            } else {
-                // if we are now in reverse, flip the incoming delta.
-                super.update(-delta);
-            }
-        }
-        else {
-            super.update(delta);
-        }
-    }
-
 	// -------------------------------------------------------------------------
 	// BaseTween impl.
 	// -------------------------------------------------------------------------
@@ -480,8 +410,6 @@ class Timeline extends BaseTween<Timeline> {
     @Override
     protected
     void forceRestart(final int restartAdjustment) {
-//        final int adjustment = getRepeatDelay() + restartAdjustment;
-
         super.forceRestart(restartAdjustment);
 
         for (int i = 0, n = childrenArray.length; i < n; i++) {

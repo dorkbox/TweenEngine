@@ -61,7 +61,7 @@ abstract class BaseTween<T> {
 	// General
 	private int repeatCountOrig;
 	private int repeatCount;
-	private boolean isTweenRunning;
+	private boolean insideDelay;
 	private boolean canAutoReverse;
 
 	// Timings
@@ -77,7 +77,7 @@ abstract class BaseTween<T> {
     // Direction state
     protected static final boolean FORWARDS = true;
     private static final boolean REVERSE = false;
-    private boolean cachedDirection;
+    private boolean direction = FORWARDS; // default state is forwards
 
     private boolean triggerStartEvent;
 	private boolean isStarted; // TRUE when the object is started
@@ -86,6 +86,7 @@ abstract class BaseTween<T> {
 	private boolean isPaused; // TRUE if pause() was called
 
     private boolean isInCycle; // FALSE until BEGIN notification, TRUE until COMPLETE notification
+    private boolean isInAutoReverse;
 
     // TRUE when all repetitions are done, changed by timeline if direction
     // changes since a tween might not have repetitions, but a timeline can
@@ -105,12 +106,11 @@ abstract class BaseTween<T> {
 	protected
     void reset() {
         repeatCount = repeatCountOrig = 0;
-        isTweenRunning = canAutoReverse = false;
-        cachedDirection = FORWARDS;
+        insideDelay = true;
 
         delay = duration = repeatDelay = currentTime = 0;
         isStarted = isInitialized = isFinished = isKilled = isPaused = false;
-        triggerStartEvent = isInCycle = false;
+        triggerStartEvent = isInCycle = isInAutoReverse = false;
 
         callbacks.clear();
         userData = null;
@@ -370,11 +370,11 @@ abstract class BaseTween<T> {
 	}
 
     /**
-     * @return true if the current step is in the forwards iteration, and it's not waiting during a delay.
+     * @return true if the timeline/tween is waiting inside of a delay.
      */
     public final
-    boolean isRunning() {
-        return isTweenRunning;
+    boolean isInsideDelay() {
+        return insideDelay;
     }
 
     /**
@@ -389,7 +389,7 @@ abstract class BaseTween<T> {
     public final
     boolean getDirection() {
         // direction => TRUE == (FORWARDS)
-        return cachedDirection;
+        return direction;
     }
 
     /**
@@ -520,10 +520,12 @@ abstract class BaseTween<T> {
     protected
     void forceRestart(final int restartAdjustment) {
         // reset to beginning
-        isTweenRunning = true;
+        insideDelay = false;
         isFinished = false;
+        isInCycle = true;
         triggerStartEvent = true;
         currentTime += restartAdjustment;
+        System.out.println("restart: " + this);
     }
 
     /**
@@ -543,11 +545,17 @@ abstract class BaseTween<T> {
     void update(int delta) {
         // redone by dorkbox, llc
 
-        if (!isStarted || isPaused || isKilled)
+        if (!isStarted || isPaused || isKilled) {
             return;
+        }
+
+        if (isInAutoReverse) {
+            delta = -delta;
+        }
 
         // the INITIAL, incoming delta from the app, will be positive or negative.
-        boolean direction = delta >= 0;
+        final boolean direction = delta >= 0;
+        this.direction = direction;
 
         // This is NOT final, because it's possible to change directions
         int originalDelta = delta;
@@ -565,9 +573,7 @@ abstract class BaseTween<T> {
                 initialize();
 
                 isInitialized = true;
-                isTweenRunning = true;
-
-                cachedDirection = direction;
+                insideDelay = false;
 
                 // ALSO always have to make sure our STARTING position is ALWAYS 0
 
@@ -627,65 +633,73 @@ abstract class BaseTween<T> {
         // first we have to fire all of our events and adjust our state. Once done adjusting state and firing events to our callbacks
         // it will break from this loop. If we are finished, it will run update directly (and then return, instead of breaking from loop)
 
+        // STATES
+        // - we are in start delay (already handled)
+        // - we are finished
+        // - we are inside a repeat delay
+        // - we are running
+
+        // TRANSITIONS
+        //  startDelay -> running
+        //  running -> finished
+        //  running -> repeat (current direction) + repeatDelay
+        //  running -> repeat (opposite direction) + repeatDelay
+        //  repeatDelay -> running
+        //  finished -> running
+
         do {
             int newTime = currentTime + delta;
 
-            if (!isTweenRunning) {
-                if (isFinished) {
-                    // FINISHED RUNNING
-
-                    // the time that a tween/timeline runs over when it is done running, so reversing still correctly tracks delays, etc
-                    currentTime += originalDelta;
-                    break;
-                }
-                else {
-                    // REPEAT DELAY
-                    if (direction) {
-                        // {FORWARDS}
-                        if (newTime < 0) {
-                            // still inside our repeat delay
-
-                            // adjust our time
-                            currentTime = newTime;
-                            // break because we have to make sure that our children are updated (to preserve reversing delays/behavior)
-                            break;
-                        } else {
-                            // have to offset currentTime, so currentTime + (repeatDelay + (-duration)) ==> 0
-                            currentTime = duration - repeatDelay + originalDelta;
-                            forceRestart(0);
-                        }
-                    }
-                    else {
-                        // {REVERSE}
-                        if (newTime > 0) {
-                            // still inside our repeat delay
-
-                            // adjust our time
-                            currentTime = newTime;
-                            // break because we have to make sure that our children are updated (to preserve reversing delays/behavior)
-                            break;
-                        } else {
-                            // have to specify that the children should restart
-                            delta = newTime;
-                            newTime = duration+delta; // delta is negative here
-
-                            // have to offset currentTime, so currentTime + (repeatDelay + (0)) ==> duration
-                            currentTime = duration - repeatDelay + originalDelta;
-                            forceRestart(0);
-                        }
-                    }
-                }
-            }
-
-
-            // TWEEN IS RUNNING.
-
             if (direction) {
                 // {FORWARDS}
+                // <editor-fold>
 
-                if (newTime < duration) {
-                    if (newTime >= 0 && triggerStartEvent) {
-                        // check for newTime >=0, because we can have negative time when in a repeat-delay
+                // - we are finished
+                // - we are inside a repeat delay
+                // - we are running
+
+
+                // FORWARDS and REVERSE are different conditions
+                boolean insideCycle = newTime >= 0 && newTime < duration;
+                // check for newTime >=0, because we can have negative time when in a repeat-delay
+
+
+                if (isFinished) {
+                    if (insideCycle) {
+                        // we reversed somewhere, and now should be back running again.
+                        isFinished = false;
+                        insideDelay = false;
+                        triggerStartEvent = true;
+                    }
+                    else {
+                        // the time that a tween/timeline runs over when it is done running, so reversing still correctly tracks delays, etc
+                        currentTime = newTime;
+                        break;
+                    }
+                }
+                else if (insideDelay) {
+                    if (newTime < 0) {
+                        // still inside our repeat delay, since repeat delay is always negative (going forwards)
+
+                        // adjust our time
+                        currentTime = newTime;
+
+                        // break because we have to make sure that our children are updated (to preserve reversing delays/behavior)
+                        break;
+                    } else {
+                        // TRANSITION to cycle
+                        // have to offset currentTime, so currentTime + (repeatDelay + (-duration)) ==> 0
+                        currentTime = duration - repeatDelay + originalDelta;
+                        forceRestart(0);
+                        insideCycle = true;
+                        // continue to running normally
+                    }
+                }
+                // we are running normally, can get here from other states
+
+
+                if (insideCycle) {
+                    if (triggerStartEvent) {
                         currentTime = 0; // this is reset below...
                         triggerStartEvent = false;
                         if (!isInCycle) {
@@ -710,7 +724,7 @@ abstract class BaseTween<T> {
                 currentTime = duration;
 
                 // flip our state
-                isTweenRunning = !isTweenRunning;
+                insideDelay = true;
 
                 // make sure that we manage our children BEFORE we do anything else!
                 // we use originalDelta here because we have to trickle-down the logic to all children. If we use delta, the incorrect value
@@ -721,23 +735,24 @@ abstract class BaseTween<T> {
 
                 ////////////////////////////////////////////
                 ////////////////////////////////////////////
-                // THREE possible outcomes
-                // 1: we are done running completely
-                // 2: we flip to auto-reverse
-                // 3: we are in linear repeat mode
+                // 1) we are done running completely
+                // 2) we flip to auto-reverse repeat mode
+                // 3) we are in linear repeat mode
                 if (repeatCount <= 0) {
                     // {FORWARDS}{FINISHED}
                     // no repeats left, so we're done
 
+                    // TRANSITION to finished
                     // really are done (so no more event notification loops)
                     isFinished = true;
+                    isInAutoReverse = false;
 
                     // we're done going forwards
                     isInCycle = false;
                     callCallbacks(TweenCallback.Events.COMPLETE);
 
                     // now adjust the time so PARENT reversing/etc works
-                    currentTime = duration+delta;
+                    currentTime = duration + delta;
 
                     return;
                 }
@@ -748,13 +763,13 @@ abstract class BaseTween<T> {
                     isInCycle = false;
                     callCallbacks(TweenCallback.Events.COMPLETE);
 
-                    // flip direction to {REVERSE}
-                    cachedDirection = REVERSE;
                     repeatCount--;
 
                     // setup delays, if there are any. have to adjust for any "extra" time wrapped beyond duration
                     currentTime = -delta;
                     addRepeatDelay(repeatDelay);
+                    isInAutoReverse = true;
+                    this.direction = false;
 
                     return;
                 } else {
@@ -768,19 +783,68 @@ abstract class BaseTween<T> {
                     addRepeatDelay(-repeatDelay);
 
                     // have to re-put back settings
-                    isTweenRunning = false;
+                    insideDelay = true;
                     triggerStartEvent = false;
+                    isInAutoReverse = false;
 
                     // keeps going forwards this cycle until done!
                     return;
                 }
+                // </editor-fold>
             }
+            ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+            ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+            ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
             else {
                 // {REVERSE}
+                // <editor-fold>
 
-                if (newTime > 0) {
-                    if (newTime <= duration && triggerStartEvent) {
-                        // check for newTime <=duration, because we can have > duration time when in a repeat-delay
+                // 1) we are finished
+                // 2) we are inside a repeat delay
+                // 3) we are running
+
+                // FORWARDS and REVERSE are different conditions
+                boolean insideCycle = newTime > 0 && newTime <= duration;
+                // check for newTime <=duration, because we can have > duration time when in a repeat-delay
+
+                if (isFinished) {
+                    if (insideCycle) {
+                        // we reversed somewhere, and now should be back running again.
+                        isFinished = false;
+                        insideDelay = false;
+                        triggerStartEvent = true;
+                    }
+                    else {
+                        // the time that a tween/timeline runs over when it is done running, so reversing still correctly tracks delays, etc
+                        currentTime = newTime;
+                        break;
+                    }
+                }
+                else if (insideDelay) {
+                    if (newTime > 0) {
+                        // still inside our repeat delay, since repeat delay is always positive (going reverse)
+
+                        // adjust our time
+                        currentTime = newTime;
+
+                        // break because we have to make sure that our children are updated (to preserve reversing delays/behavior)
+                        break;
+                    } else {
+                        // have to specify that the children should restart
+                        delta = newTime;
+                        newTime = duration+delta; // delta is negative here
+
+                        // have to offset currentTime, so currentTime + (repeatDelay + (0)) ==> duration
+                        currentTime = duration - repeatDelay + originalDelta;
+                        insideCycle = true;
+                        forceRestart(0);
+                        // continue to running normally
+                    }
+                }
+                // we are running normally, can get here from other states
+
+                 if (insideCycle) {
+                    if (triggerStartEvent) {
                         currentTime = duration; // this is reset below...
                         triggerStartEvent = false;
                         if (!isInCycle) {
@@ -808,7 +872,7 @@ abstract class BaseTween<T> {
                 callCallbacks(TweenCallback.Events.BACK_END);
 
                 // flip our state
-                isTweenRunning = !isTweenRunning;
+                insideDelay = true;
 
                 ////////////////////////////////////////////
                 ////////////////////////////////////////////
@@ -822,6 +886,7 @@ abstract class BaseTween<T> {
 
                     // really are done (so no more event notification loops)
                     isFinished = true;
+                    isInAutoReverse = false;
 
                     // we're done going forwards
                     callCallbacks(TweenCallback.Events.BACK_COMPLETE);
@@ -839,19 +904,20 @@ abstract class BaseTween<T> {
                     isInCycle = false;
                     callCallbacks(TweenCallback.Events.BACK_COMPLETE);
 
-                    // flip direction to {FORWARDS}
-                    cachedDirection = FORWARDS;
-
                     repeatCount--;
 
                     // setup delays, if there are any
                     addRepeatDelay(-repeatDelay);
+                    isInAutoReverse = false;
+                    this.direction = true;
                     return;
                 }
-                //else {
+                else {
                     // LINEAR
-                    // cannot go linear in reverse... nothing to do.
-                //}
+                    isInAutoReverse = false;
+                }
+
+                // </editor-fold>
             }
         } while (true);
 
