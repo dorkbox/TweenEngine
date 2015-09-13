@@ -201,13 +201,13 @@ class ConsoleTests {
 ////                                        .end()
                                     .end()
 //                                    .repeatAutoReverse(1, 500)
-                                    .repeatAutoReverse(2, 500)
+//                                    .repeatAutoReverse(2, 500)
 //                                    .repeatAutoReverse(4, 500)
-//                                    .repeat(1, 500)
+                                    .repeat(1, 500)
 //                                    .repeat(4, 500)
                                     .start();
 
-        boolean permitFlip = false;
+        boolean permitFlip = true;
 
 
         boolean flipped = false;

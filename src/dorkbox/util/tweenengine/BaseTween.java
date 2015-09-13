@@ -849,6 +849,7 @@ abstract class BaseTween<T> {
             }
             // we are running normally, can get here from other states
 
+
             if (insideLow) {
                 if (insideHigh && triggerStartEvent) {
                     currentTime = duration; // this is reset below...
