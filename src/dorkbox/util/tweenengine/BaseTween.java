@@ -100,6 +100,8 @@ abstract class BaseTween<T> {
 	// Package access
 	boolean isAutoRemoveEnabled;
 	boolean isAutoStartEnabled;
+    private TweenAction updateStartEvent;
+    private TweenAction updateEndEvent;
 
 
     // -------------------------------------------------------------------------
@@ -611,7 +613,7 @@ abstract class BaseTween<T> {
 	 *
 	 * @param delta A delta time in MILLI-SECONDS between the previous call and this call.
 	 */
-	@SuppressWarnings({"Duplicates"})
+	@SuppressWarnings({"Duplicates", "unchecked"})
     public
     void update(int delta) {
         // redone by dorkbox, llc
@@ -619,6 +621,11 @@ abstract class BaseTween<T> {
 
         if (!isStarted || isPaused || isKilled) {
             return;
+        }
+
+        final TweenAction updateStartEvent = this.updateStartEvent;
+        if (updateStartEvent != null) {
+            updateStartEvent.action(this);
         }
 
         if (isInAutoReverse) {
@@ -639,6 +646,11 @@ abstract class BaseTween<T> {
             if (newTime < delay) {
                 // shortcut out so we don't have to worry about any other checks
                 currentTime = newTime;
+
+                final TweenAction updateEndEvent = this.updateEndEvent;
+                if (updateEndEvent != null) {
+                    updateEndEvent.action(this);
+                }
                 flushWrite();
                 return;
             }
@@ -741,6 +753,11 @@ abstract class BaseTween<T> {
                     currentTime = newTime;
 
                     doUpdate(FORWARDS, originalDelta);
+
+                    final TweenAction updateEndEvent = this.updateEndEvent;
+                    if (updateEndEvent != null) {
+                        updateEndEvent.action(this);
+                    }
                     flushWrite();
                     return;
                 }
@@ -754,6 +771,11 @@ abstract class BaseTween<T> {
 
                     // return because we have to make sure that our children are updated (to preserve reversing delays/behavior)
                     doUpdate(FORWARDS, originalDelta);
+
+                    final TweenAction updateEndEvent = this.updateEndEvent;
+                    if (updateEndEvent != null) {
+                        updateEndEvent.action(this);
+                    }
                     flushWrite();
                     return;
                 } else {
@@ -785,6 +807,11 @@ abstract class BaseTween<T> {
 
                 currentTime = newTime;
                 doUpdate(FORWARDS, originalDelta);
+
+                final TweenAction updateEndEvent = this.updateEndEvent;
+                if (updateEndEvent != null) {
+                    updateEndEvent.action(this);
+                }
                 flushWrite();
                 return;
             }
@@ -869,6 +896,10 @@ abstract class BaseTween<T> {
                 isInAutoReverse = false;
             }
 
+            final TweenAction updateEndEvent = this.updateEndEvent;
+            if (updateEndEvent != null) {
+                updateEndEvent.action(this);
+            }
             flushWrite();
             // </editor-fold>
         }
@@ -896,6 +927,11 @@ abstract class BaseTween<T> {
                     currentTime = newTime;
 
                     doUpdate(REVERSE, originalDelta);
+
+                    final TweenAction updateEndEvent = this.updateEndEvent;
+                    if (updateEndEvent != null) {
+                        updateEndEvent.action(this);
+                    }
                     flushWrite();
                     return;
                 }
@@ -909,6 +945,11 @@ abstract class BaseTween<T> {
 
                     // return because we have to make sure that our children are updated (to preserve reversing delays/behavior)
                     doUpdate(REVERSE, originalDelta);
+
+                    final TweenAction updateEndEvent = this.updateEndEvent;
+                    if (updateEndEvent != null) {
+                        updateEndEvent.action(this);
+                    }
                     flushWrite();
                     return;
                 } else {
@@ -944,6 +985,11 @@ abstract class BaseTween<T> {
                 currentTime = newTime;
 
                 doUpdate(REVERSE, originalDelta);
+
+                final TweenAction updateEndEvent = this.updateEndEvent;
+                if (updateEndEvent != null) {
+                    updateEndEvent.action(this);
+                }
                 flushWrite();
                 return;
             }
@@ -1026,8 +1072,31 @@ abstract class BaseTween<T> {
                 isInAutoReverse = false;
             }
 
+            final TweenAction updateEndEvent = this.updateEndEvent;
+            if (updateEndEvent != null) {
+                updateEndEvent.action(this);
+            }
             flushWrite();
             // </editor-fold>
         }
     }
+
+    protected
+    <T extends BaseTween> void setUpdateStartEvent(final TweenAction<T> updateStartEvent) {
+        this.updateStartEvent = updateStartEvent;
+        flushWrite();
+    }
+
+    protected
+    <T extends BaseTween> void setUpdateEndEvent(final TweenAction<T> updateEndEvent) {
+        this.updateEndEvent = updateEndEvent;
+        flushWrite();
+    }
+
+
+    public abstract
+    <T extends BaseTween> T onUpdateStart(final TweenAction<T> action);
+
+    public abstract
+    <T extends BaseTween> T onUpdateEnd(final TweenAction<T> action);
 }

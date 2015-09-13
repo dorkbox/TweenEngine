@@ -128,6 +128,14 @@ class Tween extends BaseTween<Tween> {
 	private static int combinedAttrsLimit = 3;
 	private static int waypointsLimit = 0;
 
+    /**
+     * Gets the version number of the library.
+     */
+    public static
+    String getVersion() {
+        return "7.0.0";
+    }
+
 	/**
 	 * Changes the limit for combined attributes. Defaults to 3 to reduce
 	 * memory footprint.
@@ -151,14 +159,6 @@ class Tween extends BaseTween<Tween> {
         }
         Tween.waypointsLimit = limit;
     }
-
-    /**
-	 * Gets the version number of the library.
-	 */
-    public static
-    String getVersion() {
-		return "7.0.0";
-	}
 
 	// -------------------------------------------------------------------------
 	// Static -- pool
@@ -1181,25 +1181,37 @@ class Tween extends BaseTween<Tween> {
 		return this.target == target && this.type == tweenType;
 	}
 
+    @SuppressWarnings("unchecked")
+    @Override
+    public
+    <T extends BaseTween> T onUpdateStart(final TweenAction<T> action) {
+        setUpdateStartEvent(action);
+        return (T) this;
+    }
+
+    @SuppressWarnings("unchecked")
+    @Override
+    public
+    <T extends BaseTween> T onUpdateEnd(final TweenAction<T> action) {
+        setUpdateEndEvent(action);
+        return (T) this;
+    }
+
 	// -------------------------------------------------------------------------
 	// Helpers
 	// -------------------------------------------------------------------------
 
-	private static
+    private static
     void throwCombinedAttrsLimitReached() {
-		String msg = "You cannot combine more than " + combinedAttrsLimit + " "
-			+ "attributes in a tween. You can raise this limit with "
-			+ "Tween.setCombinedAttributesLimit(), which should be called once "
-			+ "in application initialization code.";
-		throw new RuntimeException(msg);
-	}
+        String msg = "You cannot combine more than " + combinedAttrsLimit + " " + "attributes in a tween. You can raise this limit with " +
+                     "Tween.setCombinedAttributesLimit(), which should be called once in application initialization code.";
+        throw new RuntimeException(msg);
+    }
 
-	private static
+    private static
     void throwWaypointsLimitReached() {
-		String msg = "You cannot add more than " + waypointsLimit + " "
-			+ "waypoints to a tween. You can raise this limit with "
-			+ "Tween.setWaypointsLimit(), which should be called once in "
-			+ "application initialization code.";
-		throw new RuntimeException(msg);
-	}
+        String msg = "You cannot add more than " + waypointsLimit + " " + "waypoints to a tween. You can raise this limit with " +
+                     "Tween.setWaypointsLimit(), which should be called once in application initialization code.";
+        throw new RuntimeException(msg);
+    }
 }

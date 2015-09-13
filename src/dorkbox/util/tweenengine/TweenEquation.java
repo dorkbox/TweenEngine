@@ -41,7 +41,7 @@ class TweenEquation {
 	 * This method is usually used to save/load a tween to/from a text file.
 	 */
 	public
-    boolean isValueOf(String str) {
-		return str.equals(toString());
+    boolean isValueOf(String string) {
+		return string.equals(toString());
 	}
 }

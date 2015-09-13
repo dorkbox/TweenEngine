@@ -431,6 +431,32 @@ class Timeline extends BaseTween<Timeline> {
         }
     }
 
+    @SuppressWarnings("unchecked")
+    @Override
+    public
+    <T extends BaseTween> T onUpdateStart(final TweenAction<T> action) {
+        flushRead();
+        if (isBuilt) {
+            throw new RuntimeException("You can't set events on a timeline once it is started");
+        }
+
+        setUpdateStartEvent(action);
+        return (T) this;
+    }
+
+    @SuppressWarnings("unchecked")
+    @Override
+    public
+    <T extends BaseTween> T onUpdateEnd(final TweenAction<T> action) {
+        flushRead();
+        if (isBuilt) {
+            throw new RuntimeException("You can't set events on a timeline once it is started");
+        }
+
+        setUpdateEndEvent(action);
+        return (T) this;
+    }
+
     @Override
     protected final
     void forceRestart(final int restartAdjustment) {

@@ -203,9 +203,23 @@ class ConsoleTests {
 //                                    .repeatAutoReverse(1, 500)
 //                                    .repeatAutoReverse(2, 500)
 //                                    .repeatAutoReverse(4, 500)
-//                                    .repeat(1, 500)
+                                    .repeat(1, 500)
 //                                    .repeat(4, 500)
-                                    .repeat(Tween.INFINITY, 500)
+//                                    .repeat(Tween.INFINITY, 500)
+//                                    .onUpdateStart(new TweenAction<Timeline>() {
+//                                        @Override
+//                                        public
+//                                        void action(final Timeline tween) {
+//                                            System.out.println("start update");
+//                                        }
+//                                    })
+//                                    .onUpdateEnd(new TweenAction<Timeline>() {
+//                                        @Override
+//                                        public
+//                                        void action(final Timeline tween) {
+//                                            System.out.println("end update");
+//                                        }
+//                                    })
                                     .start();
 
         boolean permitFlip = false;
