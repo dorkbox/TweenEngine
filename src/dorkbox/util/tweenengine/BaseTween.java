@@ -30,8 +30,8 @@
  */
 package dorkbox.util.tweenengine;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * BaseTween is the base class of Tween and Timeline. It defines the
@@ -93,12 +93,14 @@ abstract class BaseTween<T> {
     protected boolean isFinished;
 
 	// Misc
-	private List<TweenCallback> callbacks = new ArrayList<TweenCallback>();
+    private volatile long lightSyncObject = System.currentTimeMillis();
+	private List<TweenCallback> callbacks = new CopyOnWriteArrayList<TweenCallback>();
 	private Object userData;
 
 	// Package access
 	boolean isAutoRemoveEnabled;
 	boolean isAutoStartEnabled;
+
 
     // -------------------------------------------------------------------------
 
@@ -116,11 +118,33 @@ abstract class BaseTween<T> {
         userData = null;
 
         isAutoRemoveEnabled = isAutoStartEnabled = true;
+        flushWrite();
     }
 
 	// -------------------------------------------------------------------------
 	// Public API
 	// -------------------------------------------------------------------------
+
+    /**
+     * Flushes the visibility of all tween fields from the cache for access/use from different threads.
+     * <p>
+     * This does not block and does not prevent race conditions.
+     *
+     * @return the last time (in millis) that the field modifications were flushed
+     */
+    public final long flushRead() {
+        return lightSyncObject;
+    }
+
+    /**
+     * Flushes the visibility of all tween field modifications from the cache for access/use from different threads.
+     * <p>
+     * This does not block and does not prevent race conditions.
+     */
+    public final void flushWrite() {
+        lightSyncObject = System.currentTimeMillis();
+    }
+
 
     /**
      * Adds a callback. By default, it will be fired at the completion of the
@@ -132,6 +156,7 @@ abstract class BaseTween<T> {
     @SuppressWarnings("unchecked")
     public
     T addCallback(final TweenCallback callback) {
+        // thread safe
         this.callbacks.add(callback);
         return (T) this;
     }
@@ -157,6 +182,7 @@ abstract class BaseTween<T> {
     @SuppressWarnings("unchecked")
     public
     T clearCallbacks() {
+        // thread safe
         this.callbacks.clear();
         return (T) this;
     }
@@ -169,19 +195,28 @@ abstract class BaseTween<T> {
 	 * @return The current object, for chaining instructions.
 	 */
     @SuppressWarnings("unchecked")
-	public
+    public
     T delay(final int delay) {
-		this.delay += delay;
-		return (T) this;
-	}
+        flushRead();
 
-	/**
+        if (isStarted) {
+            throw new RuntimeException("You can't modify the delay if it is already started");
+        }
+
+        this.delay += delay;
+        flushWrite();
+
+        return (T) this;
+    }
+
+    /**
 	 * Kills the tween or timeline. If you are using a TweenManager, this object
 	 * will be removed automatically.
 	 */
 	public
     void kill() {
-		isKilled = true;
+        isKilled = true;
+        flushWrite();
 	}
 
 	/**
@@ -200,7 +235,8 @@ abstract class BaseTween<T> {
 	 */
 	public
     void pause() {
-		isPaused = true;
+        isPaused = true;
+        flushWrite();
 	}
 
 	/**
@@ -208,7 +244,8 @@ abstract class BaseTween<T> {
 	 */
 	public
     void resume() {
-		isPaused = false;
+        isPaused = false;
+        flushWrite();
 	}
 
 	/**
@@ -223,6 +260,8 @@ abstract class BaseTween<T> {
     @SuppressWarnings("unchecked")
 	public
     T repeat(final int count, final int delayMilliSeconds) {
+        flushRead();
+
         if (isStarted) {
             throw new RuntimeException("You can't change the repetitions of a tween or timeline once it is started");
         }
@@ -234,6 +273,8 @@ abstract class BaseTween<T> {
         repeatCount = repeatCountOrig;
         repeatDelay = delayMilliSeconds;
         canAutoReverse = false;
+
+        flushWrite();
         return (T) this;
 	}
 
@@ -250,9 +291,12 @@ abstract class BaseTween<T> {
     @SuppressWarnings("unchecked")
 	public
     T repeatAutoReverse(final int count, final int delayMilliSeconds) {
+        // thread safe
         repeat(count, delayMilliSeconds);
 
         canAutoReverse = true;
+
+        flushWrite();
         return (T) this;
 	}
 
@@ -267,6 +311,7 @@ abstract class BaseTween<T> {
 	public
     T setUserData(final Object data) {
 		userData = data;
+        flushWrite();
 		return (T) this;
 	}
 
@@ -283,6 +328,7 @@ abstract class BaseTween<T> {
         build();
         currentTime = 0;
         isStarted = true;
+        flushWrite();
         return (T) this;
     }
 
@@ -308,6 +354,7 @@ abstract class BaseTween<T> {
      */
     public
     int getCurrentTime() {
+        flushRead();
         return currentTime;
     }
 
@@ -317,7 +364,8 @@ abstract class BaseTween<T> {
 	 */
 	public
     int getDelay() {
-		return delay;
+        flushRead();
+        return delay;
 	}
 
 	/**
@@ -325,7 +373,8 @@ abstract class BaseTween<T> {
 	 */
 	public
     int getDuration() {
-		return duration;
+        flushRead();
+        return duration;
 	}
 
     /**
@@ -338,6 +387,7 @@ abstract class BaseTween<T> {
      */
     public
     int getFullDuration() {
+        flushRead();
         if (repeatCountOrig < 0) {
             return -1;
         }
@@ -349,7 +399,8 @@ abstract class BaseTween<T> {
 	 */
 	public
     int getRepeatCount() {
-		return repeatCountOrig;
+        flushRead();
+        return repeatCountOrig;
 	}
 
 	/**
@@ -357,7 +408,8 @@ abstract class BaseTween<T> {
 	 */
 	public
     int getRepeatDelay() {
-		return repeatDelay;
+        flushRead();
+        return repeatDelay;
 	}
 
 	/**
@@ -366,7 +418,8 @@ abstract class BaseTween<T> {
 	@SuppressWarnings("unchecked")
     public
     T getUserData() {
-		return (T) userData;
+        flushRead();
+        return (T) userData;
 	}
 
     /**
@@ -374,6 +427,7 @@ abstract class BaseTween<T> {
      */
     public final
     boolean isInsideDelay() {
+        flushRead();
         return insideDelay;
     }
 
@@ -384,11 +438,11 @@ abstract class BaseTween<T> {
      * or {@link #update(int), or via a tween reversing direction because
      * of {@link #repeatAutoReverse(int, int)}
      *
-     * @return true if the current tween stage is in the forwads direction, false if reverse
+     * @return true if the current tween stage is in the forwads direction, false if reverse (or Backwards)
      */
     public final
     boolean getDirection() {
-        // direction => TRUE == (FORWARDS)
+        flushRead();
         return direction;
     }
 
@@ -397,7 +451,8 @@ abstract class BaseTween<T> {
 	 */
 	public
     boolean isStarted() {
-		return isStarted;
+        flushRead();
+        return isStarted;
 	}
 
 	/**
@@ -407,7 +462,8 @@ abstract class BaseTween<T> {
 	 */
 	public
     boolean isInitialized() {
-		return isInitialized;
+        flushRead();
+        return isInitialized;
 	}
 
 	/**
@@ -420,7 +476,8 @@ abstract class BaseTween<T> {
 	 */
 	public
     boolean isFinished() {
-		return isFinished || isKilled;
+        flushRead();
+        return isFinished || isKilled;
 	}
 
 	/**
@@ -428,7 +485,8 @@ abstract class BaseTween<T> {
 	 */
 	public
     boolean canAutoReverse() {
-		return canAutoReverse;
+        flushRead();
+        return canAutoReverse;
 	}
 
 	/**
@@ -436,7 +494,8 @@ abstract class BaseTween<T> {
 	 */
 	public
     boolean isPaused() {
-		return isPaused;
+        flushRead();
+        return isPaused;
 	}
 
 	// -------------------------------------------------------------------------
@@ -523,7 +582,6 @@ abstract class BaseTween<T> {
     }
 
 
-    // Manage direction change transition points, so that we can keep track of which direction we are currently stepping
     protected
     void forceRestart(final int restartAdjustment) {
         // reset to beginning
@@ -532,6 +590,13 @@ abstract class BaseTween<T> {
         canTriggerBeginEvent = false;
         triggerStartEvent = true;
         currentTime += restartAdjustment;
+    }
+
+    protected
+    void addRepeatDelay(final int repeatDelay) {
+        currentTime += repeatDelay;
+        // makes sure that (for all children this is called on), that they are registered as "finished", so states properly transition
+        isFinished = true;
     }
 
     /**
@@ -546,10 +611,11 @@ abstract class BaseTween<T> {
 	 *
 	 * @param delta A delta time in MILLI-SECONDS between the previous call and this call.
 	 */
-	@SuppressWarnings({"FieldRepeatedlyAccessedInMethod", "Duplicates"})
+	@SuppressWarnings({"Duplicates"})
     public
     void update(int delta) {
         // redone by dorkbox, llc
+        flushRead();
 
         if (!isStarted || isPaused || isKilled) {
             return;
@@ -573,6 +639,7 @@ abstract class BaseTween<T> {
             if (newTime < delay) {
                 // shortcut out so we don't have to worry about any other checks
                 currentTime = newTime;
+                flushWrite();
                 return;
             }
             else {
@@ -609,15 +676,15 @@ abstract class BaseTween<T> {
          *                BEGIN      COMPLETE
          *                START      END
          *                v          v
-         * |---[DELAY]----[XXXXXXXXXX]->>-[R.DELAY]  ╶╮
-         *            ╭╴  [R.DELAY]-<<-[XXXXXXXXXX] <─╯
-         *            │                ^          ^
-         *            │                bEND       bSTART
-         *            │                bCOMPLETE  bBEGIN
+         * |---[DELAY]----[XXXXXXXXXX]──────────-─────╮
+         *            ╭╴  [XXXXXXXXXX]-<<-[R.DELAY] <─╯
+         *            │   ^          ^
+         *            │   bEND       bSTART
+         *            │   bCOMPLETE  bBEGIN
          *            │
-         *            ╰╴> [XXXXXXXXXX]->>-[R.DELAY]  ╶╮
-         *            ╭╴  [R.DELAY]-<<-[XXXXXXXXXX] <─╯
-         *            ╰╴> [XXXXXXXXXX]->>-[R.DELAY]  ...
+         *            ╰╴> [R.DELAY]->>-[XXXXXXXXXX]  ╶╮
+         *            ╭╴  [XXXXXXXXXX]-<<-[R.DELAY] <─╯
+         *            ╰╴> [R.DELAY]->>-[XXXXXXXXXX]  ...
          *
          */
 
@@ -674,6 +741,7 @@ abstract class BaseTween<T> {
                     currentTime = newTime;
 
                     doUpdate(FORWARDS, originalDelta);
+                    flushWrite();
                     return;
                 }
             }
@@ -686,6 +754,7 @@ abstract class BaseTween<T> {
 
                     // return because we have to make sure that our children are updated (to preserve reversing delays/behavior)
                     doUpdate(FORWARDS, originalDelta);
+                    flushWrite();
                     return;
                 } else {
                     // TRANSITION to cycle
@@ -716,6 +785,7 @@ abstract class BaseTween<T> {
 
                 currentTime = newTime;
                 doUpdate(FORWARDS, originalDelta);
+                flushWrite();
                 return;
             }
 
@@ -737,15 +807,15 @@ abstract class BaseTween<T> {
 
             callCallbacks(TweenCallback.Events.END);
 
-
+            final int repeatCountStack = repeatCount;
             ////////////////////////////////////////////
             ////////////////////////////////////////////
             // 1) we are done running completely
             // 2) we flip to auto-reverse repeat mode
             // 3) we are in linear repeat mode
-            if (repeatCount <= 0) {
+            if (repeatCountStack == 0) {
                 // {FORWARDS}{FINISHED}
-                // no repeats left, so we're done
+                // no repeats left, so we're done. -1 means repeat forever
 
                 // TRANSITION to finished
                 // really are done (so no more event notification loops)
@@ -761,7 +831,10 @@ abstract class BaseTween<T> {
             }
             else if (canAutoReverse) {
                 // {FORWARDS}{AUTO_REVERSE}
-                repeatCount--;
+                if (repeatCountStack > 0) {
+                    // -1 means repeat forever
+                    repeatCount--;
+                }
 
                 // we're done going forwards
                 canTriggerBeginEvent = true;
@@ -780,7 +853,10 @@ abstract class BaseTween<T> {
                 isFinished = false;
             } else {
                 // {FORWARDS}{LINEAR}
-                repeatCount--;
+                if (repeatCountStack > 0) {
+                    // -1 means repeat forever
+                    repeatCount--;
+                }
 
                 //  have to adjust for any "extra" time wrapped beyond duration
                 currentTime = delta + duration;
@@ -793,6 +869,7 @@ abstract class BaseTween<T> {
                 isInAutoReverse = false;
             }
 
+            flushWrite();
             // </editor-fold>
         }
         ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -819,6 +896,7 @@ abstract class BaseTween<T> {
                     currentTime = newTime;
 
                     doUpdate(REVERSE, originalDelta);
+                    flushWrite();
                     return;
                 }
             }
@@ -831,6 +909,7 @@ abstract class BaseTween<T> {
 
                     // return because we have to make sure that our children are updated (to preserve reversing delays/behavior)
                     doUpdate(REVERSE, originalDelta);
+                    flushWrite();
                     return;
                 } else {
                     // have to specify that the children should restart
@@ -865,6 +944,7 @@ abstract class BaseTween<T> {
                 currentTime = newTime;
 
                 doUpdate(REVERSE, originalDelta);
+                flushWrite();
                 return;
             }
 
@@ -885,14 +965,15 @@ abstract class BaseTween<T> {
             // flip our state
             insideDelay = true;
 
+            final int repeatCountStack = repeatCount;
             ////////////////////////////////////////////
             ////////////////////////////////////////////
             // 1) we are done running completely
             // 2) we flip to auto-reverse
             // 3) we are in linear repeat mode
-            if (repeatCount <= 0) {
+            if (repeatCountStack == 0) {
                 // {REVERSE}{FINISHED}
-                // no repeats left, so we're done
+                // no repeats left, so we're done, -1 means repeat forever
 
                 // really are done (so no more event notification loops)
                 isFinished = true;
@@ -907,7 +988,10 @@ abstract class BaseTween<T> {
             }
             else if (canAutoReverse) {
                 // {REVERSE}{AUTO_REVERSE}
-                repeatCount--;
+                if (repeatCountStack > 0) {
+                    // -1 means repeat forever
+                    repeatCount--;
+                }
 
                 // we're done going forwards
                 canTriggerBeginEvent = true;
@@ -926,7 +1010,10 @@ abstract class BaseTween<T> {
             }
             else {
                 // {REVERSE}{LINEAR}
-                repeatCount--;
+                if (repeatCountStack > 0) {
+                    // -1 means repeat forever
+                    repeatCount--;
+                }
 
                 //  have to adjust for any "extra" time wrapped beyond duration
                 currentTime = delta - duration;
@@ -939,14 +1026,8 @@ abstract class BaseTween<T> {
                 isInAutoReverse = false;
             }
 
+            flushWrite();
             // </editor-fold>
         }
-    }
-
-    protected
-    void addRepeatDelay(final int repeatDelay) {
-        currentTime += repeatDelay;
-        // makes sure that (for all children this is called on), that they are registered as "finished", so states properly transition
-        isFinished = true;
     }
 }

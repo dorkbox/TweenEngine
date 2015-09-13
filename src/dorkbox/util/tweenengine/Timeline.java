@@ -123,7 +123,7 @@ class Timeline extends BaseTween<Timeline> {
         if (constructorThread != Thread.currentThread()) {
             throw new RuntimeException("Timeline pool capacity must be changed during engine initialization!");
         }
-        pool =  ObjectPoolFactory.create(poolableObject, poolSize);
+        pool = ObjectPoolFactory.create(poolableObject, poolSize);
 	}
 
 	// -------------------------------------------------------------------------
@@ -183,12 +183,16 @@ class Timeline extends BaseTween<Timeline> {
         childrenArray = null;
 		current = parent = null;
 		isBuilt = false;
+
+        flushWrite();
 	}
 
 	private
     void setup(final Modes mode) {
 		this.mode = mode;
 		this.current = this;
+
+        flushWrite();
 	}
 
 	// -------------------------------------------------------------------------
@@ -202,11 +206,14 @@ class Timeline extends BaseTween<Timeline> {
 	 */
 	public
     Timeline push(final Tween tween) {
+        flushRead();
         if (isBuilt) {
             throw new RuntimeException("You can't push anything to a timeline once it is started");
         }
 
         current.children.add(tween);
+
+        flushWrite();
         return this;
 	}
 
@@ -217,6 +224,7 @@ class Timeline extends BaseTween<Timeline> {
 	 */
 	public
     Timeline push(final Timeline timeline) {
+        flushRead();
         if (isBuilt) {
             throw new RuntimeException("You can't push anything to a timeline once it is started");
         }
@@ -226,6 +234,8 @@ class Timeline extends BaseTween<Timeline> {
 
         timeline.parent = current;
         current.children.add(timeline);
+
+        flushWrite();
         return this;
     }
 
@@ -239,12 +249,15 @@ class Timeline extends BaseTween<Timeline> {
 	 */
 	public
     Timeline pushPause(final int time) {
+        flushRead();
         if (isBuilt) {
             throw new RuntimeException("You can't push anything to a timeline once it is started");
         }
 
         current.children.add(Tween.mark()
                                   .delay(time));
+
+        flushWrite();
         return this;
 	}
 
@@ -256,6 +269,7 @@ class Timeline extends BaseTween<Timeline> {
 	 */
     public
     Timeline beginSequence() {
+        flushRead();
         if (isBuilt) {
             throw new RuntimeException("You can't push anything to a timeline once it is started");
         }
@@ -265,6 +279,8 @@ class Timeline extends BaseTween<Timeline> {
         tl.mode = Modes.SEQUENCE;
         current.children.add(tl);
         current = tl;
+
+        flushWrite();
         return this;
 	}
 
@@ -276,6 +292,7 @@ class Timeline extends BaseTween<Timeline> {
 	 */
     public
     Timeline beginParallel() {
+        flushRead();
         if (isBuilt) {
             throw new RuntimeException("You can't push anything to a timeline once it is started");
         }
@@ -285,6 +302,8 @@ class Timeline extends BaseTween<Timeline> {
         tl.mode = Modes.PARALLEL;
         current.children.add(tl);
         current = tl;
+
+        flushWrite();
         return this;
 	}
 
@@ -295,6 +314,7 @@ class Timeline extends BaseTween<Timeline> {
 	 */
     public
     Timeline end() {
+        flushRead();
         if (isBuilt) {
             throw new RuntimeException("You can't push anything to a timeline once it is started");
         }
@@ -303,6 +323,8 @@ class Timeline extends BaseTween<Timeline> {
         }
 
         current = current.parent;
+
+        flushWrite();
         return this;
 	}
 
@@ -312,6 +334,7 @@ class Timeline extends BaseTween<Timeline> {
 	 */
 	public
     List<BaseTween<?>> getChildren() {
+        flushRead();
         if (isBuilt) {
             return Collections.unmodifiableList(current.children);
         }
@@ -328,6 +351,7 @@ class Timeline extends BaseTween<Timeline> {
     @Override
 	public
     Timeline build() {
+        flushRead();
         if (isBuilt) {
             return this;
         }
@@ -356,12 +380,15 @@ class Timeline extends BaseTween<Timeline> {
         }
 
         isBuilt = true;
+
+        flushWrite();
 		return this;
 	}
 
 	@Override
 	public
     Timeline start() {
+        flushRead();
         super.start();
 
         int size = children.size();
@@ -374,6 +401,7 @@ class Timeline extends BaseTween<Timeline> {
         childrenArray = new BaseTween[size];
         children.toArray(childrenArray);
 
+        flushWrite();
         return this;
     }
 
@@ -393,7 +421,7 @@ class Timeline extends BaseTween<Timeline> {
 	// -------------------------------------------------------------------------
 
     @Override
-    protected
+    protected final
     void addRepeatDelay(final int repeatDelay) {
         super.addRepeatDelay(repeatDelay);
 
@@ -404,7 +432,7 @@ class Timeline extends BaseTween<Timeline> {
     }
 
     @Override
-    protected
+    protected final
     void forceRestart(final int restartAdjustment) {
         super.forceRestart(restartAdjustment);
 
@@ -415,7 +443,7 @@ class Timeline extends BaseTween<Timeline> {
     }
 
     @Override
-    protected
+    protected final
     void doUpdate(final boolean animationDirection, final int delta) {
         for (int i = 0, n = childrenArray.length; i < n; i++) {
             final BaseTween<?> tween = childrenArray[i];
@@ -424,7 +452,7 @@ class Timeline extends BaseTween<Timeline> {
     }
 
 	@Override
-	protected
+	protected final
     boolean containsTarget(final Object target) {
         for (int i = 0, n = childrenArray.length; i < n; i++) {
             final BaseTween<?> tween = childrenArray[i];
@@ -436,7 +464,7 @@ class Timeline extends BaseTween<Timeline> {
 	}
 
 	@Override
-    protected
+    protected final
     boolean containsTarget(final Object target, final int tweenType) {
         for (int i = 0, n = childrenArray.length; i < n; i++) {
             final BaseTween<?> tween = childrenArray[i];

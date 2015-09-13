@@ -113,6 +113,8 @@ import java.util.Map;
 @SuppressWarnings({"unused", "StaticNonFinalField"})
 public final
 class Tween extends BaseTween<Tween> {
+    private static final Thread constructorThread = Thread.currentThread();
+
 	// -------------------------------------------------------------------------
 	// Static -- misc
 	// -------------------------------------------------------------------------
@@ -132,6 +134,9 @@ class Tween extends BaseTween<Tween> {
 	 */
     public static
     void setCombinedAttributesLimit(int limit) {
+        if (constructorThread != Thread.currentThread()) {
+            throw new RuntimeException("Tween combined attribute limits must be changed during engine initialization!");
+        }
         Tween.combinedAttrsLimit = limit;
     }
 
@@ -141,6 +146,9 @@ class Tween extends BaseTween<Tween> {
 	 */
     public static
     void setWaypointsLimit(int limit) {
+        if (constructorThread != Thread.currentThread()) {
+            throw new RuntimeException("Tween waypoint limits must be changed during engine initialization!");
+        }
         Tween.waypointsLimit = limit;
     }
 
@@ -156,7 +164,6 @@ class Tween extends BaseTween<Tween> {
 	// Static -- pool
 	// -------------------------------------------------------------------------
 
-    private static final Thread constructorThread = Thread.currentThread();
     private static final PoolableObject<Tween> poolableObject = new PoolableObject<Tween>() {
         @Override
         public
@@ -188,7 +195,7 @@ class Tween extends BaseTween<Tween> {
         if (constructorThread != Thread.currentThread()) {
             throw new RuntimeException("Tween pool capacity must be changed during engine initialization!");
         }
-        pool =  ObjectPoolFactory.create(poolableObject, poolSize);
+        pool = ObjectPoolFactory.create(poolableObject, poolSize);
 	}
 
 	// -------------------------------------------------------------------------
@@ -208,6 +215,10 @@ class Tween extends BaseTween<Tween> {
 	 */
     public static
     void registerAccessor(final Class<?> someClass, final TweenAccessor<?> defaultAccessor) {
+        if (constructorThread != Thread.currentThread()) {
+            throw new RuntimeException("Tween accessors must be accessed by the same thread as engine initialization!");
+        }
+
         registeredAccessors.put(someClass, defaultAccessor);
     }
 
@@ -218,7 +229,11 @@ class Tween extends BaseTween<Tween> {
 	 */
 	public static
     TweenAccessor<?> getRegisteredAccessor(final Class<?> someClass) {
-		return registeredAccessors.get(someClass);
+        if (constructorThread != Thread.currentThread()) {
+            throw new RuntimeException("Tween accessors must be accessed by the same thread as engine initialization!");
+        }
+
+        return registeredAccessors.get(someClass);
 	}
 
 	// -------------------------------------------------------------------------
@@ -449,6 +464,7 @@ class Tween extends BaseTween<Tween> {
 		if (pathBuffer.length != (2+waypointsLimit)*combinedAttrsLimit) {
 			pathBuffer = new float[(2+waypointsLimit)*combinedAttrsLimit];
 		}
+        flushWrite();
 	}
 
 	private void
@@ -515,6 +531,8 @@ class Tween extends BaseTween<Tween> {
 	public
     Tween ease(final TweenEquation easeEquation) {
 		this.equation = easeEquation;
+
+        flushWrite();
 		return this;
 	}
 
@@ -546,6 +564,8 @@ class Tween extends BaseTween<Tween> {
     public
     Tween ease(final TweenEquations easeEquation) {
         this.equation = easeEquation.getEquation();
+
+        flushWrite();
         return this;
     }
 
@@ -565,6 +585,8 @@ class Tween extends BaseTween<Tween> {
             throw new RuntimeException("You can't cast the target of a tween once it is started");
         }
         this.targetClass = targetClass;
+
+        flushWrite();
         return this;
 	}
 
@@ -585,6 +607,8 @@ class Tween extends BaseTween<Tween> {
 	public
     Tween target(final float targetValue) {
 		targetValues[0] = targetValue;
+
+        flushWrite();
 		return this;
 	}
 
@@ -607,6 +631,8 @@ class Tween extends BaseTween<Tween> {
     Tween target(final float targetValue1, final float targetValue2) {
 		targetValues[0] = targetValue1;
 		targetValues[1] = targetValue2;
+
+        flushWrite();
 		return this;
 	}
 
@@ -631,6 +657,8 @@ class Tween extends BaseTween<Tween> {
 		targetValues[0] = targetValue1;
 		targetValues[1] = targetValue2;
 		targetValues[2] = targetValue3;
+
+        flushWrite();
 		return this;
 	}
 
@@ -654,7 +682,10 @@ class Tween extends BaseTween<Tween> {
         if (length > combinedAttrsLimit) {
             throwCombinedAttrsLimitReached();
         }
+
         System.arraycopy(targetValues, 0, this.targetValues, 0, length);
+
+        flushWrite();
         return this;
 	}
 
@@ -675,6 +706,8 @@ class Tween extends BaseTween<Tween> {
     Tween targetRelative(final float targetValue) {
 		isRelative = true;
 		targetValues[0] = isInitialized() ? targetValue + startValues[0] : targetValue;
+
+        flushWrite();
 		return this;
 	}
 
@@ -695,8 +728,11 @@ class Tween extends BaseTween<Tween> {
 	public
     Tween targetRelative(final float targetValue1, final float targetValue2) {
 		isRelative = true;
-		targetValues[0] = isInitialized() ? targetValue1 + startValues[0] : targetValue1;
-		targetValues[1] = isInitialized() ? targetValue2 + startValues[1] : targetValue2;
+        final boolean initialized = isInitialized();
+        targetValues[0] = initialized ? targetValue1 + startValues[0] : targetValue1;
+		targetValues[1] = initialized ? targetValue2 + startValues[1] : targetValue2;
+
+        flushWrite();
 		return this;
 	}
 
@@ -718,11 +754,14 @@ class Tween extends BaseTween<Tween> {
 	public
     Tween targetRelative(final float targetValue1, final float targetValue2, final float targetValue3) {
 		isRelative = true;
-        final float[] startValues = this.startValues;
+        final boolean initialized = isInitialized();
 
-        targetValues[0] = isInitialized() ? targetValue1 + startValues[0] : targetValue1;
-		targetValues[1] = isInitialized() ? targetValue2 + startValues[1] : targetValue2;
-		targetValues[2] = isInitialized() ? targetValue3 + startValues[2] : targetValue3;
+        final float[] startValues = this.startValues;
+        targetValues[0] = initialized ? targetValue1 + startValues[0] : targetValue1;
+		targetValues[1] = initialized ? targetValue2 + startValues[1] : targetValue2;
+		targetValues[2] = initialized ? targetValue3 + startValues[2] : targetValue3;
+
+        flushWrite();
 		return this;
 	}
 
@@ -742,14 +781,18 @@ class Tween extends BaseTween<Tween> {
 	public
     Tween targetRelative(final float... targetValues) {
         final int length = targetValues.length;
+
+        final boolean initialized = isInitialized();
         final float[] startValues = this.startValues;
 
         if (length > combinedAttrsLimit) throwCombinedAttrsLimitReached();
 		for (int i = 0; i < length; i++) {
-            this.targetValues[i] = isInitialized() ? targetValues[i] + startValues[i] : targetValues[i];
+            this.targetValues[i] = initialized ? targetValues[i] + startValues[i] : targetValues[i];
 		}
 
 		isRelative = true;
+
+        flushWrite();
 		return this;
 	}
 
@@ -767,12 +810,15 @@ class Tween extends BaseTween<Tween> {
 	@SuppressWarnings("FieldRepeatedlyAccessedInMethod")
     public
     Tween waypoint(final float targetValue) {
+        flushRead();
         if (waypointsCount == waypointsLimit) {
             throwWaypointsLimitReached();
         }
 
         waypoints[waypointsCount] = targetValue;
         waypointsCount += 1;
+
+        flushWrite();
         return this;
 	}
 
@@ -794,6 +840,7 @@ class Tween extends BaseTween<Tween> {
 	@SuppressWarnings("FieldRepeatedlyAccessedInMethod")
     public
     Tween waypoint(final float targetValue1, final float targetValue2) {
+        flushRead();
         if (waypointsCount == waypointsLimit) {
             throwWaypointsLimitReached();
         }
@@ -804,6 +851,8 @@ class Tween extends BaseTween<Tween> {
         waypoints[count] = targetValue1;
         waypoints[count + 1] = targetValue2;
         waypointsCount += 1;
+
+        flushWrite();
         return this;
 	}
 
@@ -826,6 +875,7 @@ class Tween extends BaseTween<Tween> {
 	@SuppressWarnings("FieldRepeatedlyAccessedInMethod")
     public
     Tween waypoint(final float targetValue1, final float targetValue2, final float targetValue3) {
+        flushRead();
         if (waypointsCount == waypointsLimit) {
             throwWaypointsLimitReached();
         }
@@ -837,6 +887,8 @@ class Tween extends BaseTween<Tween> {
         waypoints[count + 1] = targetValue2;
         waypoints[count + 2] = targetValue3;
         waypointsCount += 1;
+
+        flushWrite();
         return this;
 	}
 
@@ -857,11 +909,14 @@ class Tween extends BaseTween<Tween> {
 	@SuppressWarnings("FieldRepeatedlyAccessedInMethod")
     public
     Tween waypoint(final float... targetValues) {
+        flushRead();
         if (waypointsCount == waypointsLimit) {
             throwWaypointsLimitReached();
         }
         System.arraycopy(targetValues, 0, waypoints, waypointsCount * targetValues.length, targetValues.length);
         waypointsCount += 1;
+
+        flushWrite();
         return this;
 	}
 
@@ -879,6 +934,8 @@ class Tween extends BaseTween<Tween> {
 	public
     Tween path(final TweenPath path) {
 		this.path = path;
+
+        flushWrite();
 		return this;
 	}
 
@@ -891,7 +948,8 @@ class Tween extends BaseTween<Tween> {
 	 */
 	public
     Object getTarget() {
-		return target;
+        flushRead();
+        return target;
 	}
 
 	/**
@@ -899,7 +957,8 @@ class Tween extends BaseTween<Tween> {
 	 */
 	public
     int getType() {
-		return type;
+        flushRead();
+        return type;
 	}
 
 	/**
@@ -907,6 +966,7 @@ class Tween extends BaseTween<Tween> {
 	 */
 	public
     TweenEquation getEasing() {
+        flushRead();
 		return equation;
 	}
 
@@ -918,7 +978,8 @@ class Tween extends BaseTween<Tween> {
 	 */
 	public float[]
     getTargetValues() {
-		return targetValues;
+        flushRead();
+        return targetValues;
 	}
 
 	/**
@@ -926,7 +987,8 @@ class Tween extends BaseTween<Tween> {
 	 */
 	public int
     getCombinedAttributesCount() {
-		return combinedAttrsCnt;
+        flushRead();
+        return combinedAttrsCnt;
 	}
 
 	/**
@@ -934,7 +996,8 @@ class Tween extends BaseTween<Tween> {
 	 */
 	public
     TweenAccessor<?> getAccessor() {
-		return accessor;
+        flushRead();
+        return accessor;
 	}
 
 	/**
@@ -942,7 +1005,8 @@ class Tween extends BaseTween<Tween> {
 	 */
 	public
     Class<?> getTargetClass() {
-		return targetClass;
+        flushRead();
+        return targetClass;
 	}
 
 	// -------------------------------------------------------------------------
@@ -953,6 +1017,7 @@ class Tween extends BaseTween<Tween> {
     @Override
 	public
     Tween build() {
+        flushRead();
         final Object target = this.target;
         if (target == null) {
             return this;
@@ -972,6 +1037,8 @@ class Tween extends BaseTween<Tween> {
         if (combinedAttrsCnt > combinedAttrsLimit) {
             throwCombinedAttrsLimitReached();
         }
+
+        flushWrite();
         return this;
 	}
 
@@ -984,6 +1051,7 @@ class Tween extends BaseTween<Tween> {
 	@Override
 	protected
     void initialize() {
+        flushRead();
         if (target == null) {
             return;
         }
@@ -1007,6 +1075,8 @@ class Tween extends BaseTween<Tween> {
                 targetValues[i] = tmp;
             }
         }
+
+        flushWrite();
 	}
 
 
