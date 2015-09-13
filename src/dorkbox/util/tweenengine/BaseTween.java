@@ -771,8 +771,10 @@ abstract class BaseTween<T> {
                 callCallbacks(TweenCallback.Events.COMPLETE);
 
                 // setup delays, if there are any. have to adjust for any "extra" time wrapped beyond duration
-                currentTime = -delta;
-                addRepeatDelay(repeatDelay);
+                // *2 because our children will have delta added from update, we have to offset it. currentTime = delta so the math
+                // applies equally to all
+                currentTime = delta;
+                addRepeatDelay(repeatDelay - (2 * delta));
 
                 // has to be after addRepeatDelay()
                 isFinished = false;
@@ -912,9 +914,11 @@ abstract class BaseTween<T> {
                 callCallbacks(TweenCallback.Events.BACK_COMPLETE);
                 this.direction = true; // make sure any checks after this returns accurately reflect the correct direction
 
-
-                // setup delays, if there are any
-                addRepeatDelay(-repeatDelay);
+                // setup delays, if there are any. have to adjust for any "extra" time wrapped beyond duration
+                // *2 because our children will have delta added from update, we have to offset it. currentTime = delta so the math
+                // applies equally to all
+                currentTime = delta;
+                addRepeatDelay(-repeatDelay - (2 * delta));
 
                 // has to be after addRepeatDelay()
                 isFinished = false;
