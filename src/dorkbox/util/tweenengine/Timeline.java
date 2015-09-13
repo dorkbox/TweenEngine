@@ -364,10 +364,6 @@ class Timeline extends BaseTween<Timeline> {
     Timeline start() {
         super.start();
 
-        if (this.parent == null) {
-            this.name = '*'; // todo remove this
-        }
-
         int size = children.size();
         for (int i = 0; i < size; i++) {
             final BaseTween<?> obj = children.get(i);

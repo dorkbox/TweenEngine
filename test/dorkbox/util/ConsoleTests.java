@@ -176,9 +176,9 @@ class ConsoleTests {
         // if the delta step doesn't line up with duration or delays, it won't line up. The event order/notifications will be
         // correct.
 //        int dt = 25;
-         int dt = 50;
-//        final int dt = 23;
-//        final int dt = 51;
+//        int dt = 50;
+//        int dt = 23;
+        int dt = 51;
         Bugtest[] bugs;
 
 
@@ -201,13 +201,13 @@ class ConsoleTests {
 ////                                        .end()
                                     .end()
 //                                    .repeatAutoReverse(1, 500)
-//                                    .repeatAutoReverse(2, 500)
+                                    .repeatAutoReverse(2, 500)
 //                                    .repeatAutoReverse(4, 500)
-                                    .repeat(1, 500)
+//                                    .repeat(1, 500)
 //                                    .repeat(4, 500)
                                     .start();
 
-        boolean permitFlip = true;
+        boolean permitFlip = false;
 
 
         boolean flipped = false;
@@ -281,7 +281,6 @@ class ConsoleTests {
             this.name = name;
             t = Tween.to(this, 0, 1000)
                      .target(1).addCallback(buildCallback(""+name, TweenCallback.Events.ANY));
-            t.name = name;
         }
     }
 }
