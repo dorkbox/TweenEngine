@@ -277,7 +277,7 @@ class Tween extends BaseTween<Tween> {
 		Tween tween = pool.takeUninterruptibly();
 		tween.setup(target, tweenType, duration);
 		tween.ease(TweenEquations.Quad_InOut);
-		tween.path(TweenPaths.catmullRom);
+		tween.path(TweenPaths.CatmullRom);
 		return tween;
 	}
 
@@ -317,7 +317,7 @@ class Tween extends BaseTween<Tween> {
 		Tween tween = pool.takeUninterruptibly();
 		tween.setup(target, tweenType, durationInMilliSeconds);
 		tween.ease(TweenEquations.Quad_InOut);
-		tween.path(TweenPaths.catmullRom);
+		tween.path(TweenPaths.CatmullRom);
 		tween.isFrom = true;
 		return tween;
 	}
@@ -932,12 +932,31 @@ class Tween extends BaseTween<Tween> {
 	 * @see TweenPaths
 	 */
 	public
-    Tween path(final TweenPath path) {
-		this.path = path;
+    Tween path(final TweenPaths path) {
+		this.path = path.path();
 
         flushWrite();
 		return this;
 	}
+
+    /**
+     * Sets the algorithm that will be used to navigate through the waypoints,
+     * from the start values to the end values. Default is a catmull-rom spline,
+     * but you can find other paths in the {@link TweenPaths} class.
+     *
+     * @param path A TweenPath implementation.
+     *
+     * @return The current tween, for chaining instructions.
+     * @see TweenPath
+     * @see TweenPaths
+     */
+    public
+    Tween path(final TweenPath path) {
+        this.path = path;
+
+        flushWrite();
+        return this;
+    }
 
 	// -------------------------------------------------------------------------
 	// Getters

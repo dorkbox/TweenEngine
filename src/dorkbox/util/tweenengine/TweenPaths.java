@@ -24,7 +24,20 @@ import dorkbox.util.tweenengine.paths.Linear;
  * @author Aurelien Ribon | http://www.aurelienribon.com/
  */
 public
-interface TweenPaths {
-	Linear linear = new Linear();
-	CatmullRom catmullRom = new CatmullRom();
+enum TweenPaths {
+	Linear(new Linear()),
+    CatmullRom(new CatmullRom()),
+    ;
+
+
+    private transient final TweenPath path;
+
+    TweenPaths(final TweenPath path) {
+        this.path = path;
+    }
+
+    public
+    TweenPath path() {
+        return path;
+    }
 }
