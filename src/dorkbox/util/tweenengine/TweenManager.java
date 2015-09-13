@@ -1,3 +1,33 @@
+/*
+ * Copyright 2012 Aurelien Ribon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ *
+ * Copyright 2015 dorkbox, llc
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package dorkbox.util.tweenengine;
 
 import java.util.ArrayList;
@@ -7,7 +37,7 @@ import java.util.List;
 /**
  * A TweenManager updates all your tweens and timelines at once.
  * Its main interest is that it handles the tween/timeline life-cycles for you,
- * as well as releasing pooled objected.
+ * as well as releasing pooled objects.
  * <p/>
  *
  * If you don't use a TweenManager, you must make sure to release the tween
@@ -37,8 +67,9 @@ class TweenManager {
 	 * will be played again, even if they were finished.
 	 */
     public static
-    void setAutoRemove(final BaseTween<?> object, final boolean value) {
-        object.isAutoRemoveEnabled = value;
+    void setAutoRemove(final BaseTween<?> tween, final boolean value) {
+        tween.isAutoRemoveEnabled = value;
+        tween.flushWrite();
     }
 
     /**
@@ -48,16 +79,39 @@ class TweenManager {
 	 * automatically, and you'll need to call .start() manually on your object.
 	 */
     public static
-    void setAutoStart(final BaseTween<?> object, final boolean value) {
-        object.isAutoStartEnabled = value;
+    void setAutoStart(final BaseTween<?> tween, final boolean value) {
+        tween.isAutoStartEnabled = value;
+        tween.flushWrite();
     }
 
     // -------------------------------------------------------------------------
 	// Public API
 	// -------------------------------------------------------------------------
 
-	private final ArrayList<BaseTween<?>> objects = new ArrayList<BaseTween<?>>(20);
+    private volatile long lightSyncObject = System.currentTimeMillis();
+	private final ArrayList<BaseTween<?>> tweenArrayList = new ArrayList<BaseTween<?>>(20);
+	private BaseTween<?>[] childrenArray;
 	private boolean isPaused = false;
+
+    /**
+     * Flushes the visibility of all tween fields from the cache for access/use from different threads.
+     * <p>
+     * This does not block and does not prevent race conditions.
+     *
+     * @return the last time (in millis) that the field modifications were flushed
+     */
+    public final long flushRead() {
+        return lightSyncObject;
+    }
+
+    /**
+     * Flushes the visibility of all tween field modifications from the cache for access/use from different threads.
+     * <p>
+     * This does not block and does not prevent race conditions.
+     */
+    public final void flushWrite() {
+        lightSyncObject = System.currentTimeMillis();
+    }
 
 	/**
 	 * Adds a tween or timeline to the manager and starts or restarts it.
@@ -65,12 +119,19 @@ class TweenManager {
 	 * @return The manager, for instruction chaining.
 	 */
 	public
-    TweenManager add(final BaseTween<?> object) {
-        if (!objects.contains(object)) {
-            objects.add(object);
+    TweenManager add(final BaseTween<?> tween) {
+        flushRead();
+        if (!tweenArrayList.contains(tween)) {
+            tweenArrayList.add(tween);
         }
-        if (object.isAutoStartEnabled) {
-            object.start();
+
+        // setup our children array, so update iterations are faster  (marginal improvement)
+        childrenArray = new BaseTween[tweenArrayList.size()];
+        tweenArrayList.toArray(childrenArray);
+
+        flushWrite();
+        if (tween.isAutoStartEnabled) {
+            tween.start();
         }
         return this;
 	}
@@ -81,9 +142,10 @@ class TweenManager {
 	 */
 	public
     boolean containsTarget(final Object target) {
-        for (int i = 0, n = objects.size(); i < n; i++) {
-            final BaseTween<?> obj = objects.get(i);
-            if (obj.containsTarget(target)) {
+        flushRead();
+        for (int i = 0, n = childrenArray.length; i < n; i++) {
+            final BaseTween<?> tween = childrenArray[i];
+            if (tween.containsTarget(target)) {
                 return true;
             }
         }
@@ -96,9 +158,10 @@ class TweenManager {
 	 */
 	public
     boolean containsTarget(final Object target, final int tweenType) {
-        for (int i = 0, n = objects.size(); i < n; i++) {
-            final BaseTween<?> obj = objects.get(i);
-            if (obj.containsTarget(target, tweenType)) {
+        flushRead();
+        for (int i = 0, n = childrenArray.length; i < n; i++) {
+            final BaseTween<?> tween = childrenArray[i];
+            if (tween.containsTarget(target, tweenType)) {
                 return true;
             }
         }
@@ -110,9 +173,10 @@ class TweenManager {
 	 */
 	public
     void killAll() {
-        for (int i = 0, n = objects.size(); i < n; i++) {
-            final BaseTween<?> obj = objects.get(i);
-            obj.kill();
+        flushRead();
+        for (int i = 0, n = childrenArray.length; i < n; i++) {
+            final BaseTween<?> tween = childrenArray[i];
+            tween.kill();
         }
     }
 
@@ -122,9 +186,10 @@ class TweenManager {
 	 */
 	public
     void killTarget(final Object target) {
-        for (int i = 0, n = objects.size(); i < n; i++) {
-            final BaseTween<?> obj = objects.get(i);
-            obj.killTarget(target);
+        flushRead();
+        for (int i = 0, n = childrenArray.length; i < n; i++) {
+            final BaseTween<?> tween = childrenArray[i];
+            tween.killTarget(target);
         }
     }
 
@@ -135,9 +200,10 @@ class TweenManager {
 	 */
 	public
     void killTarget(final Object target, final int tweenType) {
-        for (int i = 0, n = objects.size(); i < n; i++) {
-            final BaseTween<?> obj = objects.get(i);
-            obj.killTarget(target, tweenType);
+        flushRead();
+        for (int i = 0, n = childrenArray.length; i < n; i++) {
+            final BaseTween<?> tween = childrenArray[i];
+            tween.killTarget(target, tweenType);
         }
     }
 
@@ -145,7 +211,9 @@ class TweenManager {
 	 * Increases the minimum capacity of the manager. Defaults to 20.
 	 */
 	public void ensureCapacity(final int minCapacity) {
-		objects.ensureCapacity(minCapacity);
+        flushRead();
+        tweenArrayList.ensureCapacity(minCapacity);
+        flushWrite();
 	}
 
 	/**
@@ -154,6 +222,7 @@ class TweenManager {
     public
     void pause() {
 		isPaused = true;
+        flushWrite();
 	}
 
 	/**
@@ -162,6 +231,7 @@ class TweenManager {
 	public
     void resume() {
 		isPaused = false;
+        flushWrite();
 	}
 
 	/**
@@ -188,7 +258,7 @@ class TweenManager {
         //    Floating-point operations are always slower than integer ops at same data size.
         // internally we use INTEGER, since we want consistent timelines & events
         final int deltaMSeconds = (int) (delta * 1000F);
-        update(delta);
+        update(deltaMSeconds);
     }
 
     /**
@@ -210,27 +280,34 @@ class TweenManager {
      */
     public
     void update(final int elapsedMillis) {
-        for (int i = objects.size() - 1; i >= 0; i--) {
-            final BaseTween<?> obj = objects.get(i);
+        flushRead();
+        boolean needsRefresh = false;
+        for (int i = childrenArray.length - 1; i >= 0; i--) {
+            final BaseTween<?> obj = childrenArray[i];
             if (obj.isFinished() && obj.isAutoRemoveEnabled) {
-                objects.remove(i);
+                needsRefresh = true;
+                tweenArrayList.remove(i);
                 obj.free();
             }
         }
 
+        if (needsRefresh) {
+            // setup our children array, so update iterations are faster  (marginal improvement)
+            childrenArray = new BaseTween[tweenArrayList.size()];
+            tweenArrayList.toArray(childrenArray);
+            flushWrite();
+        }
+
         if (!isPaused) {
             // when running in reverse, we change the order at which we iterate over objects
-            //noinspection Duplicates
             if (elapsedMillis >= 0) {
-                for (int i = 0, n = objects.size(); i < n; i++) {
-                    objects.get(i)
-                           .update(elapsedMillis);
+                for (int i = 0, n = childrenArray.length; i < n; i++) {
+                    childrenArray[i].update(elapsedMillis);
                 }
             }
             else {
-                for (int i = objects.size() - 1; i >= 0; i--) {
-                    objects.get(i)
-                           .update(elapsedMillis);
+                for (int i = childrenArray.length - 1; i >= 0; i--) {
+                    childrenArray[i].update(elapsedMillis);
                 }
             }
         }
@@ -245,7 +322,8 @@ class TweenManager {
 	 */
 	public
     int size() {
-		return objects.size();
+		flushRead();
+        return childrenArray.length;
 	}
 
 	/**
@@ -256,7 +334,8 @@ class TweenManager {
 	 */
 	public
     int getRunningTweensCount() {
-		return getTweensCount(objects);
+        flushRead();
+        return getTweensCount(tweenArrayList);
 	}
 
 	/**
@@ -267,7 +346,8 @@ class TweenManager {
 	 */
 	public
     int getRunningTimelinesCount() {
-        return getTimelinesCount(objects);
+        flushRead();
+        return getTimelinesCount(tweenArrayList);
     }
 
     /**
@@ -277,7 +357,8 @@ class TweenManager {
 	 */
 	public
     List<BaseTween<?>> getObjects() {
-		return Collections.unmodifiableList(objects);
+        flushRead();
+		return Collections.unmodifiableList(tweenArrayList);
 	}
 
 	// -------------------------------------------------------------------------
