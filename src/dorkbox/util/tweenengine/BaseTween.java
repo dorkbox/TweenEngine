@@ -747,6 +747,7 @@ abstract class BaseTween<T> {
                     // TRANSITION to finished
                     // really are done (so no more event notification loops)
                     isFinished = true;
+                    isInAutoReverse = false;
 
                     // we're done going forwards
                     isInCycle = false;
@@ -763,7 +764,7 @@ abstract class BaseTween<T> {
 
                     // we're done going forwards
                     isInCycle = false;
-                    isInAutoReverse = true;
+                    isInAutoReverse = !isInAutoReverse; // if we are NOT in autoReverse, then "isInAutoReverse" is true if we reverse
                     this.direction = false;
 
                     callCallbacks(TweenCallback.Events.COMPLETE);
@@ -786,6 +787,7 @@ abstract class BaseTween<T> {
                     // have to re-put back settings
                     insideDelay = true;
                     isFinished = false;
+                    isInAutoReverse = false;
 
                     // keeps going forwards this cycle until done!
                     return;
@@ -909,7 +911,7 @@ abstract class BaseTween<T> {
 
                     // we're done going forwards
                     isInCycle = false;
-                    isInAutoReverse = false;
+                    isInAutoReverse = !isInAutoReverse; // if we are NOT in autoReverse, then "isInAutoReverse" is true if we reverse
                     this.direction = true;
                     callCallbacks(TweenCallback.Events.BACK_COMPLETE);
 
