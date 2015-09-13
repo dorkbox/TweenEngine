@@ -200,7 +200,7 @@ class ConsoleTests {
 ////                                            .push(bugs[2].t) // third tween not even needed
 ////                                        .end()
                                     .end()
-//                                    .repeatAutoReverse(1, 500)
+                                    .repeatAutoReverse(1, 500)
 //                                    .repeatAutoReverse(2, 500)
 //                                    .repeatAutoReverse(4, 500)
 //                                    .repeat(1, 500)
