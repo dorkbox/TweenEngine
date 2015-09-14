@@ -90,7 +90,7 @@ class TweenManager {
 
     private volatile long lightSyncObject = System.currentTimeMillis();
 	private final ArrayList<BaseTween<?>> tweenArrayList = new ArrayList<BaseTween<?>>(20);
-	private BaseTween<?>[] childrenArray;
+	private BaseTween<?>[] childrenArray = new BaseTween<?>[0];
 	private boolean isPaused = false;
 
     /**
