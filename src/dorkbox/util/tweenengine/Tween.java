@@ -705,7 +705,7 @@ class Tween extends BaseTween<Tween> {
 	public
     Tween targetRelative(final float targetValue) {
 		isRelative = true;
-		targetValues[0] = isInitialized() ? targetValue + startValues[0] : targetValue;
+		targetValues[0] = isStarted() ? targetValue + startValues[0] : targetValue;
 
         flushWrite();
 		return this;
@@ -728,9 +728,9 @@ class Tween extends BaseTween<Tween> {
 	public
     Tween targetRelative(final float targetValue1, final float targetValue2) {
 		isRelative = true;
-        final boolean initialized = isInitialized();
-        targetValues[0] = initialized ? targetValue1 + startValues[0] : targetValue1;
-		targetValues[1] = initialized ? targetValue2 + startValues[1] : targetValue2;
+        final boolean started = isStarted();
+        targetValues[0] = started ? targetValue1 + startValues[0] : targetValue1;
+		targetValues[1] = started ? targetValue2 + startValues[1] : targetValue2;
 
         flushWrite();
 		return this;
@@ -754,12 +754,12 @@ class Tween extends BaseTween<Tween> {
 	public
     Tween targetRelative(final float targetValue1, final float targetValue2, final float targetValue3) {
 		isRelative = true;
-        final boolean initialized = isInitialized();
+        final boolean started = isStarted();
 
         final float[] startValues = this.startValues;
-        targetValues[0] = initialized ? targetValue1 + startValues[0] : targetValue1;
-		targetValues[1] = initialized ? targetValue2 + startValues[1] : targetValue2;
-		targetValues[2] = initialized ? targetValue3 + startValues[2] : targetValue3;
+        targetValues[0] = started ? targetValue1 + startValues[0] : targetValue1;
+		targetValues[1] = started ? targetValue2 + startValues[1] : targetValue2;
+		targetValues[2] = started ? targetValue3 + startValues[2] : targetValue3;
 
         flushWrite();
 		return this;
@@ -782,12 +782,12 @@ class Tween extends BaseTween<Tween> {
     Tween targetRelative(final float... targetValues) {
         final int length = targetValues.length;
 
-        final boolean initialized = isInitialized();
+        final boolean started = isStarted();
         final float[] startValues = this.startValues;
 
         if (length > combinedAttrsLimit) throwCombinedAttrsLimitReached();
 		for (int i = 0; i < length; i++) {
-            this.targetValues[i] = initialized ? targetValues[i] + startValues[i] : targetValues[i];
+            this.targetValues[i] = started ? targetValues[i] + startValues[i] : targetValues[i];
 		}
 
 		isRelative = true;
@@ -1104,7 +1104,7 @@ class Tween extends BaseTween<Tween> {
         final Object target = this.target;
         final TweenEquation equation = this.equation;
 
-        if (target == null || equation == null || isFinished) {
+        if (target == null || equation == null) {
             return;
         }
 
@@ -1115,7 +1115,7 @@ class Tween extends BaseTween<Tween> {
          * When DURATION is not specified (is 0), it means that this object is either START value or END value. Delay still applies
          * to this. This is via Tween.set()
          */
-        if (duration == 0) {
+        if (duration == 0 || isFinished()) {
             if (animationDirection) {
                 if (time < 0) {
                     accessor.setValues(target, type, startValues);
@@ -1123,7 +1123,8 @@ class Tween extends BaseTween<Tween> {
                 else {
                     accessor.setValues(target, type, targetValues);
                 }
-            } else {
+            }
+            else {
                 if (time > 0) {
                     accessor.setValues(target, type, targetValues);
                 }
@@ -1133,19 +1134,32 @@ class Tween extends BaseTween<Tween> {
             }
 
             return;
-        }
+        } else {
+            // do we lock to start/end values when we are at or beyond start/end time
+            // --  don't even bother with calculating the tween equation value
+            // FORWARDS and REVERSE are different conditions
+            boolean insideLow;
+            boolean insideHigh;
+            if (animationDirection) {
+                insideLow = time >= 0;
+                // check for newTime >=0, because we can have negative time when in a repeat-delay
+                insideHigh = time < duration;
+            }
+            else {
+                insideLow = time > 0;
+                insideHigh = time <= duration;
+                // check for newTime <=duration, because we can have > duration time when in a repeat-delay
+            }
 
-
-
-        // do we lock to start/end values when we are at or beyond start/end time
-        // --  don't even bother with calculating the tween equation value
-        if (time <= 0) {
-            accessor.setValues(target, type, startValues);
-            return;
-        }
-        else if (time >= duration) {
-            accessor.setValues(target, type, targetValues);
-            return;
+            // outside our time bounds
+            if (!insideLow) {
+                accessor.setValues(target, type, startValues);
+                return;
+            }
+            else if (!insideHigh) {
+                accessor.setValues(target, type, targetValues);
+                return;
+            }
         }
 
         // Normal behavior
@@ -1203,17 +1217,17 @@ class Tween extends BaseTween<Tween> {
     @SuppressWarnings("unchecked")
     @Override
     public
-    <T extends BaseTween> T onUpdateStart(final TweenAction<T> action) {
+    Tween onUpdateStart(final TweenAction<Tween> action) {
         setUpdateStartEvent(action);
-        return (T) this;
+        return this;
     }
 
     @SuppressWarnings("unchecked")
     @Override
     public
-    <T extends BaseTween> T onUpdateEnd(final TweenAction<T> action) {
+    Tween onUpdateEnd(final TweenAction<Tween> action) {
         setUpdateEndEvent(action);
-        return (T) this;
+        return this;
     }
 
 	// -------------------------------------------------------------------------

@@ -58,20 +58,34 @@ import java.util.concurrent.CopyOnWriteArrayList;
 @SuppressWarnings("unused")
 public
 abstract class BaseTween<T> {
+    private enum STATE {
+        INIT,
+        /** After events are notified (so we don't keep notifying them) */
+        RUNNING,
+        PAUSED,
+        /** FINISHED means EVERYTHING (including repetitions) is done */
+        FINISHED, KILLED}
+
+    // we are a simple state machine...
+    private STATE currentState = STATE.INIT;
+    private STATE previousState = null;
+
 	// General
 	private int repeatCountOrig;
 	private int repeatCount;
-	private boolean insideDelay;
 	private boolean canAutoReverse;
 
 	// Timings
-	protected int delay;  // this is the initial delay at the start of a timeline/tween (only happens once).
-	protected int duration; // doesn't change while running
+    protected int startDelay;  // this is the initial delay at the start of a timeline/tween (only happens once). (doesn't change)
+	private int repeatDelay; // this is the delay when a timeline/tween is repeating (doesn't change)
 
-	private int repeatDelay;
+	protected int duration; // how long the timeline/tween runs (doesn't change)
+
 
     // represents the amount of time spent in the current iteration or delay
-    // package local because our timeline has to be able to adjust for delays when switching to reverse
+    // package local because our timeline has to be able to adjust for delays when initially building the system.
+    // when FORWARDS - if < 0, it is a delay
+    // when REVERSE - if > 0, it is a delay
     protected int currentTime;
 
     // Direction state
@@ -79,29 +93,27 @@ abstract class BaseTween<T> {
     private static final boolean REVERSE = false;
     private boolean direction = FORWARDS; // default state is forwards
 
-    private boolean triggerStartEvent;
-	private boolean isStarted; // TRUE when the object is started
-	private boolean isInitialized; // TRUE after the delay
-	private boolean isKilled; // TRUE if kill() was called
-	private boolean isPaused; // TRUE if pause() was called
-
+    /** Depending on the state, sometimes we trigger begin events */
     private boolean canTriggerBeginEvent;
     private boolean isInAutoReverse;
-
-    // TRUE when all repetitions are done, changed by timeline if direction
-    // changes since a tween might not have repetitions, but a timeline can
-    protected boolean isFinished;
 
 	// Misc
     private volatile long lightSyncObject = System.currentTimeMillis();
 	private List<TweenCallback> callbacks = new CopyOnWriteArrayList<TweenCallback>();
 	private Object userData;
 
+    private static final TweenAction NULL_ACTION = new TweenAction<Object>() {
+        @Override
+        public
+        void action(final Object tween) {
+        }
+    };
+
 	// Package access
 	boolean isAutoRemoveEnabled;
 	boolean isAutoStartEnabled;
-    private TweenAction updateStartEvent;
-    private TweenAction updateEndEvent;
+    private TweenAction updateStartEvent = NULL_ACTION;
+    private TweenAction updateEndEvent = NULL_ACTION;
 
 
     // -------------------------------------------------------------------------
@@ -109,11 +121,12 @@ abstract class BaseTween<T> {
 	protected
     void reset() {
         repeatCount = repeatCountOrig = 0;
-        insideDelay = true;
 
-        delay = duration = repeatDelay = currentTime = 0;
-        isStarted = isInitialized = isFinished = isKilled = isPaused = false;
-        triggerStartEvent = isInAutoReverse = false;
+        previousState = null;
+        currentState = STATE.INIT;
+
+        duration = repeatDelay = currentTime = 0;
+        isInAutoReverse = false;
         canTriggerBeginEvent = true;
 
         callbacks.clear();
@@ -179,6 +192,15 @@ abstract class BaseTween<T> {
 
 
     /**
+     * Adjusts the startDelay of the tween/timeline during initialization
+     * @param startDelay how many milliSeconds to adjust the start delay
+     */
+    protected void adjustStartDelay(final int startDelay) {
+        this.startDelay += startDelay;
+    }
+
+
+    /**
      * Clears all of the callback.
      */
     @SuppressWarnings("unchecked")
@@ -190,7 +212,7 @@ abstract class BaseTween<T> {
     }
 
 	/**
-	 * Adds a delay to the tween or timeline in seconds.
+	 * Adds a start delay to the tween or timeline in MilliSeconds.
 	 *
 	 * @param delay A duration in MilliSeconds
      *
@@ -201,14 +223,22 @@ abstract class BaseTween<T> {
     T delay(final int delay) {
         flushRead();
 
-        if (isStarted) {
+        if (currentState != STATE.INIT) {
             throw new RuntimeException("You can't modify the delay if it is already started");
         }
 
-        this.delay += delay;
+        this.startDelay += delay;
         flushWrite();
 
         return (T) this;
+    }
+
+    private
+    void changeState(final STATE previousState, final STATE currentState, final STATE newState) {
+        if (previousState != currentState) {
+            this.previousState = currentState;
+            this.currentState = newState;
+        }
     }
 
     /**
@@ -217,7 +247,7 @@ abstract class BaseTween<T> {
 	 */
 	public
     void kill() {
-        isKilled = true;
+        changeState(previousState, currentState, STATE.KILLED);
         flushWrite();
 	}
 
@@ -237,16 +267,18 @@ abstract class BaseTween<T> {
 	 */
 	public
     void pause() {
-        isPaused = true;
+        changeState(previousState, currentState, STATE.PAUSED);
         flushWrite();
 	}
 
 	/**
-	 * Resumes the tween or timeline. Has no effect is it was no already paused.
+	 * Resumes the tween or timeline to it's previous state. Has no effect is it was not already paused.
 	 */
 	public
     void resume() {
-        isPaused = false;
+        if (currentState == STATE.PAUSED) {
+            changeState(previousState, currentState, previousState);
+        }
         flushWrite();
 	}
 
@@ -264,11 +296,8 @@ abstract class BaseTween<T> {
     T repeat(final int count, final int delayMilliSeconds) {
         flushRead();
 
-        if (isStarted) {
+        if (currentState != STATE.INIT) {
             throw new RuntimeException("You can't change the repetitions of a tween or timeline once it is started");
-        }
-        if (delay < 0) {
-            throw new RuntimeException("You can't have a negative delay");
         }
 
         repeatCountOrig = count;
@@ -328,8 +357,15 @@ abstract class BaseTween<T> {
     public
     T start() {
         build();
+        // initialize all of the starting values
         currentTime = 0;
-        isStarted = true;
+        initialize();
+
+        canTriggerBeginEvent = true;
+        currentTime = -startDelay;
+
+        changeState(previousState, currentState, STATE.RUNNING);
+
         flushWrite();
         return (T) this;
     }
@@ -365,9 +401,9 @@ abstract class BaseTween<T> {
 	 * this delay.
 	 */
 	public
-    int getDelay() {
+    int getStartDelay() {
         flushRead();
-        return delay;
+        return startDelay;
 	}
 
 	/**
@@ -393,7 +429,7 @@ abstract class BaseTween<T> {
         if (repeatCountOrig < 0) {
             return -1;
         }
-        return delay + duration + ((repeatDelay + duration) * repeatCountOrig);
+        return startDelay + duration + ((repeatDelay + duration) * repeatCountOrig);
     }
 
 	/**
@@ -430,7 +466,14 @@ abstract class BaseTween<T> {
     public final
     boolean isInsideDelay() {
         flushRead();
-        return insideDelay;
+
+        final int time = currentTime;
+        if (direction) {
+            return time < 0 || time >= duration;
+        }
+        else {
+            return time <=0 || time > duration;
+        }
     }
 
     /**
@@ -454,18 +497,7 @@ abstract class BaseTween<T> {
 	public
     boolean isStarted() {
         flushRead();
-        return isStarted;
-	}
-
-	/**
-	 * Returns true if the tween or timeline has been initialized. Starting
-	 * values for tweens are stored at initialization time. This initialization
-	 * takes place right after the initial delay, if any.
-	 */
-	public
-    boolean isInitialized() {
-        flushRead();
-        return isInitialized;
+        return currentState != STATE.INIT;
 	}
 
 	/**
@@ -479,7 +511,8 @@ abstract class BaseTween<T> {
 	public
     boolean isFinished() {
         flushRead();
-        return isFinished || isKilled;
+        final STATE state = currentState;
+        return state == STATE.FINISHED || state == STATE.KILLED;
 	}
 
 	/**
@@ -497,12 +530,18 @@ abstract class BaseTween<T> {
 	public
     boolean isPaused() {
         flushRead();
-        return isPaused;
+        return currentState == STATE.PAUSED;
 	}
 
 	// -------------------------------------------------------------------------
 	// Abstract API
 	// -------------------------------------------------------------------------
+
+    public abstract
+    T onUpdateStart(final TweenAction<T> action);
+
+    public abstract
+    T onUpdateEnd(final TweenAction<T> action);
 
     protected abstract
     boolean containsTarget(final Object target);
@@ -554,6 +593,18 @@ abstract class BaseTween<T> {
         }
     }
 
+    protected
+    void setUpdateStartEvent(final TweenAction<T> updateStartEvent) {
+        this.updateStartEvent = updateStartEvent;
+        flushWrite();
+    }
+
+    protected
+    void setUpdateEndEvent(final TweenAction<T> updateEndEvent) {
+        this.updateEndEvent = updateEndEvent;
+        flushWrite();
+    }
+
     // -------------------------------------------------------------------------
 	// Update engine
 	// -------------------------------------------------------------------------
@@ -576,6 +627,7 @@ abstract class BaseTween<T> {
     public
     void update(final float delta) {
         // from: http://nicolas.limare.net/pro/notes/2014/12/12_arit_speed/
+        // https://software.intel.com/en-us/forums/watercooler-catchall/topic/306267
         //    Floating-point operations are always slower than integer ops at same data size.
         // internally we also want to use INTEGER, since we want consistent timelines
         final int deltaMilliSeconds = (int) (delta * 1000F);
@@ -583,22 +635,9 @@ abstract class BaseTween<T> {
         update(deltaMilliSeconds);
     }
 
-
     protected
-    void forceRestart(final int restartAdjustment) {
-        // reset to beginning
-        insideDelay = false;
-        isFinished = false;
-        canTriggerBeginEvent = false;
-        triggerStartEvent = true;
-        currentTime += restartAdjustment;
-    }
-
-    protected
-    void addRepeatDelay(final int repeatDelay) {
-        currentTime += repeatDelay;
-        // makes sure that (for all children this is called on), that they are registered as "finished", so states properly transition
-        isFinished = true;
+    void adjustTime(final int offset) {
+        currentTime += offset;
     }
 
     /**
@@ -619,13 +658,22 @@ abstract class BaseTween<T> {
         // redone by dorkbox, llc
         flushRead();
 
-        if (!isStarted || isPaused || isKilled) {
-            return;
+        {
+            STATE state = currentState;
+            if (state == STATE.INIT || state == STATE.PAUSED || state == STATE.KILLED) {
+                return;
+            }
         }
 
-        final TweenAction updateStartEvent = this.updateStartEvent;
-        if (updateStartEvent != null) {
-            updateStartEvent.action(this);
+        updateStartEvent.action(this);
+
+        // by DEFAULT, 0 means we are going FORWARDS
+        if (delta == 0) {
+            doUpdate(FORWARDS, delta);
+
+            flushWrite();
+            updateEndEvent.action(this);
+            return;
         }
 
         if (isInAutoReverse) {
@@ -633,41 +681,8 @@ abstract class BaseTween<T> {
         }
 
         // the INITIAL, incoming delta from the app, will be positive or negative.
-        final boolean direction = delta >= 0;
+        boolean direction = delta > 0;
         this.direction = direction;
-
-        // This is NOT final, because it's possible to change directions
-        int originalDelta = delta;
-
-        if (!isInitialized) {
-            final int newTime = currentTime + delta;
-
-            // only start running if we have passed the specified delay in the FORWARDS direction. (tweens must always start off forwards)
-            if (newTime < delay) {
-                // shortcut out so we don't have to worry about any other checks
-                currentTime = newTime;
-
-                final TweenAction updateEndEvent = this.updateEndEvent;
-                if (updateEndEvent != null) {
-                    updateEndEvent.action(this);
-                }
-                flushWrite();
-                return;
-            }
-            else {
-                initialize();
-
-                isInitialized = true;
-                insideDelay = false;
-
-                // we have to make adjustments, since we just passed the delay, and the ACTUAL delta that is used, is the
-                // part past the delay
-                originalDelta = newTime - delay;
-                delta = originalDelta;
-                currentTime = 0;
-                triggerStartEvent = true;
-            }
-        }
 
         final int duration = this.duration;
 
@@ -700,8 +715,10 @@ abstract class BaseTween<T> {
          *
          */
 
-        // forwards always goes from 0 -> duration
-        // reverse always goes from duration -> 0
+        // FORWARDS -> 0 >= X < duration
+        // REVERSE  -> 0 > X <= duration (reverse always goes from duration -> 0)
+
+
         // canAutoReverse - only present with repeatDelay, and will cause an animation to reverse once iteration + repeatDelay is complete
 
         /* DELAY: endpoints are
@@ -723,380 +740,288 @@ abstract class BaseTween<T> {
         // - we are running
 
         // TRANSITIONS
-        //  startDelay -> running
+        //  startDelay/repeatDelay -> running
         //  running -> finished
         //  running -> repeat (current direction) + repeatDelay
         //  running -> repeat (opposite direction) + repeatDelay
-        //  repeatDelay -> running
         //  finished -> running (forceRestart, when repeats/reverse occurs)
 
-        int newTime = currentTime + delta;
 
-        if (direction) {
-            // {FORWARDS}
-            // <editor-fold>
+        do {
+            int newTime = currentTime + delta;
 
-            // FORWARDS and REVERSE are different conditions
-            boolean insideLow = newTime >= 0;
-            // check for newTime >=0, because we can have negative time when in a repeat-delay
-            boolean insideHigh = newTime < duration;
+            if (direction) {
+                // {FORWARDS}
+                // <editor-fold>
 
-            if (isFinished) {
-                if (insideLow && insideHigh) {
-                    // we reversed somewhere, and now should be back running again.
-                    isFinished = false;
-                    insideDelay = false;
-                    triggerStartEvent = true;
+                // FORWARDS and REVERSE are different conditions
+                boolean insideLow = newTime >= 0;
+                // newTime >= 0 because delays in FORWARDS are negative
+                boolean insideHigh = newTime < duration;
+
+                if (currentState == STATE.FINISHED) {
+                    if (insideLow && insideHigh) {
+                        // we reversed somewhere, and now should be back running again.
+                        changeState(previousState, currentState, previousState);
+                    }
+                    else {
+                        // the time that a tween/timeline runs over when it is done running, so reversing still correctly tracks, etc
+                        currentTime = newTime;
+
+                        doUpdate(FORWARDS, delta);
+                        break;
+                    }
+                }
+                else if (!insideLow) {
+                    // is there a delay (start or repeat) in the timeline/tween? (in the FORWARDS direction, newTime will be < 0)
+
+                    // shortcut out so we don't have to worry about any other checks
+                    currentTime = newTime;
+
+                    doUpdate(FORWARDS, delta); // have to keep tracking time for children
+                    break;
+                }
+                // we are running normally, can get here from other states
+
+
+                if (insideHigh) {
+                    if (currentTime < 0) {
+                        currentTime = 0;
+                        if (canTriggerBeginEvent) {
+                            canTriggerBeginEvent = false;
+                            callCallbacks(TweenCallback.Events.BEGIN);
+                        }
+
+                        callCallbacks(TweenCallback.Events.START);
+                    }
+
+                    currentTime = newTime;
+                    doUpdate(FORWARDS, delta);
+                    break;
+                }
+                // we have gone past our iteration point
+
+
+                // make sure that we manage our children BEFORE we do anything else!
+                // we use originalDelta here because we have to trickle-down the logic to all children. If we use delta, the incorrect value
+                // will trickle-down
+                doUpdate(FORWARDS, delta);
+
+                // adjust the delta so that it is shifted based on the length of (previous) iteration
+                delta = newTime - duration;
+
+                // set our currentTime for the callbacks to be accurate and updates to lock to start/end values
+                currentTime = duration;
+
+                callCallbacks(TweenCallback.Events.END);
+
+
+                final int repeatCountStack = repeatCount;
+                ////////////////////////////////////////////
+                ////////////////////////////////////////////
+                // 1) we are done running completely
+                // 2) we flip to auto-reverse repeat mode
+                // 3) we are in linear repeat mode
+                if (repeatCountStack == 0) {
+                    // {FORWARDS}{FINISHED}
+                    // no repeats left, so we're done. -1 means repeat forever
+
+                    // TRANSITION to finished
+                    // really are done (so no more event notification loops)
+                    changeState(previousState, currentState, STATE.FINISHED);
+                    isInAutoReverse = false;
+
+                    // we're done going forwards
+                    canTriggerBeginEvent = true;
+                    callCallbacks(TweenCallback.Events.COMPLETE);
+
+                    // now adjust the time so PARENT reversing/etc works
+                    currentTime = newTime;
+
+                    // nothing left to do
+                    break;
+                }
+                else if (canAutoReverse) {
+                    // {FORWARDS}{AUTO_REVERSE}
+                    if (repeatCountStack > 0) {
+                        // -1 means repeat forever
+                        repeatCount--;
+                    }
+
+                    callCallbacks(TweenCallback.Events.COMPLETE);
+
+                    // we're done going forwards
+                    canTriggerBeginEvent = true;
+                    isInAutoReverse = !isInAutoReverse; // if we are NOT in autoReverse, then "isInAutoReverse" is true if we reverse
+
+                    // make sure any checks after this returns accurately reflect the correct REVERSE direction
+                    direction = false;
+                    this.direction = false;
+
+                    delta = -delta;
+                    currentTime = newTime;
+
+                    // any extra time (what's left in delta) will be applied/calculated on the next loop around
+                    adjustTime(repeatDelay - delta);  // delta is negative, we want to offset it
                 }
                 else {
-                    // the time that a tween/timeline runs over when it is done running, so reversing still correctly tracks delays, etc
+                    // {FORWARDS}{LINEAR}
+                    if (repeatCountStack > 0) {
+                        // -1 means repeat forever
+                        repeatCount--;
+                    }
+
+                    isInAutoReverse = false;
                     currentTime = newTime;
 
-                    doUpdate(FORWARDS, originalDelta);
-
-                    final TweenAction updateEndEvent = this.updateEndEvent;
-                    if (updateEndEvent != null) {
-                        updateEndEvent.action(this);
-                    }
-                    flushWrite();
-                    return;
+                    // any extra time (what's left in delta) will be applied/calculated on the next loop around
+                    adjustTime(-newTime - repeatDelay);
                 }
+
+                // </editor-fold>
             }
-            else if (insideDelay) {
-                if (!insideLow) {
-                    // still inside our repeat delay, since repeat delay is always negative (going forwards)
-
-                    // adjust our time
-                    currentTime = newTime;
-
-                    // return because we have to make sure that our children are updated (to preserve reversing delays/behavior)
-                    doUpdate(FORWARDS, originalDelta);
-
-                    final TweenAction updateEndEvent = this.updateEndEvent;
-                    if (updateEndEvent != null) {
-                        updateEndEvent.action(this);
-                    }
-                    flushWrite();
-                    return;
-                } else {
-                    // TRANSITION to cycle
-                    // have to offset currentTime, so currentTime + (repeatDelay + (-duration)) ==> 0
-                    currentTime = duration - repeatDelay + originalDelta;
-                    forceRestart(0);
-
-                    insideLow = true;
-                    insideHigh = true;
-                    canTriggerBeginEvent = true;
-                    // continue to running normally
-                }
-            }
-            // we are running normally, can get here from other states
-
-
-            if (insideHigh) {
-                if (insideLow && triggerStartEvent) {
-                    currentTime = 0; // this is reset below...
-                    triggerStartEvent = false;
-                    if (canTriggerBeginEvent) {
-                        canTriggerBeginEvent = false;
-                        callCallbacks(TweenCallback.Events.BEGIN);
-                    }
-
-                    callCallbacks(TweenCallback.Events.START);
-                }
-
-                currentTime = newTime;
-                doUpdate(FORWARDS, originalDelta);
-
-                final TweenAction updateEndEvent = this.updateEndEvent;
-                if (updateEndEvent != null) {
-                    updateEndEvent.action(this);
-                }
-                flushWrite();
-                return;
-            }
-
-            // we have gone past our iteration point
-
-            // adjust the delta so that it is shifted based on the length of (previous) iteration
-            delta = newTime - duration;
-
-            // set our currentTime for the callbacks to be accurate and updates to lock to start/end values
-            currentTime = duration;
-
-            // flip our state
-            insideDelay = true;
-
-            // make sure that we manage our children BEFORE we do anything else!
-            // we use originalDelta here because we have to trickle-down the logic to all children. If we use delta, the incorrect value
-            // will trickle-down
-            doUpdate(FORWARDS, originalDelta);
-
-            callCallbacks(TweenCallback.Events.END);
-
-            final int repeatCountStack = repeatCount;
-            ////////////////////////////////////////////
-            ////////////////////////////////////////////
-            // 1) we are done running completely
-            // 2) we flip to auto-reverse repeat mode
-            // 3) we are in linear repeat mode
-            if (repeatCountStack == 0) {
-                // {FORWARDS}{FINISHED}
-                // no repeats left, so we're done. -1 means repeat forever
-
-                // TRANSITION to finished
-                // really are done (so no more event notification loops)
-                isFinished = true;
-                isInAutoReverse = false;
-
-                // we're done going forwards
-                canTriggerBeginEvent = true;
-                callCallbacks(TweenCallback.Events.COMPLETE);
-
-                // now adjust the time so PARENT reversing/etc works
-                currentTime = duration + delta;
-            }
-            else if (canAutoReverse) {
-                // {FORWARDS}{AUTO_REVERSE}
-                if (repeatCountStack > 0) {
-                    // -1 means repeat forever
-                    repeatCount--;
-                }
-
-                // we're done going forwards
-                canTriggerBeginEvent = true;
-                isInAutoReverse = !isInAutoReverse; // if we are NOT in autoReverse, then "isInAutoReverse" is true if we reverse
-                this.direction = false; // make sure any checks after this returns accurately reflect the correct direction
-
-                callCallbacks(TweenCallback.Events.COMPLETE);
-
-                // setup delays, if there are any. have to adjust for any "extra" time wrapped beyond duration
-                // *2 because our children will have delta added from update, we have to offset it. currentTime = delta so the math
-                // applies equally to all
-                currentTime = delta;
-                addRepeatDelay(repeatDelay - (2 * delta));
-
-                // has to be after addRepeatDelay()
-                isFinished = false;
-            } else {
-                // {FORWARDS}{LINEAR}
-                if (repeatCountStack > 0) {
-                    // -1 means repeat forever
-                    repeatCount--;
-                }
-
-                //  have to adjust for any "extra" time wrapped beyond duration
-                currentTime = delta + duration;
-                forceRestart(-duration);
-                addRepeatDelay(-repeatDelay);
-
-                // have to re-put back settings, has to be after addRepeatDelay()
-                insideDelay = true;
-                isFinished = false;
-                isInAutoReverse = false;
-            }
-
-            final TweenAction updateEndEvent = this.updateEndEvent;
-            if (updateEndEvent != null) {
-                updateEndEvent.action(this);
-            }
-            flushWrite();
-            // </editor-fold>
-        }
-        ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-        ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-        ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-        else {
-            // {REVERSE}
-            // <editor-fold>
-
-            // FORWARDS and REVERSE are different conditions
-            boolean insideLow = newTime > 0;
-            boolean insideHigh = newTime <= duration;
-            // check for newTime <=duration, because we can have > duration time when in a repeat-delay
-
-            if (isFinished) {
-                if (insideLow && insideHigh) {
-                    // we reversed somewhere, and now should be back running again.
-                    isFinished = false;
-                    insideDelay = false;
-                    triggerStartEvent = true;
-                }
-                else {
-                    // the time that a tween/timeline runs over when it is done running, so reversing still correctly tracks delays, etc
-                    currentTime = newTime;
-
-                    doUpdate(REVERSE, originalDelta);
-
-                    final TweenAction updateEndEvent = this.updateEndEvent;
-                    if (updateEndEvent != null) {
-                        updateEndEvent.action(this);
-                    }
-                    flushWrite();
-                    return;
-                }
-            }
-            else if (insideDelay) {
-                if (insideLow) {
-                    // still inside our repeat delay, since repeat delay is always positive (going reverse)
-
-                    // adjust our time
-                    currentTime = newTime;
-
-                    // return because we have to make sure that our children are updated (to preserve reversing delays/behavior)
-                    doUpdate(REVERSE, originalDelta);
-
-                    final TweenAction updateEndEvent = this.updateEndEvent;
-                    if (updateEndEvent != null) {
-                        updateEndEvent.action(this);
-                    }
-                    flushWrite();
-                    return;
-                } else {
-                    // have to specify that the children should restart
-                    delta = newTime;
-                    newTime = duration + delta; // delta is negative here
-
-                    // have to offset currentTime, so currentTime + (repeatDelay + (0)) ==> duration
-                    currentTime = duration - repeatDelay + originalDelta;
-                    forceRestart(0);
-
-                    insideLow = true;
-                    insideHigh = true;
-                    canTriggerBeginEvent = true;
-                    // continue to running normally
-                }
-            }
-            // we are running normally, can get here from other states
-
-
-            if (insideLow) {
-                if (insideHigh && triggerStartEvent) {
-                    currentTime = duration; // this is reset below...
-                    triggerStartEvent = false;
-                    if (canTriggerBeginEvent) {
-                        canTriggerBeginEvent = false;
-                        callCallbacks(TweenCallback.Events.BACK_BEGIN);
-                    }
-
-                    callCallbacks(TweenCallback.Events.BACK_START);
-                }
-
-                currentTime = newTime;
-
-                doUpdate(REVERSE, originalDelta);
-
-                final TweenAction updateEndEvent = this.updateEndEvent;
-                if (updateEndEvent != null) {
-                    updateEndEvent.action(this);
-                }
-                flushWrite();
-                return;
-            }
-
-            // we have gone past our iteration point
-
-            delta = newTime;
-
-            // set our currentTime for the callbacks to be accurate
-            currentTime = 0;
-
-            // make sure that we manage our children BEFORE we do anything else!
-            // we use originalDelta here because we have to trickle-down the logic to all children. If we use delta, the incorrect value
-            // will trickle-down
-            doUpdate(REVERSE,  originalDelta);
-
-            callCallbacks(TweenCallback.Events.BACK_END);
-
-            // flip our state
-            insideDelay = true;
-
-            final int repeatCountStack = repeatCount;
-            ////////////////////////////////////////////
-            ////////////////////////////////////////////
-            // 1) we are done running completely
-            // 2) we flip to auto-reverse
-            // 3) we are in linear repeat mode
-            if (repeatCountStack == 0) {
-                // {REVERSE}{FINISHED}
-                // no repeats left, so we're done, -1 means repeat forever
-
-                // really are done (so no more event notification loops)
-                isFinished = true;
-                isInAutoReverse = false;
-
-                // we're done going forwards
-                callCallbacks(TweenCallback.Events.BACK_COMPLETE);
-                canTriggerBeginEvent = true;
-
-                // now adjust the time so PARENT reversing/etc works
-                currentTime = newTime;
-            }
-            else if (canAutoReverse) {
-                // {REVERSE}{AUTO_REVERSE}
-                if (repeatCountStack > 0) {
-                    // -1 means repeat forever
-                    repeatCount--;
-                }
-
-                // we're done going forwards
-                canTriggerBeginEvent = true;
-                isInAutoReverse = !isInAutoReverse; // if we are NOT in autoReverse, then "isInAutoReverse" is true if we reverse
-                callCallbacks(TweenCallback.Events.BACK_COMPLETE);
-                this.direction = true; // make sure any checks after this returns accurately reflect the correct direction
-
-                // setup delays, if there are any. have to adjust for any "extra" time wrapped beyond duration
-                // *2 because our children will have delta added from update, we have to offset it. currentTime = delta so the math
-                // applies equally to all
-                currentTime = delta;
-                addRepeatDelay(-repeatDelay - (2 * delta));
-
-                // has to be after addRepeatDelay()
-                isFinished = false;
-            }
+            ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+            ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+            ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
             else {
-                // {REVERSE}{LINEAR}
-                if (repeatCountStack > 0) {
-                    // -1 means repeat forever
-                    repeatCount--;
+                // {REVERSE}
+                // <editor-fold>
+
+                // FORWARDS and REVERSE are different conditions
+                boolean insideLow = newTime > 0;
+                boolean insideHigh = newTime <= duration;
+                // check for newTime <=duration, because we can have > duration time when in a repeat-delay
+
+                if (currentState == STATE.FINISHED) {
+                    if (insideLow && insideHigh) {
+                        // we reversed somewhere, and now should be back running again.
+                        changeState(previousState, currentState, previousState);
+                    }
+                    else {
+                        // the time that a tween/timeline runs over when it is done running, so reversing still correctly tracks delays, etc
+                        currentTime = newTime;
+
+                        doUpdate(REVERSE, delta);
+                        break;
+                    }
+                }
+                else if (!insideHigh) {
+                    // is there a delay (start or repeat) in the timeline/tween? (in the REVERSE direction, newTime will be > duration)
+
+                    // shortcut out so we don't have to worry about any other checks
+                    currentTime = newTime;
+
+                    doUpdate(REVERSE, delta); // have to keep tracking time for children
+                    break;
+                }
+                // we are running normally, can get here from other states
+
+
+                if (insideLow) {
+                    if (currentTime > duration) {
+                        currentTime = duration; // this is reset below...
+                        if (canTriggerBeginEvent) {
+                            canTriggerBeginEvent = false;
+                            callCallbacks(TweenCallback.Events.BACK_BEGIN);
+                        }
+
+                        callCallbacks(TweenCallback.Events.BACK_START);
+                    }
+
+                    currentTime = newTime;
+                    doUpdate(REVERSE, delta);
+                    break;
+                }
+                // we have gone past our iteration point
+
+
+                // make sure that we manage our children BEFORE we do anything else!
+                // we use originalDelta here because we have to trickle-down the logic to all children. If we use delta, the incorrect value
+                // will trickle-down
+                doUpdate(REVERSE, delta);
+
+                delta = newTime;
+
+                // set our currentTime for the callbacks to be accurate
+                currentTime = 0;
+
+                callCallbacks(TweenCallback.Events.BACK_END);
+
+                final int repeatCountStack = repeatCount;
+                ////////////////////////////////////////////
+                ////////////////////////////////////////////
+                // 1) we are done running completely
+                // 2) we flip to auto-reverse
+                // 3) we are in linear repeat mode
+                if (repeatCountStack == 0) {
+                    // {REVERSE}{FINISHED}
+                    // no repeats left, so we're done, -1 means repeat forever
+
+                    // really are done (so no more event notification loops)
+                    changeState(previousState, currentState, STATE.FINISHED);
+                    isInAutoReverse = false;
+
+                    // we're done going forwards
+                    callCallbacks(TweenCallback.Events.BACK_COMPLETE);
+                    canTriggerBeginEvent = true;
+
+                    // now adjust the time so PARENT reversing/etc works
+                    currentTime = newTime;
+
+                    // nothing left to do
+                    break;
+                }
+                else if (canAutoReverse) {
+                    // {REVERSE}{AUTO_REVERSE}
+                    if (repeatCountStack > 0) {
+                        // -1 means repeat forever
+                        repeatCount--;
+                    }
+
+                    callCallbacks(TweenCallback.Events.BACK_COMPLETE);
+
+                    // we're done going forwards
+                    canTriggerBeginEvent = true;
+                    isInAutoReverse = !isInAutoReverse; // if we are NOT in autoReverse, then "isInAutoReverse" is true if we reverse
+
+                    // make sure any checks after this returns accurately reflect the correct REVERSE direction
+                    direction = true;
+                    this.direction = true;
+
+                    delta = -delta;
+                    currentTime = newTime;
+
+                    // any extra time (what's left in delta) will be applied/calculated on the next loop around
+                    adjustTime(-repeatDelay + delta);  // delta is negative, we want to offset it
+                }
+                else {
+                    // {REVERSE}{LINEAR}
+                    if (repeatCountStack > 0) {
+                        // -1 means repeat forever
+                        repeatCount--;
+                    }
+
+                    isInAutoReverse = false;
+                    currentTime = newTime;
+
+                    // any extra time (what's left in delta) will be applied/calculated on the next loop around
+                    adjustTime(newTime + repeatDelay);
                 }
 
-                //  have to adjust for any "extra" time wrapped beyond duration
-                currentTime = delta - duration;
-                forceRestart(duration);
-                addRepeatDelay(repeatDelay);
-
-                // have to re-put back settings, has to be after addRepeatDelay()
-                insideDelay = true;
-                isFinished = false;
-                isInAutoReverse = false;
+                // </editor-fold>
             }
 
-            final TweenAction updateEndEvent = this.updateEndEvent;
-            if (updateEndEvent != null) {
-                updateEndEvent.action(this);
-            }
-            flushWrite();
-            // </editor-fold>
-        }
-    }
+        } while (true);
 
-    protected
-    <T extends BaseTween> void setUpdateStartEvent(final TweenAction<T> updateStartEvent) {
-        this.updateStartEvent = updateStartEvent;
         flushWrite();
+        updateEndEvent.action(this);
     }
 
-    protected
-    <T extends BaseTween> void setUpdateEndEvent(final TweenAction<T> updateEndEvent) {
-        this.updateEndEvent = updateEndEvent;
-        flushWrite();
+    public char name = 't';
+
+    @Override
+    public
+    String toString() {
+        return "" + name;
     }
-
-
-    public abstract
-    <T extends BaseTween> T onUpdateStart(final TweenAction<T> action);
-
-    public abstract
-    <T extends BaseTween> T onUpdateEnd(final TweenAction<T> action);
 }

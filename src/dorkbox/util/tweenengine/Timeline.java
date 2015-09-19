@@ -347,9 +347,9 @@ class Timeline extends BaseTween<Timeline> {
 	// Overrides
 	// -------------------------------------------------------------------------
 
-	@SuppressWarnings("FieldRepeatedlyAccessedInMethod")
+    @SuppressWarnings("FieldRepeatedlyAccessedInMethod")
     @Override
-	public
+    public
     Timeline build() {
         flushRead();
         if (isBuilt) {
@@ -370,36 +370,52 @@ class Timeline extends BaseTween<Timeline> {
                 case SEQUENCE:
                     final int tDelay = duration;
                     duration += obj.getFullDuration();
-                    obj.delay += tDelay;
+                    obj.startDelay += tDelay;
                     break;
 
                 case PARALLEL:
                     duration = Math.max(duration, obj.getFullDuration());
+                    obj.startDelay += duration;
                     break;
             }
         }
 
+        adjustStartDelay(startDelay);
+
         isBuilt = true;
 
         flushWrite();
-		return this;
-	}
+        return this;
+    }
 
-	@Override
+
+    /**
+     * Adjusts the startDelay of the tween/timeline during initialization
+     * @param startDelay how many milliSeconds to adjust the start delay
+     */
+    protected void adjustStartDelay(final int startDelay) {
+        for (int i = 0, n = children.size(); i < n; i++) {
+            final BaseTween<?> obj = children.get(i);
+            obj.adjustStartDelay(startDelay);
+        }
+    }
+
+    @Override
 	public
     Timeline start() {
         flushRead();
         super.start();
 
         int size = children.size();
-        for (int i = 0; i < size; i++) {
-            final BaseTween<?> obj = children.get(i);
-            obj.start();
-        }
 
         // setup our children array, so update iterations are faster
         childrenArray = new BaseTween[size];
         children.toArray(childrenArray);
+
+        for (int i = 0; i < size; i++) {
+            final BaseTween<?> obj = childrenArray[i];
+            obj.start();
+        }
 
         flushWrite();
         return this;
@@ -422,50 +438,39 @@ class Timeline extends BaseTween<Timeline> {
 
     @Override
     protected final
-    void addRepeatDelay(final int repeatDelay) {
-        super.addRepeatDelay(repeatDelay);
+    void adjustTime(final int repeatDelay) {
+        super.adjustTime(repeatDelay);
 
         for (int i = 0, n = childrenArray.length; i < n; i++) {
             final BaseTween<?> tween = childrenArray[i];
-            tween.addRepeatDelay(repeatDelay);
+            tween.adjustTime(repeatDelay);
         }
     }
 
     @SuppressWarnings("unchecked")
     @Override
     public
-    <T extends BaseTween> T onUpdateStart(final TweenAction<T> action) {
+    Timeline onUpdateStart(final TweenAction<Timeline> action) {
         flushRead();
         if (isBuilt) {
             throw new RuntimeException("You can't set events on a timeline once it is started");
         }
 
         setUpdateStartEvent(action);
-        return (T) this;
+        return this;
     }
 
     @SuppressWarnings("unchecked")
     @Override
     public
-    <T extends BaseTween> T onUpdateEnd(final TweenAction<T> action) {
+    Timeline onUpdateEnd(final TweenAction<Timeline> action) {
         flushRead();
         if (isBuilt) {
             throw new RuntimeException("You can't set events on a timeline once it is started");
         }
 
         setUpdateEndEvent(action);
-        return (T) this;
-    }
-
-    @Override
-    protected final
-    void forceRestart(final int restartAdjustment) {
-        super.forceRestart(restartAdjustment);
-
-        for (int i = 0, n = childrenArray.length; i < n; i++) {
-            final BaseTween<?> tween = childrenArray[i];
-            tween.forceRestart(restartAdjustment);
-        }
+        return this;
     }
 
     @Override

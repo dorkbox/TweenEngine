@@ -176,9 +176,10 @@ class ConsoleTests {
         // if the delta step doesn't line up with duration or delays, it won't line up. The event order/notifications will be
         // correct.
 //        int dt = 25;
-//        int dt = 50;
 //        int dt = 23;
+//        int dt = 50;
         int dt = 51;
+//        int dt = 1003 + 250;
         Bugtest[] bugs;
 
 
@@ -202,8 +203,8 @@ class ConsoleTests {
                                     .end()
 //                                    .repeatAutoReverse(1, 500)
 //                                    .repeatAutoReverse(2, 500)
-//                                    .repeatAutoReverse(4, 500)
-                                    .repeat(1, 500)
+                                    .repeatAutoReverse(4, 500)
+//                                    .repeat(1, 500)
 //                                    .repeat(4, 500)
 //                                    .repeat(Tween.INFINITY, 500)
 //                                    .onUpdateStart(new TweenAction<Timeline>() {
@@ -220,14 +221,16 @@ class ConsoleTests {
 //                                            System.out.println("end update");
 //                                        }
 //                                    })
-                                    .start();
+                                    ;
+
+        timeline.name = '*';
+        timeline.start();
 
         boolean permitFlip = false;
 
-
         boolean flipped = false;
-        while (!timeline.isFinished()) {
-            if (permitFlip && !flipped && timeline.getCurrentTime() >= 1500) {
+        do {
+            if (permitFlip && !flipped && timeline.getCurrentTime() >= 500) {
                 flipped = true;
                 dt = -dt;
             }
@@ -237,10 +240,10 @@ class ConsoleTests {
             drawConsole(timeline, terminalwidth, bugs);
 
             try {
-                Thread.sleep(50);
+                Thread.sleep(30);
             } catch (Throwable ignored) {
             }
-        }
+        } while (!timeline.isFinished());
     }
 
     private static
@@ -258,7 +261,8 @@ class ConsoleTests {
         }
 
         System.out.print(prog);
-        System.out.print(String.format(Locale.US, "\t%s:%4d", timeline.getDirection() ? "F" : "R", timeline.getCurrentTime()));
+        System.out.print(String.format(Locale.US, "\t%s:%4d%s", timeline.getDirection() ? "F" : "R", timeline.getCurrentTime(), timeline.isFinished() ? "*" : " ") +
+                         (timeline.isInsideDelay() ? "D" : " "));
 
         for (int i = 0; i < bugs.length; i++) {
             Bugtest bug = bugs[i];
@@ -296,6 +300,7 @@ class ConsoleTests {
             this.name = name;
             t = Tween.to(this, 0, 1000)
                      .target(1).addCallback(buildCallback(""+name, TweenCallback.Events.ANY));
+            t.name = name;
         }
     }
 }
