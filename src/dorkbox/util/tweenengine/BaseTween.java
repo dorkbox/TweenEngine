@@ -767,7 +767,6 @@ abstract class BaseTween<T> {
                     else {
                         // the time that a tween/timeline runs over when it is done running, so reversing still correctly tracks, etc
                         currentTime = newTime;
-
                         doUpdate(FORWARDS, delta);
                         break;
                     }
@@ -777,7 +776,6 @@ abstract class BaseTween<T> {
 
                     // shortcut out so we don't have to worry about any other checks
                     currentTime = newTime;
-
                     doUpdate(FORWARDS, delta); // have to keep tracking time for children
                     break;
                 }
@@ -802,18 +800,14 @@ abstract class BaseTween<T> {
                 // we have gone past our iteration point
 
 
-                // make sure that we manage our children BEFORE we do anything else!
-                // we use originalDelta here because we have to trickle-down the logic to all children. If we use delta, the incorrect value
-                // will trickle-down
-                doUpdate(FORWARDS, delta);
-
-                // adjust the delta so that it is shifted based on the length of (previous) iteration
-                delta = newTime - duration;
-
                 // only run state transitions IFF it was a transition on the timeline
                 if (currentTime < duration) {
                     // set our currentTime for the callbacks to be accurate and updates to lock to start/end values
                     currentTime = duration;
+                    doUpdate(FORWARDS, delta);
+
+                    // adjust the delta so that it is shifted based on the length of (previous) iteration
+                    delta = newTime - duration;
 
                     callCallbacks(TweenCallback.Events.END);
 
@@ -882,6 +876,8 @@ abstract class BaseTween<T> {
                 else {
                     // now adjust the time so PARENT reversing/etc works
                     currentTime = newTime;
+                    doUpdate(FORWARDS, delta);
+
                     break;
                 }
 
@@ -907,7 +903,6 @@ abstract class BaseTween<T> {
                     else {
                         // the time that a tween/timeline runs over when it is done running, so reversing still correctly tracks delays, etc
                         currentTime = newTime;
-
                         doUpdate(REVERSE, delta);
                         break;
                     }
@@ -917,7 +912,6 @@ abstract class BaseTween<T> {
 
                     // shortcut out so we don't have to worry about any other checks
                     currentTime = newTime;
-
                     doUpdate(REVERSE, delta); // have to keep tracking time for children
                     break;
                 }
@@ -942,17 +936,14 @@ abstract class BaseTween<T> {
                 // we have gone past our in-cycle point.
 
 
-                // make sure that we manage our children BEFORE we do anything else!
-                // we use originalDelta here because we have to trickle-down the logic to all children. If we use delta, the incorrect value
-                // will trickle-down
-                doUpdate(REVERSE, delta);
-
-                delta = newTime;
-
                 // only run state transitions IFF it was a transition on the timeline
                 if (currentTime > 0) {
                     // set our currentTime for the callbacks to be accurate
                     currentTime = 0;
+
+                    doUpdate(REVERSE, delta);
+
+                    delta = newTime;
 
                     callCallbacks(TweenCallback.Events.BACK_END);
 
@@ -1016,12 +1007,12 @@ abstract class BaseTween<T> {
                 } else {
                     // now adjust the time so PARENT reversing/etc works
                     currentTime = newTime;
+                    doUpdate(REVERSE, delta);
                     break;
                 }
 
                 // </editor-fold>
             }
-
         } while (true);
 
         flushWrite();

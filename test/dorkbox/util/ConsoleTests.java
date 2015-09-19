@@ -177,9 +177,9 @@ class ConsoleTests {
         // correct.
 //        int dt = 25;
 //        int dt = 23;
-//        int dt = 50;
-        int dt = 51;
-//        int dt = 1003 + 250;
+        int dt = 50;
+//        int dt = 51;
+//        int dt = 303;
         Bugtest[] bugs;
 
 
@@ -202,9 +202,9 @@ class ConsoleTests {
 ////                                        .end()
                                     .end()
 //                                    .repeatAutoReverse(1, 500)
-                                    .repeatAutoReverse(2, 500)
+//                                    .repeatAutoReverse(2, 500)
 //                                    .repeatAutoReverse(4, 500)
-//                                    .repeat(1, 500)
+                                    .repeat(1, 500)
 //                                    .repeat(4, 500)
 //                                    .repeat(Tween.INFINITY, 500)
 //                                    .onUpdateStart(new TweenAction<Timeline>() {
@@ -225,7 +225,7 @@ class ConsoleTests {
                                     .start();
 
 
-        boolean permitFlip = true;
+        boolean permitFlip = false;
 
         boolean flipped = false;
         do {
