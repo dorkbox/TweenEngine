@@ -1116,8 +1116,9 @@ class Tween extends BaseTween<Tween> {
          * to this. This is via Tween.set()
          */
         if (duration == 0 || isFinished()) {
+//            System.err.println(currentTime);
             if (animationDirection) {
-                if (time < 0) {
+                if (time <= 0) {
                     accessor.setValues(target, type, startValues);
                 }
                 else {
@@ -1134,7 +1135,8 @@ class Tween extends BaseTween<Tween> {
             }
 
             return;
-        } else {
+        }
+ else {
             // do we lock to start/end values when we are at or beyond start/end time
             // --  don't even bother with calculating the tween equation value
             // FORWARDS and REVERSE are different conditions

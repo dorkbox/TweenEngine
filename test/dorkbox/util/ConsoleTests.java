@@ -202,8 +202,8 @@ class ConsoleTests {
 ////                                        .end()
                                     .end()
 //                                    .repeatAutoReverse(1, 500)
-//                                    .repeatAutoReverse(2, 500)
-                                    .repeatAutoReverse(4, 500)
+                                    .repeatAutoReverse(2, 500)
+//                                    .repeatAutoReverse(4, 500)
 //                                    .repeat(1, 500)
 //                                    .repeat(4, 500)
 //                                    .repeat(Tween.INFINITY, 500)
@@ -221,12 +221,11 @@ class ConsoleTests {
 //                                            System.out.println("end update");
 //                                        }
 //                                    })
-                                    ;
+//                                    .name('*')
+                                    .start();
 
-        timeline.name = '*';
-        timeline.start();
 
-        boolean permitFlip = false;
+        boolean permitFlip = true;
 
         boolean flipped = false;
         do {
@@ -271,7 +270,7 @@ class ConsoleTests {
                              String.format(Locale.US, "%4d%s", bug.t.getCurrentTime(), bug.t.isFinished() ? "*" : " ") +
                             (bug.t.isInsideDelay() ? "D" : " "));
         }
-        System.out.println();//" t="+time);
+        System.out.println();
     }
 
     static
@@ -300,7 +299,7 @@ class ConsoleTests {
             this.name = name;
             t = Tween.to(this, 0, 1000)
                      .target(1).addCallback(buildCallback(""+name, TweenCallback.Events.ANY));
-            t.name = name;
+//            t.name(name);
         }
     }
 }

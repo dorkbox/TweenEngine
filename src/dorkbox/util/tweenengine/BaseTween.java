@@ -76,7 +76,7 @@ abstract class BaseTween<T> {
 	private boolean canAutoReverse;
 
 	// Timings
-    protected int startDelay;  // this is the initial delay at the start of a timeline/tween (only happens once). (doesn't change)
+    private int startDelay;  // this is the initial delay at the start of a timeline/tween (only happens once). (doesn't change)
 	private int repeatDelay; // this is the delay when a timeline/tween is repeating (doesn't change)
 
 	protected int duration; // how long the timeline/tween runs (doesn't change)
@@ -118,7 +118,7 @@ abstract class BaseTween<T> {
 
     // -------------------------------------------------------------------------
 
-	protected
+    protected
     void reset() {
         repeatCount = repeatCountOrig = 0;
 
@@ -772,7 +772,7 @@ abstract class BaseTween<T> {
                         break;
                     }
                 }
-                else if (!insideLow) {
+                else if (!insideLow && insideHigh) {
                     // is there a delay (start or repeat) in the timeline/tween? (in the FORWARDS direction, newTime will be < 0)
 
                     // shortcut out so we don't have to worry about any other checks
@@ -810,72 +810,79 @@ abstract class BaseTween<T> {
                 // adjust the delta so that it is shifted based on the length of (previous) iteration
                 delta = newTime - duration;
 
-                // set our currentTime for the callbacks to be accurate and updates to lock to start/end values
-                currentTime = duration;
+                // only run state transitions IFF it was a transition on the timeline
+                if (currentTime < duration) {
+                    // set our currentTime for the callbacks to be accurate and updates to lock to start/end values
+                    currentTime = duration;
 
-                callCallbacks(TweenCallback.Events.END);
+                    callCallbacks(TweenCallback.Events.END);
 
+                    final int repeatCountStack = repeatCount;
+                    ////////////////////////////////////////////
+                    ////////////////////////////////////////////
+                    // 1) we are done running completely
+                    // 2) we flip to auto-reverse repeat mode
+                    // 3) we are in linear repeat mode
+                    if (repeatCountStack == 0) {
+                        // {FORWARDS}{FINISHED}
+                        // no repeats left, so we're done. -1 means repeat forever
 
-                final int repeatCountStack = repeatCount;
-                ////////////////////////////////////////////
-                ////////////////////////////////////////////
-                // 1) we are done running completely
-                // 2) we flip to auto-reverse repeat mode
-                // 3) we are in linear repeat mode
-                if (repeatCountStack == 0) {
-                    // {FORWARDS}{FINISHED}
-                    // no repeats left, so we're done. -1 means repeat forever
+                        // TRANSITION to finished
+                        // really are done (so no more event notification loops)
+                        changeState(previousState, currentState, STATE.FINISHED);
+                        isInAutoReverse = false;
 
-                    // TRANSITION to finished
-                    // really are done (so no more event notification loops)
-                    changeState(previousState, currentState, STATE.FINISHED);
-                    isInAutoReverse = false;
+                        // we're done going forwards
+                        canTriggerBeginEvent = true;
+                        callCallbacks(TweenCallback.Events.COMPLETE);
 
-                    // we're done going forwards
-                    canTriggerBeginEvent = true;
-                    callCallbacks(TweenCallback.Events.COMPLETE);
+                        // now adjust the time so PARENT reversing/etc works
+                        currentTime = newTime;
 
-                    // now adjust the time so PARENT reversing/etc works
-                    currentTime = newTime;
-
-                    // nothing left to do
-                    break;
-                }
-                else if (canAutoReverse) {
-                    // {FORWARDS}{AUTO_REVERSE}
-                    if (repeatCountStack > 0) {
-                        // -1 means repeat forever
-                        repeatCount--;
+                        // nothing left to do
+                        break;
                     }
+                    else if (canAutoReverse) {
+                        // {FORWARDS}{AUTO_REVERSE}
+                        if (repeatCountStack > 0) {
+                            // -1 means repeat forever
+                            repeatCount--;
+                        }
 
-                    callCallbacks(TweenCallback.Events.COMPLETE);
+                        callCallbacks(TweenCallback.Events.COMPLETE);
 
-                    // we're done going forwards
-                    canTriggerBeginEvent = true;
-                    isInAutoReverse = !isInAutoReverse; // if we are NOT in autoReverse, then "isInAutoReverse" is true if we reverse
+                        // we're done going forwards
+                        canTriggerBeginEvent = true;
+                        isInAutoReverse = !isInAutoReverse; // if we are NOT in autoReverse, then "isInAutoReverse" is true if we reverse
 
-                    // make sure any checks after this returns accurately reflect the correct REVERSE direction
-                    direction = false;
-                    this.direction = false;
+                        currentTime = newTime;
 
-                    delta = -delta;
-                    currentTime = newTime;
+                        // any extra time (what's left in delta) will be applied/calculated on the next loop around
+                        adjustTime(repeatDelay + delta);
 
-                    // any extra time (what's left in delta) will be applied/calculated on the next loop around
-                    adjustTime(repeatDelay - delta);  // delta is negative, we want to offset it
+                        // make sure any checks after this returns accurately reflect the correct REVERSE direction
+                        direction = false;
+                        this.direction = false;
+                        delta = -delta;
+                    }
+                    else {
+                        // {FORWARDS}{LINEAR}
+                        if (repeatCountStack > 0) {
+                            // -1 means repeat forever
+                            repeatCount--;
+                        }
+
+                        isInAutoReverse = false;
+                        currentTime = newTime;
+
+                        // any extra time (what's left in delta) will be applied/calculated on the next loop around
+                        adjustTime(-newTime - repeatDelay);
+                    }
                 }
                 else {
-                    // {FORWARDS}{LINEAR}
-                    if (repeatCountStack > 0) {
-                        // -1 means repeat forever
-                        repeatCount--;
-                    }
-
-                    isInAutoReverse = false;
+                    // now adjust the time so PARENT reversing/etc works
                     currentTime = newTime;
-
-                    // any extra time (what's left in delta) will be applied/calculated on the next loop around
-                    adjustTime(-newTime - repeatDelay);
+                    break;
                 }
 
                 // </editor-fold>
@@ -905,7 +912,7 @@ abstract class BaseTween<T> {
                         break;
                     }
                 }
-                else if (!insideHigh) {
+                else if (insideLow && !insideHigh) {
                     // is there a delay (start or repeat) in the timeline/tween? (in the REVERSE direction, newTime will be > duration)
 
                     // shortcut out so we don't have to worry about any other checks
@@ -932,7 +939,7 @@ abstract class BaseTween<T> {
                     doUpdate(REVERSE, delta);
                     break;
                 }
-                // we have gone past our iteration point
+                // we have gone past our in-cycle point.
 
 
                 // make sure that we manage our children BEFORE we do anything else!
@@ -942,70 +949,74 @@ abstract class BaseTween<T> {
 
                 delta = newTime;
 
-                // set our currentTime for the callbacks to be accurate
-                currentTime = 0;
+                // only run state transitions IFF it was a transition on the timeline
+                if (currentTime > 0) {
+                    // set our currentTime for the callbacks to be accurate
+                    currentTime = 0;
 
-                callCallbacks(TweenCallback.Events.BACK_END);
+                    callCallbacks(TweenCallback.Events.BACK_END);
 
-                final int repeatCountStack = repeatCount;
-                ////////////////////////////////////////////
-                ////////////////////////////////////////////
-                // 1) we are done running completely
-                // 2) we flip to auto-reverse
-                // 3) we are in linear repeat mode
-                if (repeatCountStack == 0) {
-                    // {REVERSE}{FINISHED}
-                    // no repeats left, so we're done, -1 means repeat forever
+                    final int repeatCountStack = repeatCount;
+                    ////////////////////////////////////////////
+                    ////////////////////////////////////////////
+                    // 1) we are done running completely
+                    // 2) we flip to auto-reverse
+                    // 3) we are in linear repeat mode
+                    if (repeatCountStack == 0) {
+                        // {REVERSE}{FINISHED}
+                        // no repeats left, so we're done, -1 means repeat forever
 
-                    // really are done (so no more event notification loops)
-                    changeState(previousState, currentState, STATE.FINISHED);
-                    isInAutoReverse = false;
+                        // really are done (so no more event notification loops)
+                        changeState(previousState, currentState, STATE.FINISHED);
+                        isInAutoReverse = false;
 
-                    // we're done going forwards
-                    callCallbacks(TweenCallback.Events.BACK_COMPLETE);
-                    canTriggerBeginEvent = true;
+                        // we're done going forwards
+                        callCallbacks(TweenCallback.Events.BACK_COMPLETE);
+                        canTriggerBeginEvent = true;
 
+                        // now adjust the time so PARENT reversing/etc works
+                        currentTime = newTime;
+                        break;
+                    }
+                    else if (canAutoReverse) {
+                        // {REVERSE}{AUTO_REVERSE}
+                        if (repeatCountStack > 0) {
+                            // -1 means repeat forever
+                            repeatCount--;
+                        }
+
+                        callCallbacks(TweenCallback.Events.BACK_COMPLETE);
+
+                        // we're done going forwards
+                        canTriggerBeginEvent = true;
+                        isInAutoReverse = !isInAutoReverse; // if we are NOT in autoReverse, then "isInAutoReverse" is true if we reverse
+                        currentTime = newTime;
+
+                        // any extra time (what's left in delta) will be applied/calculated on the next loop around
+                        adjustTime(-repeatDelay - delta);
+
+                        // make sure any checks after this returns accurately reflect the correct REVERSE direction
+                        direction = true;
+                        this.direction = true;
+                        delta = -delta;
+                    }
+                    else {
+                        // {REVERSE}{LINEAR}
+                        if (repeatCountStack > 0) {
+                            // -1 means repeat forever
+                            repeatCount--;
+                        }
+
+                        isInAutoReverse = false;
+                        currentTime = newTime;
+
+                        // any extra time (what's left in delta) will be applied/calculated on the next loop around
+                        adjustTime(newTime + repeatDelay);
+                    }
+                } else {
                     // now adjust the time so PARENT reversing/etc works
                     currentTime = newTime;
-
-                    // nothing left to do
                     break;
-                }
-                else if (canAutoReverse) {
-                    // {REVERSE}{AUTO_REVERSE}
-                    if (repeatCountStack > 0) {
-                        // -1 means repeat forever
-                        repeatCount--;
-                    }
-
-                    callCallbacks(TweenCallback.Events.BACK_COMPLETE);
-
-                    // we're done going forwards
-                    canTriggerBeginEvent = true;
-                    isInAutoReverse = !isInAutoReverse; // if we are NOT in autoReverse, then "isInAutoReverse" is true if we reverse
-
-                    // make sure any checks after this returns accurately reflect the correct REVERSE direction
-                    direction = true;
-                    this.direction = true;
-
-                    delta = -delta;
-                    currentTime = newTime;
-
-                    // any extra time (what's left in delta) will be applied/calculated on the next loop around
-                    adjustTime(-repeatDelay + delta);  // delta is negative, we want to offset it
-                }
-                else {
-                    // {REVERSE}{LINEAR}
-                    if (repeatCountStack > 0) {
-                        // -1 means repeat forever
-                        repeatCount--;
-                    }
-
-                    isInAutoReverse = false;
-                    currentTime = newTime;
-
-                    // any extra time (what's left in delta) will be applied/calculated on the next loop around
-                    adjustTime(newTime + repeatDelay);
                 }
 
                 // </editor-fold>
@@ -1015,13 +1026,5 @@ abstract class BaseTween<T> {
 
         flushWrite();
         updateEndEvent.action(this);
-    }
-
-    public char name = 't';
-
-    @Override
-    public
-    String toString() {
-        return "" + name;
     }
 }

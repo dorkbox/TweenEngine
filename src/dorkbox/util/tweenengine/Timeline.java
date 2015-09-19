@@ -356,8 +356,6 @@ class Timeline extends BaseTween<Timeline> {
             return this;
         }
 
-        duration = 0;
-
         for (int i = 0, n = children.size(); i < n; i++) {
             final BaseTween<?> obj = children.get(i);
 
@@ -370,17 +368,16 @@ class Timeline extends BaseTween<Timeline> {
                 case SEQUENCE:
                     final int tDelay = duration;
                     duration += obj.getFullDuration();
-                    obj.startDelay += tDelay;
+                    obj.adjustStartDelay(tDelay);
                     break;
 
                 case PARALLEL:
                     duration = Math.max(duration, obj.getFullDuration());
-                    obj.startDelay += duration;
                     break;
             }
         }
 
-        adjustStartDelay(startDelay);
+        adjustStartDelay(getStartDelay());
 
         isBuilt = true;
 
