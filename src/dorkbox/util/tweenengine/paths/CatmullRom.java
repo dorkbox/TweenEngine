@@ -59,14 +59,20 @@ class CatmullRom implements TweenPath {
     }
 
     private
-    float catmullRomSpline(float a, float b, float c, float d, float t) {
-        float t1 = (c - a) * 0.5f;
-        float t2 = (d - b) * 0.5f;
+    float catmullRomSpline(final float a, final float b, final float c, final float d, final float t) {
+        final float t1 = (c - a) * 0.5F;
+        final float t2 = (d - b) * 0.5F;
 
-        float h1 = +2 * t * t * t - 3 * t * t + 1;
-        float h2 = -2 * t * t * t + 3 * t * t;
-        float h3 = t * t * t - 2 * t * t + t;
-        float h4 = t * t * t - t * t;
+        final float _t2 = t * t;
+        final float _t3 = _t2 * t;
+
+        final float _2_t3 = 2 * _t3;
+        final float _3_t2 = 3 * _t2;
+
+        final float h1 = +_2_t3 - _3_t2 + 1;
+        final float h2 = -_2_t3 + _3_t2;
+        final float h3 = _t3 - _2_t3;
+        final float h4 = _t3 - _t2;
 
         return b * h1 + c * h2 + t1 * h3 + t2 * h4;
     }
