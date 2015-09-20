@@ -243,12 +243,12 @@ class Timeline extends BaseTween<Timeline> {
 	 * Adds a pause to the timeline. The pause may be negative if you want to
 	 * overlap the preceding and following children.
 	 *
-	 * @param time A positive or negative duration in milliseconds
+	 * @param time A positive or negative duration in seconds
      *
 	 * @return The current timeline, for chaining instructions.
 	 */
 	public
-    Timeline pushPause(final int time) {
+    Timeline pushPause(final float time) {
         flushRead();
         if (isBuilt) {
             throw new RuntimeException("You can't push anything to a timeline once it is started");
@@ -366,7 +366,7 @@ class Timeline extends BaseTween<Timeline> {
 
             switch (mode) {
                 case SEQUENCE:
-                    final int tDelay = duration;
+                    final float tDelay = duration;
                     duration += obj.getFullDuration();
                     obj.adjustStartDelay(tDelay);
                     break;
@@ -379,7 +379,7 @@ class Timeline extends BaseTween<Timeline> {
 
         // have to save the delay, because adjustStartDelay adds to startDelay (and we want to recursively handle children), so
         // we save (my) current, modify, restore saved.
-        final int startDelay = getStartDelay();
+        final float startDelay = getStartDelay();
         resetStartDelay();
         adjustStartDelay(startDelay);
 
@@ -392,9 +392,9 @@ class Timeline extends BaseTween<Timeline> {
 
     /**
      * Adjusts the startDelay of the tween/timeline during initialization
-     * @param startDelay how many milliSeconds to adjust the start delay
+     * @param startDelay how many seconds to adjust the start delay
      */
-    protected void adjustStartDelay(final int startDelay) {
+    protected void adjustStartDelay(final float startDelay) {
         super.adjustStartDelay(startDelay);
 
         for (int i = 0, n = children.size(); i < n; i++) {
@@ -441,7 +441,7 @@ class Timeline extends BaseTween<Timeline> {
 
     @Override
     protected final
-    void adjustTime(final int repeatDelay, final boolean direction) {
+    void adjustTime(final float repeatDelay, final boolean direction) {
         super.adjustTime(repeatDelay, direction);
 
         for (int i = 0, n = childrenArray.length; i < n; i++) {
@@ -454,7 +454,7 @@ class Timeline extends BaseTween<Timeline> {
      * Updates a timeline's children. Base impl does nothing.
      */
     protected
-    void updateChildrenState(final int delta) {
+    void updateChildrenState(final float delta) {
         for (int i = 0, n = childrenArray.length; i < n; i++) {
             final BaseTween<?> tween = childrenArray[i];
             tween.updateState(delta);

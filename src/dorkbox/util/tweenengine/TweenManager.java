@@ -258,41 +258,13 @@ class TweenManager {
         flushWrite();
 	}
 
-	/**
-	 * Updates every tweens with a delta time in SECONDS and handles the
-     * tween life-cycles automatically.
-     * <p/>
-     * If a tween is finished, it will be removed from the manager.
-     * <p/>
-     * The delta time represents the elapsed time in SECONDS between now and the
-	 * last update call. Each tween or timeline manages its local time, and adds
-	 * this delta to its local time to update itself.
-	 * <p/>
-	 *
-	 * Slow motion, fast motion and backward play can be easily achieved by
-	 * tweaking this delta time. Multiply it by -1 to play the animation
-	 * backward, or by 0.5 to play it twice slower than its normal speed.
-     * <p>
-     * <p>
-     * <b>THIS IS NOT PREFERRED</b>
-	 */
-	public
-    void update(final float delta) {
-        // from: http://nicolas.limare.net/pro/notes/2014/12/12_arit_speed/
-        //       https://software.intel.com/en-us/forums/watercooler-catchall/topic/306267
-        // Floating-point operations are always slower than integer ops at same data size.
-        // internally we use INTEGER, since we want consistent timelines & events, as floats will drift (they are approximations)
-        final int deltaMSeconds = (int) (delta * 1000F);
-        update(deltaMSeconds);
-    }
-
     /**
-     * Updates every tweens with a delta time in MILLI-SECONDS and handles the
+     * Updates every tweens with a delta time in SECONDS and handles the
      * tween life-cycles automatically.
      * <p/>
      * If a tween is finished, it will be removed from the manager.
      * <p/>
-     * The delta time represents the elapsed time in MILLI-SECONDS between now and the
+     * The delta time represents the elapsed time in seconds between now and the
      * last update call. Each tween or timeline manages its local time, and adds
      * this delta to its local time to update itself.
      * <p/>
@@ -301,11 +273,11 @@ class TweenManager {
      * tweaking this delta time. Multiply it by -1 to play the animation
      * backward, or by 0.5 to play it twice slower than its normal speed.
      *
-     * @param elapsedMillis A delta time in MILLI-SECONDS between now and the last call.
+     * @param delta A delta time in SECONDS between now and the last call.
      */
     @SuppressWarnings("unchecked")
     public
-    void update(final int elapsedMillis) {
+    void update(final float delta) {
         flushRead();
         boolean needsRefresh = false;
         for (int i = childrenArray.length - 1; i >= 0; i--) {
@@ -332,7 +304,7 @@ class TweenManager {
                 BaseTween<?> tween = childrenArray[i];
 
                 tween.flushRead();
-                tween.updateState(elapsedMillis);
+                tween.updateState(delta);
                 // we completely update the state of everything before we update the tween values. This is because
                 // multiple state changes can occur in a single frame, so we make sure that the expensive math only
                 // happens once.
