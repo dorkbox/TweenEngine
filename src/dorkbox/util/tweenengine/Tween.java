@@ -1140,8 +1140,8 @@ class Tween extends BaseTween<Tween> {
             // --  don't even bother with calculating the tween equation value
             // FORWARDS and REVERSE are different conditions
             //
-            // FORWARDS -> 0 >= X < duration
-            // REVERSE  -> 0 > X <= duration (reverse always goes from duration -> 0)
+            // FORWARDS: 0 >= time < duration
+            // REVERSE:  0 > time <= duration   (reverse always goes from duration -> 0)
             boolean insideLow;
             boolean insideHigh;
             if (animationDirection) {

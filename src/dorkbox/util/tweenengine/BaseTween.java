@@ -59,15 +59,16 @@ import java.util.concurrent.CopyOnWriteArrayList;
 @SuppressWarnings("unused")
 public
 abstract class BaseTween<T> {
-    private enum STATE {
-        /** After events are notified (so we don't keep notifying them) */
-        RUNNING,
+    private enum State {
+        DELAY, START, RUN, END,
+
         /** FINISHED means EVERYTHING (including repetitions) is done */
-        FINISHED,
-        KILLED}
+        FINISHED
+    }
+
 
     // we are a simple state machine...
-    private STATE state = null;
+    private State state = null;
 
 	// General
 	private int repeatCountOrig;
@@ -75,6 +76,7 @@ abstract class BaseTween<T> {
 
 	private boolean canAutoReverse;
     private boolean isPaused;
+    private boolean isKilled;
 
 	// Timings
     private int startDelay;  // this is the initial delay at the start of a timeline/tween (only happens once). (doesn't change)
@@ -126,7 +128,7 @@ abstract class BaseTween<T> {
         state = null;
 
         duration = repeatDelay = currentTime = 0;
-        isPaused = isInAutoReverse = false;
+        isPaused = isKilled = isInAutoReverse = false;
         canTriggerBeginEvent = true;
 
         callbacks.clear();
@@ -239,7 +241,7 @@ abstract class BaseTween<T> {
 	 */
 	public
     void kill() {
-        state = STATE.KILLED;
+        isKilled = true;
         flushWrite();
 	}
 
@@ -358,7 +360,13 @@ abstract class BaseTween<T> {
         canTriggerBeginEvent = true;
         currentTime = -startDelay;
 
-        state = STATE.RUNNING;
+        // goto delay or start
+        if (startDelay > 0) {
+            state = State.DELAY;
+        }
+        else {
+            state = State.START;
+        }
 
         flushWrite();
         return (T) this;
@@ -479,14 +487,7 @@ abstract class BaseTween<T> {
     public final
     boolean isInDelay() {
         flushRead();
-
-        final int time = currentTime;
-        if (direction) {
-            return time < 0 || time >= duration;
-        }
-        else {
-            return time <=0 || time > duration;
-        }
+        return state == State.DELAY;
     }
 
     /**
@@ -520,8 +521,7 @@ abstract class BaseTween<T> {
 	public
     boolean isFinished() {
         flushRead();
-        final STATE state = this.state;
-        return state == STATE.FINISHED || state == STATE.KILLED;
+        return state == State.FINISHED || isKilled;
 	}
 
 	/**
@@ -572,6 +572,12 @@ abstract class BaseTween<T> {
 	// Protected API
 	// -------------------------------------------------------------------------
 
+    // used by the build process to correct start delay for parent timeline
+    protected
+    void resetStartDelay() {
+        this.startDelay = 0;
+    }
+
 	protected
     void initialize() {
 	}
@@ -616,8 +622,9 @@ abstract class BaseTween<T> {
 
     // used to recursively adjust the current time for children in a timeline (or self, if a tween)
     protected
-    void adjustTime(final int offset) {
+    void adjustTime(final int offset, final boolean direction) {
         currentTime += offset;
+        this.direction = direction;
     }
 
     // -------------------------------------------------------------------------
@@ -668,8 +675,8 @@ abstract class BaseTween<T> {
         // redone by dorkbox, llc
         flushRead();
 
-        STATE state = this.state;
-        if (isPaused || state == null || state == STATE.KILLED) {
+        if (isPaused || state == null || isKilled) {
+            // null state means we didn't properly start (so calling updated before start)
             return;
         }
 
@@ -723,8 +730,8 @@ abstract class BaseTween<T> {
          *
          */
 
-        // FORWARDS -> 0 >= X < duration
-        // REVERSE  -> 0 > X <= duration (reverse always goes from duration -> 0)
+        // FORWARDS: 0 >= time < duration
+        // REVERSE:  0 > time <= duration   (reverse always goes from duration -> 0)
 
 
         // canAutoReverse - only present with repeatDelay, and will cause an animation to reverse once iteration + repeatDelay is complete
@@ -756,143 +763,169 @@ abstract class BaseTween<T> {
 
 
         do {
-            int time = currentTime;
-            int newTime = time + delta;
+            int newTime = currentTime + delta;
 
             if (direction) {
                 // {FORWARDS}
                 // <editor-fold>
 
-                // FORWARDS and REVERSE are different conditions
-                boolean insideLow = newTime >= 0;
-                // newTime >= 0 because delays in FORWARDS are negative
-                boolean insideHigh = newTime < duration;
+                // FORWARDS:  0 >= time < duration
+                switch (state) {
+                    case DELAY: {
+                        // stay in delay, or goto next state?
+                        if (newTime < 0) {
+                            // still in delay
+                            currentTime = newTime;
+                            doUpdate(FORWARDS, delta);
 
-                if (state == STATE.FINISHED) {
-                    if (time >= 0 && !insideHigh) {
-                        // the time that a tween/timeline runs over when it is done running, so reversing still correctly tracks, etc
+                            flushWrite();
+                            updateEndEvent.action(this);
+                            return;
+                        } else {
+                            // fallthrough to next state. Adjust state, currentTime, newTime, delta
+                            state = State.START;
+
+                            // FALLTHROUGH
+                        }
+                    }
+                    case START: {
+                        currentTime = 0; // just for callbacks
+
+                        if (canTriggerBeginEvent) {
+                            canTriggerBeginEvent = false;
+                            callCallbacks(TweenCallback.Events.BEGIN);
+                        }
+
+                        callCallbacks(TweenCallback.Events.START);
+
                         currentTime = newTime;
+
+                        // always goto next state (it will determine weather to stay or not)
+                        state = State.RUN;
+
+                        // FALLTHROUGH
+                    }
+                    case RUN: {
+                        // stay in running forwards (inside update cycle), or continue to next state?
+                        if (newTime < duration) {
+                            // still in running forwards
+                            currentTime = newTime;
+                            doUpdate(FORWARDS, delta);
+
+                            flushWrite();
+                            updateEndEvent.action(this);
+                            return;
+                        } else {
+                            // goto end state
+                            state = State.END;
+                        }
+
+                        // FALLTHROUGH
+                    }
+                    case END: {
+                        currentTime = duration;
                         doUpdate(FORWARDS, delta);
-                        break;
+
+                        // adjust the delta so that it is shifted based on the length of (previous) iteration
+                        delta = newTime - duration;
+                        callCallbacks(TweenCallback.Events.END);
+
+                        final int repeatCountStack = repeatCount;
+                        ////////////////////////////////////////////
+                        ////////////////////////////////////////////
+                        // 1) we are done running completely
+                        // 2) we flip to auto-reverse repeat mode
+                        // 3) we are in linear repeat mode
+                        if (repeatCountStack == 0) {
+                            // {FORWARDS}{FINISHED}
+                            state = State.FINISHED;
+
+                            callCallbacks(TweenCallback.Events.COMPLETE);
+
+                            // we're done going forwards
+                            canTriggerBeginEvent = true;
+                            isInAutoReverse = false;
+                            currentTime = newTime;
+
+                            // nothing left to do
+                            flushWrite();
+                            updateEndEvent.action(this);
+                            return;
+                        }
+                        else if (canAutoReverse) {
+                            // {FORWARDS}{AUTO_REVERSE}
+                            if (repeatCountStack > 0) {
+                                // -1 means repeat forever
+                                repeatCount--;
+                            }
+
+                            callCallbacks(TweenCallback.Events.COMPLETE);
+
+                            // we're done going forwards
+                            canTriggerBeginEvent = true;
+                            isInAutoReverse = !isInAutoReverse; // if we are NOT in autoReverse, then "isInAutoReverse" is true if we reverse
+                            currentTime = newTime;
+
+                            // make sure any checks after this returns accurately reflect the correct REVERSE direction
+                            direction = REVERSE;
+                            // any extra time (what's left in delta) will be applied/calculated on the next loop around
+                            adjustTime(repeatDelay - delta, REVERSE);
+                            delta = -delta;
+
+                            // always goto next state (it will determine weather to stay or not)
+                            if (repeatDelay > 0) {
+                                state = State.DELAY;
+                            } else {
+                                state = State.START;
+                            }
+
+                            // loop to new state
+                            continue;
+                        }
+                        else {
+                            // {FORWARDS}{LINEAR}
+                            if (repeatCountStack > 0) {
+                                // -1 means repeat forever
+                                repeatCount--;
+                            }
+
+                            isInAutoReverse = false;
+                            currentTime = newTime;
+
+                            // any extra time (what's left in delta) will be applied/calculated on the next loop around
+                            adjustTime(-newTime - repeatDelay, FORWARDS);
+
+                            // always goto next state (it will determine weather to stay or not)
+                            if (repeatDelay > 0) {
+                                state = State.DELAY;
+                            } else {
+                                state = State.START;
+                            }
+
+                            // loop to new state
+                            continue;
+                        }
                     }
-                    else {
-                        // we reversed somewhere, and now should be back running again.
-                        state = STATE.RUNNING;
-                        this.state = STATE.RUNNING;
-                    }
-                }
-                else if (!insideLow && insideHigh) {
-                    // is there a delay (start or repeat) in the timeline/tween? (in the FORWARDS direction, newTime will be < 0)
+                    case FINISHED: {
+                        if (newTime < 0 || newTime >= duration) {
+                            // still in the "finished" state, and haven't been reversed somewhere
+                            currentTime = newTime;
+                            doUpdate(FORWARDS, delta);
 
-                    // shortcut out so we don't have to worry about any other checks
-                    currentTime = newTime;
-                    doUpdate(FORWARDS, delta); // have to keep tracking time for children
-                    break;
-                }
-                // we are running normally, can get here from other states
-
-
-
-                if (insideLow && time < 0) {
-                    // transition to start (maybe begin too)
-                    time = 0;
-                    currentTime = 0;
-
-                    if (canTriggerBeginEvent) {
-                        canTriggerBeginEvent = false;
-                        callCallbacks(TweenCallback.Events.BEGIN);
-                    }
-
-                    callCallbacks(TweenCallback.Events.START);
-                }
-
-                if (insideHigh) {
-                    // this means we are in a NORMAL update cycle for the animation
-                    currentTime = newTime;
-                    doUpdate(FORWARDS, delta);
-                    break;
-                }
-
-
-                // only run state transitions IFF it was a transition on the timeline
-                if (time < duration) {
-                    // set our currentTime for the callbacks to be accurate and updates to lock to start/end values
-                    currentTime = duration;
-                    doUpdate(FORWARDS, delta);
-
-                    // adjust the delta so that it is shifted based on the length of (previous) iteration
-                    delta = newTime - duration;
-
-                    callCallbacks(TweenCallback.Events.END);
-
-                    final int repeatCountStack = repeatCount;
-                    ////////////////////////////////////////////
-                    ////////////////////////////////////////////
-                    // 1) we are done running completely
-                    // 2) we flip to auto-reverse repeat mode
-                    // 3) we are in linear repeat mode
-                    if (repeatCountStack == 0) {
-                        // {FORWARDS}{FINISHED}
-                        // no repeats left, so we're done. -1 means repeat forever
-
-                        // TRANSITION to finished
-                        // really are done (so no more event notification loops)
-                        this.state = STATE.FINISHED;
-                        isInAutoReverse = false;
-
-                        // we're done going forwards
-                        canTriggerBeginEvent = true;
-                        callCallbacks(TweenCallback.Events.COMPLETE);
-
-                        // now adjust the time so PARENT reversing/etc works
-                        currentTime = newTime;
-
-                        // nothing left to do
-                        break;
-                    }
-                    else if (canAutoReverse) {
-                        // {FORWARDS}{AUTO_REVERSE}
-                        if (repeatCountStack > 0) {
-                            // -1 means repeat forever
-                            repeatCount--;
+                            flushWrite();
+                            updateEndEvent.action(this);
+                            return;
                         }
 
-                        callCallbacks(TweenCallback.Events.COMPLETE);
+                        // restart the timeline, since we've had our time adjusted to a point where we are running again.
+                        state = State.START;
 
-                        // we're done going forwards
-                        canTriggerBeginEvent = true;
-                        isInAutoReverse = !isInAutoReverse; // if we are NOT in autoReverse, then "isInAutoReverse" is true if we reverse
-
-                        currentTime = newTime;
-
-                        // any extra time (what's left in delta) will be applied/calculated on the next loop around
-                        adjustTime(repeatDelay - delta);
-
-                        // make sure any checks after this returns accurately reflect the correct REVERSE direction
-                        direction = false;
-                        this.direction = false;
-                        delta = -delta;
+                        // loop to new state
+                        continue;
                     }
-                    else {
-                        // {FORWARDS}{LINEAR}
-                        if (repeatCountStack > 0) {
-                            // -1 means repeat forever
-                            repeatCount--;
-                        }
-
-                        isInAutoReverse = false;
-                        currentTime = newTime;
-
-                        // any extra time (what's left in delta) will be applied/calculated on the next loop around
-                        adjustTime(-newTime - repeatDelay);
+                    default: {
+                        throw new RuntimeException("Unexpected state!! " + state);
                     }
-                }
-                else {
-                    // now adjust the time so PARENT reversing/etc works
-                    currentTime = newTime;
-                    doUpdate(FORWARDS, delta);
-
-                    break;
                 }
 
                 // </editor-fold>
@@ -904,136 +937,167 @@ abstract class BaseTween<T> {
                 // {REVERSE}
                 // <editor-fold>
 
-                // FORWARDS and REVERSE are different conditions
-                boolean insideLow = newTime > 0;
-                boolean insideHigh = newTime <= duration;
-                // check for newTime <=duration, because we can have > duration time when in a repeat-delay
+                // REVERSE:  0 > time <= duration   (reverse always goes from duration -> 0)
+                switch (state) {
+                    case DELAY: {
+                        // stay in delay, or goto next state?
+                        if (newTime > duration) {
+                            // still in delay
+                            currentTime = newTime;
+                            doUpdate(REVERSE, delta);
 
-                if (state == STATE.FINISHED) {
-                    if (!insideLow && time <= duration) {
-                        // the time that a tween/timeline runs over when it is done running, so reversing still correctly tracks delays, etc
+                            flushWrite();
+                            updateEndEvent.action(this);
+                            return;
+                        } else {
+                            // fallthrough to next state. Adjust state, currentTime, newTime, delta
+                            state = State.START;
+
+                            // FALLTHROUGH
+                        }
+                    }
+                    case START: {
+                        currentTime = duration;
+
+                        if (canTriggerBeginEvent) {
+                            canTriggerBeginEvent = false;
+                            callCallbacks(TweenCallback.Events.BACK_BEGIN);
+                        }
+
+                        callCallbacks(TweenCallback.Events.BACK_START);
+
                         currentTime = newTime;
+
+                        // always goto next state (it will determine weather to stay or not)
+                        state = State.RUN;
+
+                        // FALLTHROUGH
+                    }
+                    case RUN: {
+                        // stay in running reverse (inside update cycle), or continue to next state?
+                        if (newTime > 0) {
+                            // still in running reverse
+                            currentTime = newTime;
+                            doUpdate(REVERSE, delta);
+
+                            flushWrite();
+                            updateEndEvent.action(this);
+                            return;
+                        } else {
+                            // goto end state
+                            state = State.END;
+                        }
+
+                        // FALLTHROUGH
+                    }
+                    case END: {
+                        currentTime = 0;
                         doUpdate(REVERSE, delta);
-                        break;
+
+                        // adjust the delta so that it is shifted based on the length of (previous) iteration
+                        delta = newTime;
+                        callCallbacks(TweenCallback.Events.BACK_END);
+
+                        final int repeatCountStack = repeatCount;
+                        ////////////////////////////////////////////
+                        ////////////////////////////////////////////
+                        // 1) we are done running completely
+                        // 2) we flip to auto-reverse
+                        // 3) we are in linear repeat mode
+                        if (repeatCountStack == 0) {
+                            // {REVERSE}{FINISHED}
+                            state = State.FINISHED;
+
+                            callCallbacks(TweenCallback.Events.BACK_COMPLETE);
+
+                            // we're done going reverse
+                            canTriggerBeginEvent = true;
+                            isInAutoReverse = false;
+                            currentTime = newTime;
+
+                            // nothing left to do
+                            flushWrite();
+                            updateEndEvent.action(this);
+                            return;
+                        }
+                        else if (canAutoReverse) {
+                            // {REVERSE}{AUTO_REVERSE}
+                            if (repeatCountStack > 0) {
+                                // -1 means repeat forever
+                                repeatCount--;
+                            }
+
+                            callCallbacks(TweenCallback.Events.BACK_COMPLETE);
+
+                            // we're done going forwards
+                            canTriggerBeginEvent = true;
+                            isInAutoReverse = !isInAutoReverse; // if we are NOT in autoReverse, then "isInAutoReverse" is true if we reverse
+                            currentTime = newTime;
+
+                            // make sure any checks after this returns accurately reflect the correct REVERSE direction
+                            direction = true;
+                            // any extra time (what's left in delta) will be applied/calculated on the next loop around
+                            adjustTime(-repeatDelay - delta, FORWARDS);
+                            delta = -delta;
+
+                            // always goto next state (it will determine weather to stay or not)
+                            if (repeatDelay > 0) {
+                                state = State.DELAY;
+                            } else {
+                                state = State.START;
+                            }
+
+                            // loop to new state
+                            continue;
+                        }
+                        else {
+                            // {REVERSE}{LINEAR}
+                            if (repeatCountStack > 0) {
+                                // -1 means repeat forever
+                                repeatCount--;
+                            }
+
+                            isInAutoReverse = false;
+                            currentTime = newTime;
+
+                            // any extra time (what's left in delta) will be applied/calculated on the next loop around
+                            adjustTime(-newTime + duration + repeatDelay, REVERSE);
+
+                            // always goto next state (it will determine weather to stay or not)
+                            if (repeatDelay > 0) {
+                                state = State.DELAY;
+                            } else {
+                                state = State.START;
+                            }
+
+                            // loop to new state
+                            continue;
+                        }
                     }
-                    else {
-                        // we reversed somewhere, and now should be back running again.
-                        state = STATE.RUNNING;
-                        this.state = STATE.RUNNING;
-                    }
-                }
-                else if (insideLow && !insideHigh) {
-                    // is there a delay (start or repeat) in the timeline/tween? (in the REVERSE direction, newTime will be > duration)
+                    case FINISHED: {
+                        if (newTime <= 0 || newTime > duration) {
+                            // still in the "finished" state, and haven't been reversed somewhere
+                            currentTime = newTime;
+                            doUpdate(REVERSE, delta);
 
-                    // shortcut out so we don't have to worry about any other checks
-                    currentTime = newTime;
-                    doUpdate(REVERSE, delta); // have to keep tracking time for children
-                    break;
-                }
-                // we are running normally, can get here from other states
-
-
-                if (insideHigh && time > duration) {
-                    // transition to start (maybe begin too)
-                    time = duration;
-                    currentTime = duration; // this is reset below...
-
-                    if (canTriggerBeginEvent) {
-                        canTriggerBeginEvent = false;
-                        callCallbacks(TweenCallback.Events.BACK_BEGIN);
-                    }
-
-                    callCallbacks(TweenCallback.Events.BACK_START);
-                }
-
-                if (insideLow) {
-                    // this means we are in a NORMAL update cycle for the animation
-                    currentTime = newTime;
-                    doUpdate(REVERSE, delta);
-                    break;
-                }
-
-
-                // only run state transitions IFF it was a transition on the timeline
-                if (time > 0) {
-                    // set our currentTime for the callbacks to be accurate
-                    currentTime = 0;
-
-                    doUpdate(REVERSE, delta);
-
-                    delta = newTime;
-
-                    callCallbacks(TweenCallback.Events.BACK_END);
-
-                    final int repeatCountStack = repeatCount;
-                    ////////////////////////////////////////////
-                    ////////////////////////////////////////////
-                    // 1) we are done running completely
-                    // 2) we flip to auto-reverse
-                    // 3) we are in linear repeat mode
-                    if (repeatCountStack == 0) {
-                        // {REVERSE}{FINISHED}
-                        // no repeats left, so we're done, -1 means repeat forever
-
-                        // really are done (so no more event notification loops)
-                        this.state = STATE.FINISHED;
-                        isInAutoReverse = false;
-
-                        // we're done going forwards
-                        callCallbacks(TweenCallback.Events.BACK_COMPLETE);
-                        canTriggerBeginEvent = true;
-
-                        // now adjust the time so PARENT reversing/etc works
-                        currentTime = newTime;
-                        break;
-                    }
-                    else if (canAutoReverse) {
-                        // {REVERSE}{AUTO_REVERSE}
-                        if (repeatCountStack > 0) {
-                            // -1 means repeat forever
-                            repeatCount--;
+                            flushWrite();
+                            updateEndEvent.action(this);
+                            return;
                         }
 
-                        callCallbacks(TweenCallback.Events.BACK_COMPLETE);
+                        // restart the timeline, since we've had our time adjusted to a point where we are running again.
+                        state = State.START;
 
-                        // we're done going forwards
-                        canTriggerBeginEvent = true;
-                        isInAutoReverse = !isInAutoReverse; // if we are NOT in autoReverse, then "isInAutoReverse" is true if we reverse
-                        currentTime = newTime;
-
-                        // any extra time (what's left in delta) will be applied/calculated on the next loop around
-                        adjustTime(-repeatDelay - delta);
-
-                        // make sure any checks after this returns accurately reflect the correct REVERSE direction
-                        direction = true;
-                        this.direction = true;
-                        delta = -delta;
+                        // loop to new state
+                        continue;
                     }
-                    else {
-                        // {REVERSE}{LINEAR}
-                        if (repeatCountStack > 0) {
-                            // -1 means repeat forever
-                            repeatCount--;
-                        }
-
-                        isInAutoReverse = false;
-                        currentTime = newTime;
-
-                        // any extra time (what's left in delta) will be applied/calculated on the next loop around
-                        adjustTime(-newTime + duration + repeatDelay);
+                    default: {
+                        throw new RuntimeException("Unexpected state!! " + state);
                     }
-                } else {
-                    // now adjust the time so PARENT reversing/etc works
-                    currentTime = newTime;
-                    doUpdate(REVERSE, delta);
-                    break;
                 }
 
                 // </editor-fold>
             }
         } while (true);
-
-        flushWrite();
-        updateEndEvent.action(this);
     }
 }

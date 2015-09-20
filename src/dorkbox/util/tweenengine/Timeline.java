@@ -377,7 +377,9 @@ class Timeline extends BaseTween<Timeline> {
             }
         }
 
-        adjustStartDelay(getStartDelay());
+        final int startDelay = getStartDelay();
+        resetStartDelay();
+        adjustStartDelay(startDelay);
 
         isBuilt = true;
 
@@ -391,6 +393,8 @@ class Timeline extends BaseTween<Timeline> {
      * @param startDelay how many milliSeconds to adjust the start delay
      */
     protected void adjustStartDelay(final int startDelay) {
+        super.adjustStartDelay(startDelay);
+
         for (int i = 0, n = children.size(); i < n; i++) {
             final BaseTween<?> obj = children.get(i);
             obj.adjustStartDelay(startDelay);
@@ -435,12 +439,12 @@ class Timeline extends BaseTween<Timeline> {
 
     @Override
     protected final
-    void adjustTime(final int repeatDelay) {
-        super.adjustTime(repeatDelay);
+    void adjustTime(final int repeatDelay, final boolean direction) {
+        super.adjustTime(repeatDelay, direction);
 
         for (int i = 0, n = childrenArray.length; i < n; i++) {
             final BaseTween<?> tween = childrenArray[i];
-            tween.adjustTime(repeatDelay);
+            tween.adjustTime(repeatDelay, direction);
         }
     }
 

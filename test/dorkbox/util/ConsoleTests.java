@@ -171,17 +171,31 @@ class ConsoleTests {
 
     private static
     void Bugtest21() {
+        int delta = 50;
+//        int delta = 51;
+
+//        ConsoleDemo(delta, 250, false, 1);
+//        ConsoleDemo(delta, 250, false, 2);
+//        ConsoleDemo(delta, 250, false, Tween.INFINITY);
+//
+//        ConsoleDemo(delta, 250, true, 1);
+        ConsoleDemo(delta, 250, true, 2);
+//        ConsoleDemo(delta, 250, true, 4);
+//
+//        ConsoleDemo(-delta, -2250, false, 1);
+//        ConsoleDemo(-delta, -2250, false, 2);
+//        ConsoleDemo(-delta, -2250, false, Tween.INFINITY);
+//
+//        ConsoleDemo(-delta, -2250, true, 1);
+//        ConsoleDemo(-delta, -2250, true, 2);
+//        ConsoleDemo(-delta, -2250, true, 4);
+    }
+
+    private static
+    void ConsoleDemo(int delta, final int delay, final boolean isAutoReverse, final int reverseCount) {
         final int terminalwidth = 50;
 
-        // if the delta step doesn't line up with duration or delays, it won't line up. The event order/notifications will be
-        // correct.
-//        int dt = 25;
-//        int dt = 23;
-        int dt = -51;
-//        int dt = 51;
-//        int dt = -50003;
         Bugtest[] bugs;
-
 
         Tween.registerAccessor(Bugtest.class, new A());
 
@@ -193,7 +207,7 @@ class ConsoleTests {
 
         Timeline timeline = Timeline.createSequence()
                                     .addCallback(buildCallback("TL", TweenCallback.Events.ANY))
-                                    .delay(-2250)
+                                    .delay(delay)
                                     .push(bugs[0].t)
                                     .beginParallel()
                                         .push(bugs[1].t)
@@ -201,12 +215,6 @@ class ConsoleTests {
 ////                                            .push(bugs[2].t) // third tween not even needed
 ////                                        .end()
                                     .end()
-//                                    .repeatAutoReverse(1, 500)
-//                                    .repeatAutoReverse(2, 500)
-//                                    .repeatAutoReverse(4, 500)
-                                    .repeat(1, 500)
-//                                    .repeat(4, 500)
-//                                    .repeat(Tween.INFINITY, 500)
 //                                    .onUpdateStart(new TweenAction<Timeline>() {
 //                                        @Override
 //                                        public
@@ -221,20 +229,27 @@ class ConsoleTests {
 //                                            System.out.println("end update");
 //                                        }
 //                                    })
-//                                    .name('*')
-                                    .start();
+                                    ;
+
+        if (isAutoReverse) {
+            timeline.repeatAutoReverse(reverseCount, 500);
+        } else {
+            timeline.repeat(reverseCount, 500);
+        }
+
+//        timeline.name('*').start();
 
 
-        boolean permitFlip = true;
+        boolean permitFlip = false;
 
         boolean flipped = false;
         do {
             if (permitFlip && !flipped && timeline.getCurrentTime() <= 1500) {
                 flipped = true;
-                dt = -dt;
+                delta = -delta;
             }
 
-            timeline.update(dt);
+            timeline.update(delta);
 
             drawConsole(timeline, terminalwidth, bugs);
 
