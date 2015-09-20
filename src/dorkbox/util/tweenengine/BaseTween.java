@@ -46,9 +46,10 @@ import java.util.concurrent.CopyOnWriteArrayList;
  * <p/>
  * Additionally, floating-point operations are always slower than integer ops at
  * same data size, so internally we use INTEGER, since we want consistent
- * timelines & events
+ * timelines & events, as floats will drift (they are approximations)
  *  <p/>
  *  from: http://nicolas.limare.net/pro/notes/2014/12/12_arit_speed/
+ *        https://software.intel.com/en-us/forums/watercooler-catchall/topic/306267
  *
  * @see Tween
  * @see Timeline
@@ -59,21 +60,21 @@ import java.util.concurrent.CopyOnWriteArrayList;
 public
 abstract class BaseTween<T> {
     private enum STATE {
-        INIT,
         /** After events are notified (so we don't keep notifying them) */
         RUNNING,
-        PAUSED,
         /** FINISHED means EVERYTHING (including repetitions) is done */
-        FINISHED, KILLED}
+        FINISHED,
+        KILLED}
 
     // we are a simple state machine...
-    private STATE currentState = STATE.INIT;
-    private STATE previousState = null;
+    private STATE state = null;
 
 	// General
 	private int repeatCountOrig;
 	private int repeatCount;
+
 	private boolean canAutoReverse;
+    private boolean isPaused;
 
 	// Timings
     private int startDelay;  // this is the initial delay at the start of a timeline/tween (only happens once). (doesn't change)
@@ -89,7 +90,7 @@ abstract class BaseTween<T> {
     protected int currentTime;
 
     // Direction state
-    protected static final boolean FORWARDS = true;
+    private static final boolean FORWARDS = true;
     private static final boolean REVERSE = false;
     private boolean direction = FORWARDS; // default state is forwards
 
@@ -122,11 +123,10 @@ abstract class BaseTween<T> {
     void reset() {
         repeatCount = repeatCountOrig = 0;
 
-        previousState = null;
-        currentState = STATE.INIT;
+        state = null;
 
         duration = repeatDelay = currentTime = 0;
-        isInAutoReverse = false;
+        isPaused = isInAutoReverse = false;
         canTriggerBeginEvent = true;
 
         callbacks.clear();
@@ -223,7 +223,7 @@ abstract class BaseTween<T> {
     T delay(final int delay) {
         flushRead();
 
-        if (currentState != STATE.INIT) {
+        if (state != null) {
             throw new RuntimeException("You can't modify the delay if it is already started");
         }
 
@@ -233,21 +233,13 @@ abstract class BaseTween<T> {
         return (T) this;
     }
 
-    private
-    void changeState(final STATE previousState, final STATE currentState, final STATE newState) {
-        if (previousState != currentState) {
-            this.previousState = currentState;
-            this.currentState = newState;
-        }
-    }
-
     /**
 	 * Kills the tween or timeline. If you are using a TweenManager, this object
 	 * will be removed automatically.
 	 */
 	public
     void kill() {
-        changeState(previousState, currentState, STATE.KILLED);
+        state = STATE.KILLED;
         flushWrite();
 	}
 
@@ -267,7 +259,7 @@ abstract class BaseTween<T> {
 	 */
 	public
     void pause() {
-        changeState(previousState, currentState, STATE.PAUSED);
+        isPaused = true;
         flushWrite();
 	}
 
@@ -276,9 +268,7 @@ abstract class BaseTween<T> {
 	 */
 	public
     void resume() {
-        if (currentState == STATE.PAUSED) {
-            changeState(previousState, currentState, previousState);
-        }
+        isPaused = false;
         flushWrite();
 	}
 
@@ -296,8 +286,12 @@ abstract class BaseTween<T> {
     T repeat(final int count, final int delayMilliSeconds) {
         flushRead();
 
-        if (currentState != STATE.INIT) {
+        if (state != null) {
             throw new RuntimeException("You can't change the repetitions of a tween or timeline once it is started");
+        }
+
+        if (count < -1) {
+            throw new RuntimeException("Count " + count + " is an invalid option. It must be -1 for infinite or > 0 for finite.");
         }
 
         repeatCountOrig = count;
@@ -311,6 +305,7 @@ abstract class BaseTween<T> {
 
 	/**
 	 * Repeats the tween or timeline for a given number of times.
+     * </p>
 	 * Once an iteration is complete, it will be played in reverse.
 	 *
 	 * @param count The number of repetitions. For infinite repetition,
@@ -322,7 +317,6 @@ abstract class BaseTween<T> {
     @SuppressWarnings("unchecked")
 	public
     T repeatAutoReverse(final int count, final int delayMilliSeconds) {
-        // thread safe
         repeat(count, delayMilliSeconds);
 
         canAutoReverse = true;
@@ -364,7 +358,7 @@ abstract class BaseTween<T> {
         canTriggerBeginEvent = true;
         currentTime = -startDelay;
 
-        changeState(previousState, currentState, STATE.RUNNING);
+        state = STATE.RUNNING;
 
         flushWrite();
         return (T) this;
@@ -461,22 +455,6 @@ abstract class BaseTween<T> {
 	}
 
     /**
-     * @return true if the timeline/tween is waiting inside of a delay.
-     */
-    public final
-    boolean isInsideDelay() {
-        flushRead();
-
-        final int time = currentTime;
-        if (direction) {
-            return time < 0 || time >= duration;
-        }
-        else {
-            return time <=0 || time > duration;
-        }
-    }
-
-    /**
      * Returns the direction the tween/timeline currently is in.
      *  <p/>
      * Reverse direction can be impacted by a negative value for {@link #update(float)}
@@ -491,13 +469,44 @@ abstract class BaseTween<T> {
         return direction;
     }
 
+    // -------------------------------------------------------------------------
+    // Queries
+    // -------------------------------------------------------------------------
+
+    /**
+     * @return true if the timeline/tween is waiting inside of a delay.
+     */
+    public final
+    boolean isInDelay() {
+        flushRead();
+
+        final int time = currentTime;
+        if (direction) {
+            return time < 0 || time >= duration;
+        }
+        else {
+            return time <=0 || time > duration;
+        }
+    }
+
+    /**
+     * @return true if the timeline/tween is in waiting inside of a delay.
+     */
+    public final
+    boolean isInAutoReverse() {
+        flushRead();
+
+        return isInAutoReverse;
+    }
+
+
     /**
 	 * Returns true if the tween or timeline has been started.
 	 */
 	public
     boolean isStarted() {
         flushRead();
-        return currentState != STATE.INIT;
+        return state != null;
 	}
 
 	/**
@@ -511,7 +520,7 @@ abstract class BaseTween<T> {
 	public
     boolean isFinished() {
         flushRead();
-        final STATE state = currentState;
+        final STATE state = this.state;
         return state == STATE.FINISHED || state == STATE.KILLED;
 	}
 
@@ -530,7 +539,7 @@ abstract class BaseTween<T> {
 	public
     boolean isPaused() {
         flushRead();
-        return currentState == STATE.PAUSED;
+        return isPaused;
 	}
 
 	// -------------------------------------------------------------------------
@@ -605,6 +614,12 @@ abstract class BaseTween<T> {
         flushWrite();
     }
 
+    // used to recursively adjust the current time for children in a timeline (or self, if a tween)
+    protected
+    void adjustTime(final int offset) {
+        currentTime += offset;
+    }
+
     // -------------------------------------------------------------------------
 	// Update engine
 	// -------------------------------------------------------------------------
@@ -627,17 +642,12 @@ abstract class BaseTween<T> {
     public
     void update(final float delta) {
         // from: http://nicolas.limare.net/pro/notes/2014/12/12_arit_speed/
-        // https://software.intel.com/en-us/forums/watercooler-catchall/topic/306267
-        //    Floating-point operations are always slower than integer ops at same data size.
-        // internally we also want to use INTEGER, since we want consistent timelines
+        //       https://software.intel.com/en-us/forums/watercooler-catchall/topic/306267
+        // Floating-point operations are always slower than integer ops at same data size.
+        // internally we also want to use INTEGER, since we want consistent timelines, as floats will drift (they are approximations)
         final int deltaMilliSeconds = (int) (delta * 1000F);
 
         update(deltaMilliSeconds);
-    }
-
-    protected
-    void adjustTime(final int offset) {
-        currentTime += offset;
     }
 
     /**
@@ -658,11 +668,9 @@ abstract class BaseTween<T> {
         // redone by dorkbox, llc
         flushRead();
 
-        {
-            STATE state = currentState;
-            if (state == STATE.INIT || state == STATE.PAUSED || state == STATE.KILLED) {
-                return;
-            }
+        STATE state = this.state;
+        if (isPaused || state == null || state == STATE.KILLED) {
+            return;
         }
 
         updateStartEvent.action(this);
@@ -748,7 +756,8 @@ abstract class BaseTween<T> {
 
 
         do {
-            int newTime = currentTime + delta;
+            int time = currentTime;
+            int newTime = time + delta;
 
             if (direction) {
                 // {FORWARDS}
@@ -759,16 +768,17 @@ abstract class BaseTween<T> {
                 // newTime >= 0 because delays in FORWARDS are negative
                 boolean insideHigh = newTime < duration;
 
-                if (currentState == STATE.FINISHED) {
-                    if (insideLow && insideHigh) {
-                        // we reversed somewhere, and now should be back running again.
-                        changeState(previousState, currentState, previousState);
-                    }
-                    else {
+                if (state == STATE.FINISHED) {
+                    if (time >= 0 && !insideHigh) {
                         // the time that a tween/timeline runs over when it is done running, so reversing still correctly tracks, etc
                         currentTime = newTime;
                         doUpdate(FORWARDS, delta);
                         break;
+                    }
+                    else {
+                        // we reversed somewhere, and now should be back running again.
+                        state = STATE.RUNNING;
+                        this.state = STATE.RUNNING;
                     }
                 }
                 else if (!insideLow && insideHigh) {
@@ -782,26 +792,30 @@ abstract class BaseTween<T> {
                 // we are running normally, can get here from other states
 
 
-                if (insideHigh) {
-                    if (currentTime < 0) {
-                        currentTime = 0;
-                        if (canTriggerBeginEvent) {
-                            canTriggerBeginEvent = false;
-                            callCallbacks(TweenCallback.Events.BEGIN);
-                        }
 
-                        callCallbacks(TweenCallback.Events.START);
+                if (insideLow && time < 0) {
+                    // transition to start (maybe begin too)
+                    time = 0;
+                    currentTime = 0;
+
+                    if (canTriggerBeginEvent) {
+                        canTriggerBeginEvent = false;
+                        callCallbacks(TweenCallback.Events.BEGIN);
                     }
 
+                    callCallbacks(TweenCallback.Events.START);
+                }
+
+                if (insideHigh) {
+                    // this means we are in a NORMAL update cycle for the animation
                     currentTime = newTime;
                     doUpdate(FORWARDS, delta);
                     break;
                 }
-                // we have gone past our iteration point
 
 
                 // only run state transitions IFF it was a transition on the timeline
-                if (currentTime < duration) {
+                if (time < duration) {
                     // set our currentTime for the callbacks to be accurate and updates to lock to start/end values
                     currentTime = duration;
                     doUpdate(FORWARDS, delta);
@@ -823,7 +837,7 @@ abstract class BaseTween<T> {
 
                         // TRANSITION to finished
                         // really are done (so no more event notification loops)
-                        changeState(previousState, currentState, STATE.FINISHED);
+                        this.state = STATE.FINISHED;
                         isInAutoReverse = false;
 
                         // we're done going forwards
@@ -852,7 +866,7 @@ abstract class BaseTween<T> {
                         currentTime = newTime;
 
                         // any extra time (what's left in delta) will be applied/calculated on the next loop around
-                        adjustTime(repeatDelay + delta);
+                        adjustTime(repeatDelay - delta);
 
                         // make sure any checks after this returns accurately reflect the correct REVERSE direction
                         direction = false;
@@ -895,16 +909,17 @@ abstract class BaseTween<T> {
                 boolean insideHigh = newTime <= duration;
                 // check for newTime <=duration, because we can have > duration time when in a repeat-delay
 
-                if (currentState == STATE.FINISHED) {
-                    if (insideLow && insideHigh) {
-                        // we reversed somewhere, and now should be back running again.
-                        changeState(previousState, currentState, previousState);
-                    }
-                    else {
+                if (state == STATE.FINISHED) {
+                    if (!insideLow && time <= duration) {
                         // the time that a tween/timeline runs over when it is done running, so reversing still correctly tracks delays, etc
                         currentTime = newTime;
                         doUpdate(REVERSE, delta);
                         break;
+                    }
+                    else {
+                        // we reversed somewhere, and now should be back running again.
+                        state = STATE.RUNNING;
+                        this.state = STATE.RUNNING;
                     }
                 }
                 else if (insideLow && !insideHigh) {
@@ -918,26 +933,29 @@ abstract class BaseTween<T> {
                 // we are running normally, can get here from other states
 
 
-                if (insideLow) {
-                    if (currentTime > duration) {
-                        currentTime = duration; // this is reset below...
-                        if (canTriggerBeginEvent) {
-                            canTriggerBeginEvent = false;
-                            callCallbacks(TweenCallback.Events.BACK_BEGIN);
-                        }
+                if (insideHigh && time > duration) {
+                    // transition to start (maybe begin too)
+                    time = duration;
+                    currentTime = duration; // this is reset below...
 
-                        callCallbacks(TweenCallback.Events.BACK_START);
+                    if (canTriggerBeginEvent) {
+                        canTriggerBeginEvent = false;
+                        callCallbacks(TweenCallback.Events.BACK_BEGIN);
                     }
 
+                    callCallbacks(TweenCallback.Events.BACK_START);
+                }
+
+                if (insideLow) {
+                    // this means we are in a NORMAL update cycle for the animation
                     currentTime = newTime;
                     doUpdate(REVERSE, delta);
                     break;
                 }
-                // we have gone past our in-cycle point.
 
 
                 // only run state transitions IFF it was a transition on the timeline
-                if (currentTime > 0) {
+                if (time > 0) {
                     // set our currentTime for the callbacks to be accurate
                     currentTime = 0;
 
@@ -958,7 +976,7 @@ abstract class BaseTween<T> {
                         // no repeats left, so we're done, -1 means repeat forever
 
                         // really are done (so no more event notification loops)
-                        changeState(previousState, currentState, STATE.FINISHED);
+                        this.state = STATE.FINISHED;
                         isInAutoReverse = false;
 
                         // we're done going forwards
@@ -1002,7 +1020,7 @@ abstract class BaseTween<T> {
                         currentTime = newTime;
 
                         // any extra time (what's left in delta) will be applied/calculated on the next loop around
-                        adjustTime(newTime + repeatDelay);
+                        adjustTime(-newTime + duration + repeatDelay);
                     }
                 } else {
                     // now adjust the time so PARENT reversing/etc works

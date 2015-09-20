@@ -255,8 +255,9 @@ class TweenManager {
 	public
     void update(final float delta) {
         // from: http://nicolas.limare.net/pro/notes/2014/12/12_arit_speed/
-        //    Floating-point operations are always slower than integer ops at same data size.
-        // internally we use INTEGER, since we want consistent timelines & events
+        //       https://software.intel.com/en-us/forums/watercooler-catchall/topic/306267
+        // Floating-point operations are always slower than integer ops at same data size.
+        // internally we use INTEGER, since we want consistent timelines & events, as floats will drift (they are approximations)
         final int deltaMSeconds = (int) (delta * 1000F);
         update(deltaMSeconds);
     }

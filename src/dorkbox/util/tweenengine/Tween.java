@@ -1116,7 +1116,6 @@ class Tween extends BaseTween<Tween> {
          * to this. This is via Tween.set()
          */
         if (duration == 0 || isFinished()) {
-//            System.err.println(currentTime);
             if (animationDirection) {
                 if (time <= 0) {
                     accessor.setValues(target, type, startValues);
@@ -1136,21 +1135,22 @@ class Tween extends BaseTween<Tween> {
 
             return;
         }
- else {
+        else {
             // do we lock to start/end values when we are at or beyond start/end time
             // --  don't even bother with calculating the tween equation value
             // FORWARDS and REVERSE are different conditions
+            //
+            // FORWARDS -> 0 >= X < duration
+            // REVERSE  -> 0 > X <= duration (reverse always goes from duration -> 0)
             boolean insideLow;
             boolean insideHigh;
             if (animationDirection) {
                 insideLow = time >= 0;
-                // check for newTime >=0, because we can have negative time when in a repeat-delay
                 insideHigh = time < duration;
             }
             else {
                 insideLow = time > 0;
                 insideHigh = time <= duration;
-                // check for newTime <=duration, because we can have > duration time when in a repeat-delay
             }
 
             // outside our time bounds
@@ -1158,7 +1158,7 @@ class Tween extends BaseTween<Tween> {
                 accessor.setValues(target, type, startValues);
                 return;
             }
-            else if (!insideHigh) {
+            if (!insideHigh) {
                 accessor.setValues(target, type, targetValues);
                 return;
             }
