@@ -21,6 +21,6 @@ package dorkbox.util.tweenengine;
  * Notably, this is for the synchronization of objects
  */
 public
-interface TweenAction<T> {
-    void action(T tween);
+interface UpdateAction<T> {
+    void update(T updatedObject);
 }

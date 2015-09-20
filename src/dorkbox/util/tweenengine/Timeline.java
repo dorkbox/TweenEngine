@@ -62,13 +62,13 @@ import java.util.List;
  *     .push(Tween.set(myObject, OPACITY).target(0))
  *     .push(Tween.set(myObject, SCALE).target(0, 0))
  *     .beginParallel()
- *          .push(Tween.to(myObject, OPACITY, 0.5f).target(1).ease(Quad.INOUT))
- *          .push(Tween.to(myObject, SCALE, 0.5f).target(1, 1).ease(Quad.INOUT))
+ *          .push(Tween.to(myObject, OPACITY, 500).target(1).ease(Quad.INOUT))
+ *          .push(Tween.to(myObject, SCALE, 500).target(1, 1).ease(Quad.INOUT))
  *     .end()
- *     .pushPause(1.0f)
- *     .push(Tween.to(myObject, POSITION_X, 0.5f).target(100).ease(Quad.INOUT))
- *     .push(Tween.to(myObject, ROTATION, 0.5f).target(360).ease(Quad.INOUT))
- *     .repeat(5, 0.5f)
+ *     .pushPause(1000)
+ *     .push(Tween.to(myObject, POSITION_X, 500).target(100).ease(Quad.INOUT))
+ *     .push(Tween.to(myObject, ROTATION, 500).target(360).ease(Quad.INOUT))
+ *     .repeat(5, 500)
  *     .start(myManager);
  * }</pre>
  *
@@ -377,6 +377,8 @@ class Timeline extends BaseTween<Timeline> {
             }
         }
 
+        // have to save the delay, because adjustStartDelay adds to startDelay (and we want to recursively handle children), so
+        // we save (my) current, modify, restore saved.
         final int startDelay = getStartDelay();
         resetStartDelay();
         adjustStartDelay(startDelay);
@@ -448,38 +450,25 @@ class Timeline extends BaseTween<Timeline> {
         }
     }
 
-    @SuppressWarnings("unchecked")
-    @Override
-    public
-    Timeline onUpdateStart(final TweenAction<Timeline> action) {
-        flushRead();
-        if (isBuilt) {
-            throw new RuntimeException("You can't set events on a timeline once it is started");
-        }
-
-        setUpdateStartEvent(action);
-        return this;
-    }
-
-    @SuppressWarnings("unchecked")
-    @Override
-    public
-    Timeline onUpdateEnd(final TweenAction<Timeline> action) {
-        flushRead();
-        if (isBuilt) {
-            throw new RuntimeException("You can't set events on a timeline once it is started");
-        }
-
-        setUpdateEndEvent(action);
-        return this;
-    }
-
-    @Override
-    protected final
-    void doUpdate(final boolean animationDirection, final int delta) {
+    /**
+     * Updates a timeline's children. Base impl does nothing.
+     */
+    protected
+    void updateChildrenState(final int delta) {
         for (int i = 0, n = childrenArray.length; i < n; i++) {
             final BaseTween<?> tween = childrenArray[i];
-            tween.update(delta);
+            tween.updateState(delta);
+        }
+    }
+
+    /**
+     * Updates just the values of all children timeline/tweens
+     */
+    protected final
+    void updateValues() {
+        for (int i = 0, n = childrenArray.length; i < n; i++) {
+            final BaseTween<?> tween = childrenArray[i];
+            tween.updateValues();
         }
     }
 

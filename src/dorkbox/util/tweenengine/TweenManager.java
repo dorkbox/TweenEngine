@@ -89,9 +89,33 @@ class TweenManager {
 	// -------------------------------------------------------------------------
 
     private volatile long lightSyncObject = System.currentTimeMillis();
+
 	private final ArrayList<BaseTween<?>> tweenArrayList = new ArrayList<BaseTween<?>>(20);
 	private BaseTween<?>[] childrenArray = new BaseTween<?>[0];
+
 	private boolean isPaused = false;
+
+    private UpdateAction startEvent = BaseTween.NULL_ACTION;
+    private UpdateAction endEvent = BaseTween.NULL_ACTION;
+
+
+    /**
+     * Sets an event handler so that a notification is broadcast when the manager starts updating the current frame of animation.
+     */
+    public
+    void setOnStartEvent(final UpdateAction<TweenManager> startEvent) {
+        this.startEvent = startEvent;
+        flushWrite();
+    }
+
+    /**
+     * Sets an event handler so that a notification is broadcast when the manager finishes updating the current frame of animation.
+     */
+    public
+    void setOnEndEvent(final UpdateAction<TweenManager> endEvent) {
+        this.endEvent = endEvent;
+        flushWrite();
+    }
 
     /**
      * Flushes the visibility of all tween fields from the cache for access/use from different threads.
@@ -279,6 +303,7 @@ class TweenManager {
      *
      * @param elapsedMillis A delta time in MILLI-SECONDS between now and the last call.
      */
+    @SuppressWarnings("unchecked")
     public
     void update(final int elapsedMillis) {
         flushRead();
@@ -300,17 +325,23 @@ class TweenManager {
         }
 
         if (!isPaused) {
-            // when running in reverse, we change the order at which we iterate over objects
-            if (elapsedMillis >= 0) {
-                for (int i = 0, n = childrenArray.length; i < n; i++) {
-                    childrenArray[i].update(elapsedMillis);
-                }
+            // on start sync
+            startEvent.update(this);
+
+            for (int i = 0, n = childrenArray.length; i < n; i++) {
+                BaseTween<?> tween = childrenArray[i];
+
+                tween.flushRead();
+                tween.updateState(elapsedMillis);
+                // we completely update the state of everything before we update the tween values. This is because
+                // multiple state changes can occur in a single frame, so we make sure that the expensive math only
+                // happens once.
+                tween.updateValues();
+                tween.flushWrite();
             }
-            else {
-                for (int i = childrenArray.length - 1; i >= 0; i--) {
-                    childrenArray[i].update(elapsedMillis);
-                }
-            }
+
+            // on finish sync
+            endEvent.update(this);
         }
     }
 

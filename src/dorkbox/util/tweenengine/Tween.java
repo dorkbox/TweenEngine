@@ -74,11 +74,11 @@ import java.util.Map;
  * <p/>
  *
  * <pre> {@code
- * Tween.to(myObject, POSITION_XY, 0.5f)
+ * Tween.to(myObject, POSITION_XY, 500)
  *      .target(200, 300)
  *      .ease(Quad.INOUT)
  *      .delay(1.0f)
- *      .repeat(2, 0.2f)
+ *      .repeat(2, 200)
  *      .start(myManager);
  * }</pre>
  *
@@ -257,7 +257,7 @@ class Tween extends BaseTween<Tween> {
 	 * <br/><br/>
 	 *
 	 * <pre> {@code
-	 * Tween.to(myObject, POSITION, 1.0f)
+	 * Tween.to(myObject, POSITION, 1000)
 	 *      .target(50, 70)
 	 *      .ease(Quad.INOUT)
 	 *      .start(myManager);
@@ -297,7 +297,7 @@ class Tween extends BaseTween<Tween> {
 	 * <br/><br/>
 	 *
 	 * <pre> {@code
-	 * Tween.from(myObject, POSITION, 1.0f)
+	 * Tween.from(myObject, POSITION, 1000)
 	 *      .target(0, 0)
 	 *      .ease(Quad.INOUT)
 	 *      .start(myManager);
@@ -340,7 +340,7 @@ class Tween extends BaseTween<Tween> {
 	 * <pre> {@code
 	 * Tween.set(myObject, POSITION)
 	 *      .target(50, 70)
-	 *      .delay(1.0f)
+	 *      .delay(1000)
 	 *      .start(myManager);
 	 * }</pre>
 	 *
@@ -371,7 +371,7 @@ class Tween extends BaseTween<Tween> {
 	 *
 	 * <pre> {@code
 	 * Tween.call(myCallback)
-	 *      .delay(1.0f)
+	 *      .delay(1000)
 	 *      .repeat(10, 1000)
 	 *      .start(myManager);
 	 * }</pre>
@@ -1098,9 +1098,19 @@ class Tween extends BaseTween<Tween> {
         flushWrite();
 	}
 
-
+    /**
+     * Updates a timeline's children. Base impl does nothing.
+     */
     protected
-    void doUpdate(final boolean animationDirection, final int delta) {
+    void updateChildrenState(final int delta) {
+    }
+
+
+    /**
+     * Updates just the values of this tween
+     */
+    protected
+    void updateValues() {
         final Object target = this.target;
         final TweenEquation equation = this.equation;
 
@@ -1109,14 +1119,15 @@ class Tween extends BaseTween<Tween> {
         }
 
         final int duration = this.duration;
-        final int time = currentTime;
+        final int time = getCurrentTime();
+        final boolean direction = getDirection();
 
         /*
          * When DURATION is not specified (is 0), it means that this object is either START value or END value. Delay still applies
          * to this. This is via Tween.set()
          */
         if (duration == 0 || isFinished()) {
-            if (animationDirection) {
+            if (direction) {
                 if (time <= 0) {
                     accessor.setValues(target, type, startValues);
                 }
@@ -1144,7 +1155,7 @@ class Tween extends BaseTween<Tween> {
             // REVERSE:  0 > time <= duration   (reverse always goes from duration -> 0)
             boolean insideLow;
             boolean insideHigh;
-            if (animationDirection) {
+            if (direction) {
                 insideLow = time >= 0;
                 insideHigh = time < duration;
             }
@@ -1216,21 +1227,6 @@ class Tween extends BaseTween<Tween> {
 		return this.target == target && this.type == tweenType;
 	}
 
-    @SuppressWarnings("unchecked")
-    @Override
-    public
-    Tween onUpdateStart(final TweenAction<Tween> action) {
-        setUpdateStartEvent(action);
-        return this;
-    }
-
-    @SuppressWarnings("unchecked")
-    @Override
-    public
-    Tween onUpdateEnd(final TweenAction<Tween> action) {
-        setUpdateEndEvent(action);
-        return this;
-    }
 
 	// -------------------------------------------------------------------------
 	// Helpers
