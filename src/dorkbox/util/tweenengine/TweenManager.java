@@ -88,7 +88,7 @@ class TweenManager {
 	// Public API
 	// -------------------------------------------------------------------------
 
-    private volatile long lightSyncObject = System.currentTimeMillis();
+    private volatile long lightSyncObject = System.nanoTime();
 
 	private final ArrayList<BaseTween<?>> tweenArrayList = new ArrayList<BaseTween<?>>(20);
 	private BaseTween<?>[] childrenArray = new BaseTween<?>[0];
@@ -122,7 +122,7 @@ class TweenManager {
      * <p>
      * This does not block and does not prevent race conditions.
      *
-     * @return the last time (in millis) that the field modifications were flushed
+     * @return the last time (in nanos) that the field modifications were flushed
      */
     public final long flushRead() {
         return lightSyncObject;
@@ -134,7 +134,7 @@ class TweenManager {
      * This does not block and does not prevent race conditions.
      */
     public final void flushWrite() {
-        lightSyncObject = System.currentTimeMillis();
+        lightSyncObject = System.nanoTime();
     }
 
 	/**

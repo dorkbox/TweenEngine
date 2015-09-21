@@ -107,7 +107,7 @@ abstract class BaseTween<T> {
     private boolean isInAutoReverse;
 
 	// Misc
-    private volatile long lightSyncObject = System.currentTimeMillis();
+    private volatile long lightSyncObject = System.nanoTime();
 	private Object userData;
 
     protected boolean isAutoRemoveEnabled;
@@ -136,7 +136,7 @@ abstract class BaseTween<T> {
 
         state = null;
 
-        duration = startDelay = repeatDelay = currentTime = 0F;
+        duration = startDelay = repeatDelay = currentTime = 0.0F;
         isPaused = isKilled = isInAutoReverse = false;
         canTriggerBeginEvent = true;
 
@@ -156,7 +156,7 @@ abstract class BaseTween<T> {
      * <p>
      * This does not block and does not prevent race conditions.
      *
-     * @return the last time (in millis) that the field modifications were flushed
+     * @return the last time (in nanos) that the field modifications were flushed
      */
     public final long flushRead() {
         return lightSyncObject;
@@ -168,7 +168,7 @@ abstract class BaseTween<T> {
      * This does not block and does not prevent race conditions.
      */
     public final void flushWrite() {
-        lightSyncObject = System.currentTimeMillis();
+        lightSyncObject = System.nanoTime();
     }
 
     /**
@@ -396,14 +396,14 @@ abstract class BaseTween<T> {
     T start() {
         build();
         // initialize all of the starting values
-        currentTime = 0F;
+        currentTime = 0.0F;
         initialize();
 
         canTriggerBeginEvent = true;
         currentTime = -startDelay;
 
         // goto delay or start
-        if (startDelay > 0F) {
+        if (startDelay > 0.0F) {
             state = State.DELAY;
         }
         else {
@@ -614,7 +614,7 @@ abstract class BaseTween<T> {
     // used by the build process to correct start delay for parent timeline
     protected
     void resetStartDelay() {
-        this.startDelay = 0F;
+        this.startDelay = 0.0F;
     }
 
 	protected
@@ -736,19 +736,12 @@ abstract class BaseTween<T> {
             return;
         }
 
-        // by DEFAULT, 0 means we are going FORWARDS. Floats RARELY (if every) are this precise, and if not -- it is not a problem. This
-        // is just an optimization IN CASE it this precise.
-        if (delta == 0F) {
-            updateChildrenState(delta);
-            return;
-        }
-
         if (isInAutoReverse) {
             delta = -delta;
         }
 
         // the INITIAL, incoming delta from the app, will be positive or negative.
-        boolean direction = delta > 0F;
+        boolean direction = delta >= 0.0F;
         this.direction = direction;
 
         final float duration = this.duration;
@@ -796,7 +789,7 @@ abstract class BaseTween<T> {
                 switch (state) {
                     case DELAY: {
                         // stay in delay, or goto next state?
-                        if (newTime < 0F) {
+                        if (newTime < 0.0F) {
                             // still in delay
                             currentTime = newTime;
                             updateChildrenState(delta);
@@ -809,7 +802,7 @@ abstract class BaseTween<T> {
                         }
                     }
                     case START: {
-                        currentTime = 0F; // just for callbacks
+                        currentTime = 0.0F; // just for callbacks
 
                         if (canTriggerBeginEvent) {
                             canTriggerBeginEvent = false;
@@ -906,7 +899,7 @@ abstract class BaseTween<T> {
                             delta = -delta;
 
                             // always goto next state (it will determine weather to stay or not)
-                            if (repeatDelay > 0F) {
+                            if (repeatDelay > 0.0F) {
                                 state = State.DELAY;
                             } else {
                                 state = State.START;
@@ -930,7 +923,7 @@ abstract class BaseTween<T> {
                             adjustTime(-newTime - repeatDelay, FORWARDS);
 
                             // always goto next state (it will determine weather to stay or not)
-                            if (repeatDelay > 0F) {
+                            if (repeatDelay > 0.0F) {
                                 state = State.DELAY;
                             } else {
                                 state = State.START;
@@ -941,7 +934,7 @@ abstract class BaseTween<T> {
                         }
                     }
                     case FINISHED: {
-                        if (newTime < 0F || newTime >= duration) {
+                        if (newTime < 0.0F || newTime >= duration) {
                             // still in the "finished" state, and haven't been reversed somewhere
                             currentTime = newTime;
                             updateChildrenState(delta);
@@ -1010,7 +1003,7 @@ abstract class BaseTween<T> {
                     }
                     case RUN: {
                         // stay in running reverse (inside update cycle), or continue to next state?
-                        if (newTime > 0F) {
+                        if (newTime > 0.0F) {
                             // still in running reverse
                             currentTime = newTime;
                             updateChildrenState(delta);
@@ -1023,7 +1016,7 @@ abstract class BaseTween<T> {
                         // FALLTHROUGH
                     }
                     case END: {
-                        currentTime = 0F;
+                        currentTime = 0.0F;
                         updateChildrenState(delta);
 
                         // adjust the delta so that it is shifted based on the length of (previous) iteration
@@ -1082,7 +1075,7 @@ abstract class BaseTween<T> {
                             delta = -delta;
 
                             // always goto next state (it will determine weather to stay or not)
-                            if (repeatDelay > 0F) {
+                            if (repeatDelay > 0.0F) {
                                 state = State.DELAY;
                             } else {
                                 state = State.START;
@@ -1106,7 +1099,7 @@ abstract class BaseTween<T> {
                             adjustTime(-newTime + duration + repeatDelay, REVERSE);
 
                             // always goto next state (it will determine weather to stay or not)
-                            if (repeatDelay > 0F) {
+                            if (repeatDelay > 0.0F) {
                                 state = State.DELAY;
                             } else {
                                 state = State.START;
@@ -1117,7 +1110,7 @@ abstract class BaseTween<T> {
                         }
                     }
                     case FINISHED: {
-                        if (newTime <= 0F || newTime > duration) {
+                        if (newTime <= 0.0F || newTime > duration) {
                             // still in the "finished" state, and haven't been reversed somewhere
                             currentTime = newTime;
                             updateChildrenState(delta);

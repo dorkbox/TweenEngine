@@ -354,7 +354,7 @@ class Tween extends BaseTween<Tween> {
 	public static
     Tween set(final Object target, final int tweenType) {
 		Tween tween = pool.takeUninterruptibly();
-		tween.setup(target, tweenType, 0F);
+		tween.setup(target, tweenType, 0.0F);
 		tween.ease(TweenEquations.Quad_In);
 		return tween;
 	}
@@ -384,7 +384,7 @@ class Tween extends BaseTween<Tween> {
 	public static
     Tween call(final TweenCallback callback) {
 		Tween tween = pool.takeUninterruptibly();
-		tween.setup(null, -1, 0F);
+		tween.setup(null, -1, 0.0F);
         callback.triggers = TweenCallback.Events.START;
 		tween.addCallback(callback);
 		return tween;
@@ -402,7 +402,7 @@ class Tween extends BaseTween<Tween> {
 	public static
     Tween mark() {
 		Tween tween = pool.takeUninterruptibly();
-		tween.setup(null, -1, 0F);
+		tween.setup(null, -1, 0.0F);
 		return tween;
 	}
 
@@ -1126,9 +1126,9 @@ class Tween extends BaseTween<Tween> {
          * When DURATION is not specified (is 0), it means that this object is either START value or END value. Delay still applies
          * to this. This is via Tween.set()
          */
-        if (duration == 0F || isFinished()) {
+        if (duration == 0.0F || isFinished()) {
             if (direction) {
-                if (time <= 0F) {
+                if (time <= 0.0F) {
                     accessor.setValues(target, type, startValues);
                 }
                 else {
@@ -1136,7 +1136,7 @@ class Tween extends BaseTween<Tween> {
                 }
             }
             else {
-                if (time > 0F) {
+                if (time > 0.0F) {
                     accessor.setValues(target, type, targetValues);
                 }
                 else {
@@ -1156,11 +1156,11 @@ class Tween extends BaseTween<Tween> {
             boolean insideLow;
             boolean insideHigh;
             if (direction) {
-                insideLow = time >= 0F;
+                insideLow = time >= 0.0F;
                 insideHigh = time < duration;
             }
             else {
-                insideLow = time > 0F;
+                insideLow = time > 0.0F;
                 insideHigh = time <= duration;
             }
 
