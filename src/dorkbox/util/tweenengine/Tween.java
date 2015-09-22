@@ -349,6 +349,7 @@ class Tween extends BaseTween<Tween> {
 	 *
 	 * @param target The target object of the interpolation.
 	 * @param tweenType The desired type of interpolation.
+     *
 	 * @return The generated Tween.
 	 */
 	public static
@@ -376,8 +377,8 @@ class Tween extends BaseTween<Tween> {
 	 *      .start(myManager);
 	 * }</pre>
 	 *
-	 * @param callback The callback that will be triggered on each iteration
-	 * start.
+	 * @param callback The callback that will be triggered on each iteration start.
+     *
 	 * @return The generated Tween.
 	 * @see TweenCallback
 	 */
@@ -414,6 +415,7 @@ class Tween extends BaseTween<Tween> {
 	private Object target;
 	private Class<?> targetClass;
 	private TweenAccessor<Object> accessor;
+
 	private int type;
 	private TweenEquation equation;
 	private TweenPath path;
@@ -469,7 +471,7 @@ class Tween extends BaseTween<Tween> {
 
     private void
     setup(final Object target, final int tweenType, final float duration) {
-        if (duration < 0) {
+        if (duration < 0.0F) {
             throw new RuntimeException("Duration can't be negative");
         }
 
@@ -1067,43 +1069,55 @@ class Tween extends BaseTween<Tween> {
         pool.release(this);
     }
 
-	@Override
-	protected
-    void initialize() {
-        flushRead();
-        if (target == null) {
-            return;
-        }
-
-        accessor.getValues(target, type, startValues);
-
-        final int combinedAttrsCnt = this.combinedAttrsCnt;
-        final boolean isFrom = this.isFrom;
-        final boolean isRelative = this.isRelative;
-
-        for (int i = 0; i < combinedAttrsCnt; i++) {
-            targetValues[i] += isRelative ? startValues[i] : 0;
-
-            for (int ii = 0; ii < waypointsCount; ii++) {
-                waypoints[ii * combinedAttrsCnt + i] += isRelative ? startValues[i] : 0;
-            }
-
-            if (isFrom) {
-                float tmp = startValues[i];
-                startValues[i] = targetValues[i];
-                targetValues[i] = tmp;
-            }
-        }
-
-        flushWrite();
-	}
-
     /**
      * Updates a timeline's children. Base impl does nothing.
      */
     protected
     void updateChildrenState(final float delta) {
     }
+
+	@Override
+	protected
+    void initializeValues() {
+        final Object target = this.target;
+        if (target == null) {
+            return;
+        }
+
+        if (isRelative) {
+            accessor.getValues(target, type, startValues);
+
+            if (isFrom) {
+                for (int i = 0, n = combinedAttrsCnt; i < n; i++) {
+                    targetValues[i] += startValues[i];
+
+                    for (int ii = 0; ii < waypointsCount; ii++) {
+                        waypoints[ii * combinedAttrsCnt + i] += startValues[i];
+                    }
+
+                    final float tmp = startValues[i];
+                    startValues[i] = targetValues[i];
+                    targetValues[i] = tmp;
+                }
+            }
+            else {
+                for (int i = 0, n = combinedAttrsCnt; i < n; i++) {
+                    targetValues[i] += startValues[i];
+
+                    for (int ii = 0; ii < waypointsCount; ii++) {
+                        waypoints[ii * combinedAttrsCnt + i] += startValues[i];
+                    }
+                }
+            }
+        }
+        else if (isFrom) {
+            for (int i = 0, n = combinedAttrsCnt; i < n; i++) {
+                final float tmp = startValues[i];
+                startValues[i] = targetValues[i];
+                targetValues[i] = tmp;
+            }
+        }
+	}
 
 
     /**
@@ -1114,7 +1128,8 @@ class Tween extends BaseTween<Tween> {
         final Object target = this.target;
         final TweenEquation equation = this.equation;
 
-        if (target == null || equation == null) {
+        // be aware that a tween can ONLY have it's values updated IFF it has been initialized (reached START state at least once)
+        if (!isInitialized || target == null || equation == null) {
             return;
         }
 
@@ -1126,7 +1141,7 @@ class Tween extends BaseTween<Tween> {
          * When DURATION is not specified (is 0), it means that this object is either START value or END value. Delay still applies
          * to this. This is via Tween.set()
          */
-        if (duration == 0.0F || isFinished()) {
+        if (duration < 0.0000000001F || isFinished()) {
             if (direction) {
                 if (time <= 0.0F) {
                     accessor.setValues(target, type, startValues);

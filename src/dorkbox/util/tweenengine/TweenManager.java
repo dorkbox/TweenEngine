@@ -302,14 +302,7 @@ class TweenManager {
 
             for (int i = 0, n = childrenArray.length; i < n; i++) {
                 BaseTween<?> tween = childrenArray[i];
-
-                tween.flushRead();
-                tween.updateState(delta);
-                // we completely update the state of everything before we update the tween values. This is because
-                // multiple state changes can occur in a single frame, so we make sure that the expensive math only
-                // happens once.
-                tween.updateValues();
-                tween.flushWrite();
+                tween.update(delta);
             }
 
             // on finish sync

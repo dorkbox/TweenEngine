@@ -81,6 +81,7 @@ abstract class BaseTween<T> {
 	private int repeatCount;
 
 	private boolean canAutoReverse;
+    boolean isInitialized;
     private boolean isPaused;
     private boolean isKilled;
 
@@ -92,10 +93,10 @@ abstract class BaseTween<T> {
 
 
     // represents the amount of time spent in the current iteration or delay
-    // package local because our timeline has to be able to adjust for delays when initially building the system.
+    // protected because our timeline has to be able to adjust for delays when initially building the system.
     // when FORWARDS - if < 0, it is a delay
     // when REVERSE - if > duration, it is a delay
-    private float currentTime;
+    protected float currentTime;
 
     // Direction state
     private static final boolean FORWARDS = true;
@@ -137,7 +138,7 @@ abstract class BaseTween<T> {
         state = null;
 
         duration = startDelay = repeatDelay = currentTime = 0.0F;
-        isPaused = isKilled = isInAutoReverse = false;
+        isInitialized = isPaused = isKilled = isInAutoReverse = false;
         canTriggerBeginEvent = true;
 
         clearCallbacks();
@@ -395,10 +396,8 @@ abstract class BaseTween<T> {
     public
     T start() {
         build();
-        // initialize all of the starting values
-        currentTime = 0.0F;
-        initialize();
 
+        // initialize all of the starting values
         canTriggerBeginEvent = true;
         currentTime = -startDelay;
 
@@ -617,9 +616,9 @@ abstract class BaseTween<T> {
         this.startDelay = 0.0F;
     }
 
-	protected
-    void initialize() {
-	}
+    protected
+    void initializeValues() {
+    }
 
     /**
      * Kills every tweens associated to the given target. Will also kill every
@@ -711,13 +710,12 @@ abstract class BaseTween<T> {
         // update state
         updateState(delta);
 
-        // now update all values
+        // values will ONLY be updated if the tween was initialized (reached START state at least once)
         updateValues();
 
         flushWrite();
         endEvent.update(this);
     }
-
 
     /**
      * Update ONLY the state of the animation timeline/tween. This will
@@ -802,7 +800,12 @@ abstract class BaseTween<T> {
                         }
                     }
                     case START: {
-                        currentTime = 0.0F; // just for callbacks
+                        currentTime = 0.0F;
+
+                        if (!isInitialized) {
+                            isInitialized = true;
+                            initializeValues();
+                        }
 
                         if (canTriggerBeginEvent) {
                             canTriggerBeginEvent = false;
@@ -979,6 +982,11 @@ abstract class BaseTween<T> {
                     }
                     case START: {
                         currentTime = duration;
+
+                        if (!isInitialized) {
+                            isInitialized = true;
+                            initializeValues();
+                        }
 
                         if (canTriggerBeginEvent) {
                             canTriggerBeginEvent = false;

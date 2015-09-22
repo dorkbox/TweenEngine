@@ -428,8 +428,8 @@ class Timeline extends BaseTween<Timeline> {
 	public
     void free() {
         for (int i = children.size() - 1; i >= 0; i--) {
-            final BaseTween<?> obj = children.remove(i);
-            obj.free();
+            final BaseTween<?> tween = children.remove(i);
+            tween.free();
         }
 
         pool.release(this);
