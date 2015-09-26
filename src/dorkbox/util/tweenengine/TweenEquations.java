@@ -36,7 +36,7 @@ package dorkbox.util.tweenengine;
  * @author Aurelien Ribon | http://www.aurelienribon.com/
  * @author dorkbox, llc
  */
-@SuppressWarnings("unused")
+@SuppressWarnings({"unused", "NumericCastThatLosesPrecision", "FloatingPointEquality"})
 public
 enum TweenEquations {
     // Linear (just to prevent confusion, same as none)
@@ -73,7 +73,7 @@ enum TweenEquations {
         @Override
         public final
         float compute(final float time) {
-            return -time * (time - 2F);
+            return -time * (time - 2.0F);
         }
 
         @Override
@@ -86,10 +86,10 @@ enum TweenEquations {
         @Override
         public final
         float compute(float time) {
-            if ((time *= 2F) < 1F) {
+            if ((time *= 2.0F) < 1.0F) {
                 return 0.5F * time * time;
             }
-            return -0.5F * ((--time) * (time - 2F) - 1F);
+            return -0.5F * ((--time) * (time - 2.0F) - 1.0F);
         }
 
         @Override
@@ -118,7 +118,7 @@ enum TweenEquations {
         @Override
         public
         float compute(float time) {
-            return (time -= 1F) * time * time + 1F;
+            return (time -= 1.0F) * time * time + 1.0F;
         }
 
         @Override
@@ -131,10 +131,10 @@ enum TweenEquations {
         @Override
         public
         float compute(float time) {
-            if ((time *= 2F) < 1F) {
+            if ((time *= 2.0F) < 1.0F) {
                 return 0.5F * time * time * time;
             }
-            return 0.5F * ((time -= 2F) * time * time + 2F);
+            return 0.5F * ((time -= 2.0F) * time * time + 2.0F);
         }
 
         @Override
@@ -150,8 +150,8 @@ enum TweenEquations {
         @Override
         public
         float compute(final float time) {
-            final float _t2 = time * time;
-            return _t2 * _t2;
+            final float t = time * time;
+            return t * t;
         }
 
         @Override
@@ -164,7 +164,7 @@ enum TweenEquations {
         @Override
         public
         float compute(float time) {
-            return -((time -= 1F) * time * time * time - 1F);
+            return -((time -= 1.0F) * time * time * time - 1.0F);
         }
 
         @Override
@@ -177,11 +177,11 @@ enum TweenEquations {
         @Override
         public
         float compute(float time) {
-            if ((time *= 2F) < 1F) {
-                final float _t2 = time * time;
-                return 0.5F * _t2 * _t2;
+            if ((time *= 2.0F) < 1.0F) {
+                final float t = time * time;
+                return 0.5F * t * t;
             }
-            return -0.5F * ((time -= 2F) * time * time * time - 2F);
+            return -0.5F * ((time -= 2.0F) * time * time * time - 2.0F);
         }
 
         @Override
@@ -197,8 +197,8 @@ enum TweenEquations {
         @Override
         public
         float compute(final float time) {
-            final float _t2 = time * time;
-            return _t2 * _t2 * time;
+            final float t = time * time;
+            return t * t * time;
         }
 
         @Override
@@ -211,9 +211,9 @@ enum TweenEquations {
         @Override
         public
         float compute(float time) {
-            final float t1 = time -= 1F;
-            final float _t2 = time * time;
-            return t1 * _t2 * _t2 + 1F;
+            final float v = time -= 1.0F;
+            final float t = time * time;
+            return v * t * t + 1.0F;
         }
 
         @Override
@@ -226,13 +226,13 @@ enum TweenEquations {
         @Override
         public
         float compute(float time) {
-            if ((time *= 2F) < 1F) {
-                final float _t2 = time * time;
-                return 0.5F * _t2 * _t2 * time;
+            if ((time *= 2.0F) < 1.0F) {
+                final float t = time * time;
+                return 0.5F * t * t * time;
             }
-            final float t1 = time -= 2F;
-            final float _t2 = time * time;
-            return 0.5F * (t1 * _t2 * _t2 + 2F);
+            final float v = time -= 2.0F;
+            final float t = time * time;
+            return 0.5F * (v * t * t + 2.0F);
         }
 
         @Override
@@ -248,7 +248,7 @@ enum TweenEquations {
         @Override
         public final
         float compute(final float time) {
-            return (float) -Math.sqrt(1F - time * time) - 1F;
+            return (float) -Math.sqrt(1.0F - time * time) - 1.0F;
         }
 
         @Override
@@ -261,7 +261,7 @@ enum TweenEquations {
         @Override
         public final
         float compute(float time) {
-            return (float) Math.sqrt(1F - (time -= 1F) * time);
+            return (float) Math.sqrt(1.0F - (time -= 1.0F) * time);
         }
 
         @Override
@@ -274,10 +274,10 @@ enum TweenEquations {
         @Override
         public final
         float compute(float time) {
-            if ((time *= 2F) < 1F) {
-                return -0.5F * ((float) Math.sqrt(1F - time * time) - 1F);
+            if ((time *= 2.0F) < 1.0F) {
+                return -0.5F * ((float) Math.sqrt(1.0F - time * time) - 1.0F);
             }
-            return 0.5F * ((float) Math.sqrt(1F - (time -= 2F) * time) + 1F);
+            return 0.5F * ((float) Math.sqrt(1.0F - (time -= 2.0F) * time) + 1.0F);
         }
 
         @Override
@@ -293,7 +293,7 @@ enum TweenEquations {
         @Override
         public
         float compute(final float time) {
-            return (float) -Math.cos(time * (1.57079633F)) + 1F; // PI/2
+            return (float) -Math.cos(time * (1.57079633F)) + 1.0F; // PI/2
         }
 
         @Override
@@ -319,7 +319,7 @@ enum TweenEquations {
         @Override
         public
         float compute(final float time) {
-            return -0.5F * ((float) Math.cos(3.14159265F * time) - 1F);
+            return -0.5F * ((float) Math.cos(3.14159265F * time) - 1.0F);
         }
 
         @Override
@@ -335,7 +335,12 @@ enum TweenEquations {
         @Override
         public
         float compute(final float time) {
-            return (time == 0F) ? 0F : (float) Math.pow(2, 10F * (time - 1F));
+            if (time == 0.0F) {
+                return 0.0F;
+            }
+            else {
+                return (float) Math.pow(2, 10.0F * (time - 1.0F));
+            }
         }
 
         @Override
@@ -348,7 +353,12 @@ enum TweenEquations {
         @Override
         public
         float compute(final float time) {
-            return (time == 1F) ? 1F : -(float) Math.pow(2, -10F * time) + 1F;
+            if (time == 1.0F) {
+                return 1.0F;
+            }
+            else {
+                return -(float) Math.pow(2, -10.0F * time) + 1.0F;
+            }
         }
 
         @Override
@@ -361,16 +371,16 @@ enum TweenEquations {
         @Override
         public
         float compute(float time) {
-            if (time == 0F) {
-                return 0F;
+            if (time == 0.0F) {
+                return 0.0F;
             }
-            if (time == 1F) {
-                return 1F;
+            if (time == 1.0F) {
+                return 1.0F;
             }
-            if ((time *= 2F) < 1F) {
-                return 0.5F * (float) Math.pow(2, 10F * (time - 1F));
+            if ((time *= 2.0F) < 1.0F) {
+                return 0.5F * (float) Math.pow(2, 10.0F * (time - 1.0F));
             }
-            return 0.5F * (-(float) Math.pow(2, -10F * --time) + 2F);
+            return 0.5F * (-(float) Math.pow(2, -10.0F * --time) + 2.0F);
         }
 
         @Override
@@ -383,11 +393,11 @@ enum TweenEquations {
 
     // Back
     Back_In(new TweenEquation() {
+
         @Override
         public final
         float compute(final float time) {
-            final float s = 1.70158F;
-            return time * time * ((s + 1F) * time - s);
+            return time * time * ((1.70158F + 1.0F) * time - 1.70158F);
         }
 
         @Override
@@ -400,8 +410,7 @@ enum TweenEquations {
         @Override
         public final
         float compute(float time) {
-            final float s = 1.70158F;
-            return (time -= 1F) * time * ((s + 1F) * time + s) + 1F;
+            return (time -= 1.0F) * time * ((1.70158F + 1.0F) * time + 1.70158F) + 1.0F;
         }
 
         @Override
@@ -415,10 +424,10 @@ enum TweenEquations {
         public final
         float compute(float time) {
             float s = 1.70158F;
-            if ((time *= 2F) < 1F) {
-                return 0.5F * (time * time * (((s *= (1.525F)) + 1F) * time - s));
+            if ((time *= 2.0F) < 1.0F) {
+                return 0.5F * (time * time * (((s *= (1.525F)) + 1.0F) * time - s));
             }
-            return 0.5F * ((time -= 2F) * time * (((s *= (1.525F)) + 1F) * time + s) + 2F);
+            return 0.5F * ((time -= 2.0F) * time * (((s *= (1.525F)) + 1.0F) * time + s) + 2.0F);
         }
 
         @Override
@@ -433,8 +442,8 @@ enum TweenEquations {
     Bounce_In(new TweenEquation() {
         @Override
         public final
-        float compute(float time) {
-            return 1F - Bounce_Out.equation.compute(1F - time);
+        float compute(final float time) {
+            return 1.0F - Bounce_Out.equation.compute(1.0F - time);
         }
 
         @Override
@@ -451,13 +460,13 @@ enum TweenEquations {
                 return 7.5625F * time * time;
             }
             else if (time < (0.72727273F)) {   // 2 / 2.75
-                return 7.5625F * (time -= (0.54545455F)) * time + .75F;  // 1.5 / 2.75
+                return 7.5625F * (time -= (0.54545455F)) * time + 0.75F;  // 1.5 / 2.75
             }
             else if (time < (0.90909091F)) {  // 2.5 / 2.75
-                return 7.5625F * (time -= (0.81818182F)) * time + .9375F;  // 2.25 / 2.75
+                return 7.5625F * (time -= (0.81818182F)) * time + 0.9375F;  // 2.25 / 2.75
             }
             else {
-                return 7.5625F * (time -= (0.95454545F)) * time + .984375F;  // 2.625 / 2.75
+                return 7.5625F * (time -= (0.95454545F)) * time + 0.984375F;  // 2.625 / 2.75
             }
         }
 
@@ -472,10 +481,10 @@ enum TweenEquations {
         public final
         float compute(final float time) {
             if (time < 0.5F) {
-                return Bounce_In.equation.compute(time * 2F) * .5F;
+                return Bounce_In.equation.compute(time * 2.0F) * 0.5F;
             }
             else {
-                return Bounce_Out.equation.compute(time * 2F - 1F) * .5F + 0.5F;
+                return Bounce_Out.equation.compute(time * 2.0F - 1.0F) * 0.5F + 0.5F;
             }
         }
 
@@ -494,26 +503,26 @@ enum TweenEquations {
         float compute(float time) {
             float a;
             float p;
-            if (time == 0F) {
-                return 0F;
+            if (time == 0.0F) {
+                return 0.0F;
             }
-            if (time == 1F) {
-                return 1F;
+            if (time >= 1.0F) {
+                return 1.0F;
             }
             //if (!setP) {                // Left the original algorithm in place, where 'a' & 'p' are parameters that can be set.
-                p = 0.3F;
+            p = 0.3F;
             //}
             float s;
             //if (!setA || a < 1) {
-                a = 1F;
-                //s = p / 4F;
-                s = 0.075F;
+            a = 1.0F;
+            //s = p / 4F;
+            s = 0.075F;
             //}
             //else {
             //    s = p / (6.28318531F) * (float) Math.asin(1 / a);  // 2*PI
             //}
 
-            return -(a * (float) Math.pow(2, 10F * (time -= 1F)) * (float) Math.sin((time - s) * (6.28318531F) / p)); // 2*PI
+            return -(a * (float) Math.pow(2, 10.0F * (time -= 1.0F)) * (float) Math.sin((time - s) * (6.28318531F) / p)); // 2*PI
         }
 
         @Override
@@ -525,28 +534,28 @@ enum TweenEquations {
     Elastic_Out(new TweenEquation() {
         @Override
         public
-        float compute(float time) {
+        float compute(final float time) {
             float a;
             float p;
-            if (time == 0F) {
-                return 0F;
+            if (time == 0.0F) {
+                return 0.0F;
             }
-            if (time == 1F) {
-                return 1F;
+            if (time == 1.0F) {
+                return 1.0F;
             }
             //if (!setP) {                  // Left the original algorithm in place, where 'a' & 'p' are parameters that can be set.
-                p = 0.3F;
+            p = 0.3F;
             //}
             float s;
             //if (!setA || a < 1) {
-                a = 1F;
-                //s = p / 4F;
-                s = 0.075F;
+            a = 1.0F;
+            //s = p / 4F;
+            s = 0.075F;
             //}
             //else {
             //    s = p / (6.28318531F) * (float) Math.asin(1 / a); // 2*PI
             //}
-            return a * (float) Math.pow(2, -10F * time) * (float) Math.sin((time - s) * (6.28318531F) / p) + 1F; // 2*PI
+            return a * (float) Math.pow(2, -10.0F * time) * (float) Math.sin((time - s) * (6.28318531F) / p) + 1.0F; // 2*PI
         }
 
         @Override
@@ -561,29 +570,29 @@ enum TweenEquations {
         float compute(float time) {
             float a;
             float p;
-            if (time == 0F) {
-                return 0F;
+            if (time == 0.0F) {
+                return 0.0F;
             }
-            if ((time *= 2F) == 2F) {
-                return 1F;
+            if ((time *= 2.0F) == 2.0F) {
+                return 1.0F;
             }
             // if (!setP) {            // Left the original algorithm in place, where 'a' & 'p' are parameters that can be set.
-                // p = .3F * 1.5F;
-                p = 0.45F;
+            // p = .3F * 1.5F;
+            p = 0.45F;
             //}
             float s;
             //if (!setA || a < 1) {
-                a = 1F;
-                //s = p / 4F;
-                s = 0.1125F;
+            a = 1.0F;
+            //s = p / 4F;
+            s = 0.1125F;
             //}
             //else {
             //    s = p / (6.28318531F) * (float) Math.asin(1 / a); // 2*PI
             //}
-            if (time < 1F) {
-                return -.5F * (a * (float) Math.pow(2, 10F * (time -= 1F)) * (float) Math.sin((time - s) * (6.28318531F) / p)); // 2*PI
+            if (time < 1.0F) {
+                return -0.5F * (a * (float) Math.pow(2, 10.0F * (time -= 1.0F)) * (float) Math.sin((time - s) * (6.28318531F) / p)); // 2*PI
             }
-            return a * (float) Math.pow(2, -10F * (time -= 1F)) * (float) Math.sin((time - s) * (6.28318531F) / p) * .5F + 1F; // 2*PI
+            return a * (float) Math.pow(2, -10.0F * (time -= 1.0F)) * (float) Math.sin((time - s) * (6.28318531F) / p) * 0.5F + 1.0F; // 2*PI
         }
 
         @Override
