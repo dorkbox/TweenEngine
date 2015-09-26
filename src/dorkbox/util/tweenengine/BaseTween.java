@@ -802,13 +802,13 @@ abstract class BaseTween<T> {
                     case START: {
                         currentTime = 0.0F;
 
-                        if (!isInitialized) {
-                            isInitialized = true;
-                            initializeValues();
-                        }
-
                         if (canTriggerBeginEvent) {
                             canTriggerBeginEvent = false;
+
+                            if (!isInitialized) {
+                                isInitialized = true;
+                                initializeValues();
+                            }
 
                             final List<TweenCallback> callbacks = this.forwards_Begin;
                             for (int i = 0, n = callbacks.size(); i < n; i++) {
@@ -983,13 +983,13 @@ abstract class BaseTween<T> {
                     case START: {
                         currentTime = duration;
 
-                        if (!isInitialized) {
-                            isInitialized = true;
-                            initializeValues();
-                        }
-
                         if (canTriggerBeginEvent) {
                             canTriggerBeginEvent = false;
+
+                            if (!isInitialized) {
+                                isInitialized = true;
+                                initializeValues();
+                            }
 
                             final List<TweenCallback> callbacks = this.reverse_Begin;
                             for (int i = 0, n = callbacks.size(); i < n; i++) {
