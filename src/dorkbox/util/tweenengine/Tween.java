@@ -847,7 +847,7 @@ class Tween extends BaseTween<Tween> {
             throwWaypointsLimitReached();
         }
 
-        final int count = waypointsCount << 1;
+        final int count = waypointsCount << 1;  //*2
         final float[] waypoints = this.waypoints;
 
         waypoints[count] = targetValue1;
@@ -1084,24 +1084,43 @@ class Tween extends BaseTween<Tween> {
             return;
         }
 
-        if (isRelative) {
-            accessor.getValues(target, type, startValues);
+        // have to set our current values to the start.
+        final float saved = currentTime;
+        if (saved != 0.0F) {
+            currentTime = 0.0F;
+            updateValues();
 
+            currentTime = saved;
+            // the update cycle will put the values back to what they should be
+        }
+
+
+        final float[] startValues = this.startValues;
+        accessor.getValues(target, this.type, startValues);
+
+        final int combinedAttrsCnt = this.combinedAttrsCnt;
+
+        // expanded form for "isRelative" + "isFrom"
+        //  isRelative is target += start
+        // !isRelative is target = 0;
+        // isFrom FLIPS start & target values
+
+        if (isRelative) {
             if (isFrom) {
-                for (int i = 0, n = combinedAttrsCnt; i < n; i++) {
+                for (int i = 0; i < combinedAttrsCnt; i++) {
                     targetValues[i] += startValues[i];
 
                     for (int ii = 0; ii < waypointsCount; ii++) {
                         waypoints[ii * combinedAttrsCnt + i] += startValues[i];
                     }
 
+                    // unique for "isFrom"
                     final float tmp = startValues[i];
                     startValues[i] = targetValues[i];
                     targetValues[i] = tmp;
                 }
-            }
-            else {
-                for (int i = 0, n = combinedAttrsCnt; i < n; i++) {
+            } else {
+                for (int i = 0; i < combinedAttrsCnt; i++) {
                     targetValues[i] += startValues[i];
 
                     for (int ii = 0; ii < waypointsCount; ii++) {
@@ -1111,14 +1130,14 @@ class Tween extends BaseTween<Tween> {
             }
         }
         else if (isFrom) {
-            for (int i = 0, n = combinedAttrsCnt; i < n; i++) {
+            for (int i = 0; i < combinedAttrsCnt; i++) {
+                // unique for "isFrom"
                 final float tmp = startValues[i];
                 startValues[i] = targetValues[i];
                 targetValues[i] = tmp;
             }
         }
 	}
-
 
     /**
      * Updates just the values of this tween
