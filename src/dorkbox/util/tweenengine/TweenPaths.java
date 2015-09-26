@@ -35,6 +35,7 @@ package dorkbox.util.tweenengine;
  *
  * @author Aurelien Ribon | http://www.aurelienribon.com/
  */
+@SuppressWarnings("NumericCastThatLosesPrecision")
 public
 enum TweenPaths {
 	Linear(new TweenPath() {
@@ -77,10 +78,16 @@ enum TweenPaths {
             float t1 = (c - a) * 0.5f;
             float t2 = (d - b) * 0.5f;
 
-            float h1 = +2 * t * t * t - 3 * t * t + 1;
-            float h2 = -2 * t * t * t + 3 * t * t;
-            float h3 = t * t * t - 2 * t * t + t;
-            float h4 = t * t * t - t * t;
+            final float _t2 = t * t;
+            final float _t3 = _t2 * t;
+
+            final float _2t3 = 2 * _t3;
+            final float _3t2 = 3 * _t2;
+
+            float h1 = +_2t3 - _3t2 + 1;
+            float h2 = -_2t3 + _3t2;
+            float h3 = _t3 - 2 * _t2 + t;
+            float h4 = _t3 - _t2;
 
             return b * h1 + c * h2 + t1 * h3 + t2 * h4;
         }
