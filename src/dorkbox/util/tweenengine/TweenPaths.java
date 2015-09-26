@@ -30,9 +30,6 @@
  */
 package dorkbox.util.tweenengine;
 
-import dorkbox.util.tweenengine.paths.CatmullRom;
-import dorkbox.util.tweenengine.paths.Linear;
-
 /**
  * Collection of built-in paths.
  *
@@ -40,9 +37,54 @@ import dorkbox.util.tweenengine.paths.Linear;
  */
 public
 enum TweenPaths {
-	Linear(new Linear()),
-    CatmullRom(new CatmullRom()),
-    ;
+	Linear(new TweenPath() {
+        @Override
+        public
+        float compute(float tweenValue, final float[] points, final int pointsCount) {
+            int segment = (int) Math.floor((pointsCount - 1) * tweenValue);
+            segment = Math.max(segment, 0);
+            segment = Math.min(segment, pointsCount - 2);
+
+            tweenValue = tweenValue * (pointsCount - 1) - segment;
+
+            return points[segment] + tweenValue * (points[segment + 1] - points[segment]);
+        }
+    }),
+    CatmullRom(new TweenPath() {
+        @Override
+        public
+        float compute(float tweenValue, final float[] points, final int pointsCount) {
+            int segment = (int) Math.floor((pointsCount - 1) * tweenValue);
+            segment = Math.max(segment, 0);
+            segment = Math.min(segment, pointsCount - 2);
+
+            tweenValue = tweenValue * (pointsCount - 1) - segment;
+
+            if (segment == 0) {
+                return catmullRomSpline(points[0], points[0], points[1], points[2], tweenValue);
+            }
+
+            if (segment == pointsCount - 2) {
+                return catmullRomSpline(points[pointsCount - 3], points[pointsCount - 2], points[pointsCount - 1], points[pointsCount - 1],
+                                        tweenValue);
+            }
+
+            return catmullRomSpline(points[segment - 1], points[segment], points[segment + 1], points[segment + 2], tweenValue);
+        }
+
+        private
+        float catmullRomSpline(float a, float b, float c, float d, float t) {
+            float t1 = (c - a) * 0.5f;
+            float t2 = (d - b) * 0.5f;
+
+            float h1 = +2 * t * t * t - 3 * t * t + 1;
+            float h2 = -2 * t * t * t + 3 * t * t;
+            float h3 = t * t * t - 2 * t * t + t;
+            float h4 = t * t * t - t * t;
+
+            return b * h1 + c * h2 + t1 * h3 + t2 * h4;
+        }
+    });
 
 
     private transient final TweenPath path;
