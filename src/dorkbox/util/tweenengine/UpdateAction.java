@@ -22,5 +22,5 @@ package dorkbox.util.tweenengine;
  */
 public
 interface UpdateAction<T> {
-    void update(T updatedObject);
+    void onEvent(T updatedObject);
 }

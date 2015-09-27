@@ -32,6 +32,7 @@ package dorkbox.util.tweenengine;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 
 /**
@@ -103,7 +104,7 @@ class TweenManager {
      * Sets an event handler so that a notification is broadcast when the manager starts updating the current frame of animation.
      */
     public
-    void setOnStartEvent(final UpdateAction<TweenManager> startEvent) {
+    void setStartEvent(final UpdateAction<TweenManager> startEvent) {
         this.startEvent = startEvent;
         flushWrite();
     }
@@ -112,7 +113,7 @@ class TweenManager {
      * Sets an event handler so that a notification is broadcast when the manager finishes updating the current frame of animation.
      */
     public
-    void setOnEndEvent(final UpdateAction<TweenManager> endEvent) {
+    void setEndEvent(final UpdateAction<TweenManager> endEvent) {
         this.endEvent = endEvent;
         flushWrite();
     }
@@ -198,22 +199,57 @@ class TweenManager {
 	public
     void killAll() {
         flushRead();
-        for (int i = 0, n = childrenArray.length; i < n; i++) {
-            final BaseTween<?> tween = childrenArray[i];
+        boolean needsRefresh = false;
+
+        final Iterator<BaseTween<?>> iterator = tweenArrayList.iterator();
+        while (iterator.hasNext()) {
+            final BaseTween<?> tween = iterator.next();
             tween.kill();
+
+            // always kill (if not during an update)
+            if (!tween.isDuringUpdate) {
+                needsRefresh = true;
+                iterator.remove();
+                tween.free();
+            }
+        }
+
+        if (needsRefresh) {
+            // setup our children array, so update iterations are faster  (marginal improvement)
+            childrenArray = new BaseTween[tweenArrayList.size()];
+            tweenArrayList.toArray(childrenArray);
+            flushWrite();
         }
     }
 
-	/**
+    /**
 	 * Kills every tweens associated to the given target. Will also kill every
 	 * timelines containing a tween associated to the given target.
 	 */
-	public
+	@SuppressWarnings("Duplicates")
+    public
     void killTarget(final Object target) {
         flushRead();
-        for (int i = 0, n = childrenArray.length; i < n; i++) {
-            final BaseTween<?> tween = childrenArray[i];
+        boolean needsRefresh = false;
+
+        final Iterator<BaseTween<?>> iterator = tweenArrayList.iterator();
+        while (iterator.hasNext()) {
+            final BaseTween<?> tween = iterator.next();
             tween.killTarget(target);
+
+            // kill if not during an update, and if specified
+            if (!tween.isDuringUpdate && tween.isFinished()) {
+                needsRefresh = true;
+                iterator.remove();
+                tween.free();
+            }
+        }
+
+        if (needsRefresh) {
+            // setup our children array, so update iterations are faster  (marginal improvement)
+            childrenArray = new BaseTween[tweenArrayList.size()];
+            tweenArrayList.toArray(childrenArray);
+            flushWrite();
         }
     }
 
@@ -222,12 +258,30 @@ class TweenManager {
 	 * also kill every timelines containing a tween associated to the given
 	 * target and tween type.
 	 */
-	public
+	@SuppressWarnings("Duplicates")
+    public
     void killTarget(final Object target, final int tweenType) {
         flushRead();
-        for (int i = 0, n = childrenArray.length; i < n; i++) {
-            final BaseTween<?> tween = childrenArray[i];
+        boolean needsRefresh = false;
+
+        final Iterator<BaseTween<?>> iterator = tweenArrayList.iterator();
+        while (iterator.hasNext()) {
+            final BaseTween<?> tween = iterator.next();
             tween.killTarget(target, tweenType);
+
+            // kill if not during an update, and if specified
+            if (!tween.isDuringUpdate && tween.isFinished()) {
+                needsRefresh = true;
+                iterator.remove();
+                tween.free();
+            }
+        }
+
+        if (needsRefresh) {
+            // setup our children array, so update iterations are faster  (marginal improvement)
+            childrenArray = new BaseTween[tweenArrayList.size()];
+            tweenArrayList.toArray(childrenArray);
+            flushWrite();
         }
     }
 
@@ -279,26 +333,9 @@ class TweenManager {
     public
     void update(final float delta) {
         flushRead();
-        boolean needsRefresh = false;
-        for (int i = childrenArray.length - 1; i >= 0; i--) {
-            final BaseTween<?> obj = childrenArray[i];
-            if (obj.isFinished() && obj.isAutoRemoveEnabled) {
-                needsRefresh = true;
-                tweenArrayList.remove(i);
-                obj.free();
-            }
-        }
-
-        if (needsRefresh) {
-            // setup our children array, so update iterations are faster  (marginal improvement)
-            childrenArray = new BaseTween[tweenArrayList.size()];
-            tweenArrayList.toArray(childrenArray);
-            flushWrite();
-        }
-
         if (!isPaused) {
             // on start sync
-            startEvent.update(this);
+            startEvent.onEvent(this);
 
             for (int i = 0, n = childrenArray.length; i < n; i++) {
                 BaseTween<?> tween = childrenArray[i];
@@ -306,11 +343,29 @@ class TweenManager {
             }
 
             // on finish sync
-            endEvent.update(this);
+            endEvent.onEvent(this);
+
+            boolean needsRefresh = false;
+
+            for (int i = childrenArray.length - 1; i >= 0; i--) {
+                final BaseTween<?> tween = childrenArray[i];
+                if (tween.isAutoRemoveEnabled && tween.isFinished()) {
+                    needsRefresh = true;
+                    tweenArrayList.remove(i);
+                    tween.free();
+                }
+            }
+
+            if (needsRefresh) {
+                // setup our children array, so update iterations are faster  (marginal improvement)
+                childrenArray = new BaseTween[tweenArrayList.size()];
+                tweenArrayList.toArray(childrenArray);
+                flushWrite();
+            }
         }
     }
 
-	/**
+    /**
 	 * Gets the number of managed objects. An object may be a tween or a
 	 * timeline. A timeline only counts for 1 object, since it
 	 * manages its children itself.

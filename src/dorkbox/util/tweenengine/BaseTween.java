@@ -69,7 +69,7 @@ abstract class BaseTween<T> {
     public static final UpdateAction NULL_ACTION = new UpdateAction<Object>() {
         @Override
         public
-        void update(final Object tween) {
+        void onEvent(final Object tween) {
         }
     };
 
@@ -111,6 +111,7 @@ abstract class BaseTween<T> {
     private volatile long lightSyncObject = System.nanoTime();
 	private Object userData;
 
+    /** Used by tween manager */
     protected boolean isAutoRemoveEnabled;
     protected boolean isAutoStartEnabled;
 
@@ -143,6 +144,7 @@ abstract class BaseTween<T> {
 
         clearCallbacks();
         userData = null;
+        endEvent = startEvent = NULL_ACTION;
 
         isAutoRemoveEnabled = isAutoStartEnabled = true;
         flushWrite();
@@ -645,7 +647,7 @@ abstract class BaseTween<T> {
 
     @SuppressWarnings("unchecked")
     public final
-    T setOnStartEvent(final UpdateAction<T> startEvent) {
+    T setStartEvent(final UpdateAction<T> startEvent) {
         flushRead();
         if (state != null) {
             throw new RuntimeException("You can't set events on a timeline once it is started");
@@ -658,7 +660,7 @@ abstract class BaseTween<T> {
 
     @SuppressWarnings("unchecked")
     public final
-    T setOnEndEvent(final UpdateAction<T> endEvent) {
+    T setEndEvent(final UpdateAction<T> endEvent) {
         flushRead();
         if (state != null) {
             throw new RuntimeException("You can't set events on a timeline once it is started");
@@ -682,6 +684,8 @@ abstract class BaseTween<T> {
 	// Update engine
 	// -------------------------------------------------------------------------
 
+    protected boolean isDuringUpdate = false;
+
     /**
      * Updates the tween or timeline state and values.
      * <p>
@@ -699,13 +703,14 @@ abstract class BaseTween<T> {
      *
      * @param delta A delta time in SECONDS between now and the last call.
      */
+    // only called if the user manually calls update. The timeline and tweenManager will NOT call this method.
     @SuppressWarnings("unchecked")
     public
     void update(final float delta) {
-        // only called if the user manually calls update. The timeline and tweenManager will NOT call this method.
+        isDuringUpdate = true;
 
         flushRead();
-        startEvent.update(this);
+        startEvent.onEvent(this);
 
         // update state
         updateState(delta);
@@ -713,8 +718,10 @@ abstract class BaseTween<T> {
         // values will ONLY be updated if the tween was initialized (reached START state at least once)
         updateValues();
 
+        isDuringUpdate = false;
         flushWrite();
-        endEvent.update(this);
+
+        endEvent.onEvent(this);
     }
 
     /**
@@ -729,8 +736,7 @@ abstract class BaseTween<T> {
     void updateState(float delta) {
         // redone by dorkbox, llc
 
-        if (isPaused || state == null || isKilled) {
-            // null state means we didn't properly start (so calling updated before start)
+        if (isPaused || isKilled) {
             return;
         }
 
