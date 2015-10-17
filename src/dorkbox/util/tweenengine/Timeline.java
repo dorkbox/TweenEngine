@@ -475,14 +475,15 @@ class Timeline extends BaseTween<Timeline> {
      * Updates a timeline's children, in different orders.
      */
     protected
-    void update(final boolean updateDirection, final DeltaHolder deltaHolder) {
+    void update(final boolean updateDirection, float delta) {
         if (mode == Modes.SEQUENCE) {
             // update children one at a time.
 
             if (updateDirection) {
-                while (deltaHolder.delta != 0) {
-                    final boolean finished = current.update(deltaHolder);
-                    if (finished) {
+                while (delta != 0.0F) {
+                    delta = current.update(delta);
+
+                    if (current.state == State.FINISHED) {
                         // iterate to the next one when it's finished, but don't go beyond the last child
                         if (currentIndex < childrenSizeMinusOne) {
                             currentIndex++;
@@ -496,9 +497,10 @@ class Timeline extends BaseTween<Timeline> {
                 }
             }
             else {
-                while (deltaHolder.delta != 0) {
-                    final boolean finished = current.update(deltaHolder);
-                    if (finished) {
+                while (delta != 0.0F) {
+                    delta = current.update(delta);
+
+                    if (current.state == State.FINISHED) {
                         // iterate to the previous one (because we are in reverse) when it's finished, but don't go beyond the first child
                         if (currentIndex > 0) {
                             currentIndex--;
@@ -515,27 +517,27 @@ class Timeline extends BaseTween<Timeline> {
 
         // update all children at once
         else {
-            final float saved = deltaHolder.delta;
+            final float savedDelta = delta;
 
             if (updateDirection) {
                 for (int i = 0, n = childrenArray.length; i < n; i++) {
                     final BaseTween<?> tween = childrenArray[i];
-                    deltaHolder.delta = saved;
-                    final boolean finished = tween.update(deltaHolder);
-                    if (finished) {
+                    final float returned = tween.update(savedDelta);
+
+                    if (tween.state == State.FINISHED) {
                         // each child has to track "overflow" info to set delay's correctly when the timeline reverses
-                        tween.currentTime += deltaHolder.delta;
+                        tween.currentTime += returned;
                     }
                 }
             }
             else {
                 for (int i = childrenArray.length - 1; i >= 0; i--) {
                     final BaseTween<?> tween = childrenArray[i];
-                    deltaHolder.delta = saved;
-                    final boolean finished = tween.update(deltaHolder);
-                    if (finished) {
+                    final float returned = tween.update(savedDelta);
+
+                    if (tween.state == State.FINISHED) {
                         // each child has to track "overflow" info to set delay's correctly when the timeline reverses
-                        tween.currentTime += deltaHolder.delta;
+                        tween.currentTime += returned;
                     }
                 }
             }

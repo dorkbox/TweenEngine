@@ -124,9 +124,6 @@ abstract class BaseTween<T> {
     protected boolean isAutoRemoveEnabled;
     protected boolean isAutoStartEnabled;
 
-    protected final DeltaHolder deltaHolder = new DeltaHolder();
-
-
     private UpdateAction startEventCallback = NULL_ACTION;
     private UpdateAction endEventCallback = NULL_ACTION;
 
@@ -581,7 +578,7 @@ abstract class BaseTween<T> {
      * Updates a timeline's children. Only called during State.RUN
      */
     protected abstract
-    void update(final boolean updateDirection, final DeltaHolder deltaHolder);
+    void update(final boolean updateDirection, final float delta);
 
     /**
      * Forces a Timeline/Tween to have it's start/target values
@@ -678,12 +675,6 @@ abstract class BaseTween<T> {
 	// Update engine
 	// -------------------------------------------------------------------------
 
-    public
-    boolean update(final float delta) {
-        deltaHolder.delta = delta;
-        return update(deltaHolder);
-    }
-
     /**
      * Updates the tween or timeline state and values.
      * <p>
@@ -701,15 +692,13 @@ abstract class BaseTween<T> {
      * </p>
      * Copyright dorkbox, llc
      *
-     * @param deltaHolder the time (in seconds) that has elapsed since the last update
+     * @param delta the time (in seconds) that has elapsed since the last update
      *
      * @return true if this tween/timeline is finished (STATE = FINISHED)
      */
     @SuppressWarnings({"unchecked", "Duplicates"})
-    protected
-    boolean update(DeltaHolder deltaHolder) {
-        float delta = deltaHolder.delta;
-
+    public
+    float update(float delta) {
         // when updating a timeline, should iterate over each entry one at a time - and progress to the next one when the previous one
         // is finished. This will change un-init to be sequential (if more that one in a row)
         // if a timeline is parallel, then they all update (in array loop)
@@ -718,7 +707,7 @@ abstract class BaseTween<T> {
         isDuringUpdate = true;
 
         if (isPaused || isKilled) {
-            return true;
+            return delta;
         }
 
         if (isInAutoReverse) {
@@ -769,7 +758,6 @@ abstract class BaseTween<T> {
 
         startEventCallback.onEvent(this);
 
-        MAIN:
         do {
             float newTime = currentTime + delta;
 
@@ -783,8 +771,10 @@ abstract class BaseTween<T> {
                         if (newTime <= 0.0F) {
                             // still in delay
                             currentTime = newTime;
-                            delta = 0.0F;
-                            break MAIN;
+
+                            isDuringUpdate = false;
+                            endEventCallback.onEvent(this);
+                            return 0.0F;
                         }
 
                         currentTime = 0.0F;
@@ -826,11 +816,11 @@ abstract class BaseTween<T> {
                             // still in running forwards
                             currentTime = newTime;
 
-                            deltaHolder.delta = delta;
-                            update(FORWARDS, deltaHolder);
+                            update(FORWARDS, delta);
 
-                            delta = 0.0F;
-                            break MAIN;
+                            isDuringUpdate = false;
+                            endEventCallback.onEvent(this);
+                            return 0.0F;
                         }
 
                         state = State.FINISHED;
@@ -878,7 +868,9 @@ abstract class BaseTween<T> {
                             // have to reset our repeat count, so outside repeats will start us in the correct state
                             repeatCount = repeatCountOrig;
 
-                            break MAIN;
+                            isDuringUpdate = false;
+                            endEventCallback.onEvent(this);
+                            return delta;
                         }
                         else if (canAutoReverse) {
                             // {FORWARDS}{AUTO_REVERSE}
@@ -939,15 +931,15 @@ abstract class BaseTween<T> {
                             // still in the "finished" state, and haven't been reversed somewhere
                             currentTime = newTime;
 
-                            delta = 0.0F;
-                            break MAIN;
+                            isDuringUpdate = false;
+                            endEventCallback.onEvent(this);
+                            return 0.0F;
                         }
 
                         // restart the timeline, since we've had our time adjusted to a point where we are running again.
                         state = State.DELAY;
 
-                        deltaHolder.delta = delta;
-                        update(FORWARDS, deltaHolder);
+                        update(FORWARDS, delta);
 
                         // loop to new state
                         continue;
@@ -972,8 +964,10 @@ abstract class BaseTween<T> {
                         if (newTime >= duration) {
                             // still in delay
                             currentTime = newTime;
-                            delta = 0.0F;
-                            break MAIN;
+
+                            isDuringUpdate = false;
+                            endEventCallback.onEvent(this);
+                            return 0.0F;
                         }
 
                         currentTime = duration;
@@ -1016,11 +1010,11 @@ abstract class BaseTween<T> {
                             // still in running reverse
                             currentTime = newTime;
 
-                            deltaHolder.delta = delta;
-                            update(REVERSE, deltaHolder);
+                            update(REVERSE, delta);
 
-                            delta = 0.0F;
-                            break MAIN;
+                            isDuringUpdate = false;
+                            endEventCallback.onEvent(this);
+                            return 0.0F;
                         }
 
                         state = State.FINISHED;
@@ -1073,7 +1067,9 @@ abstract class BaseTween<T> {
                             // have to reset our repeat count, so outside repeats will start us in the correct state
                             repeatCount = repeatCountOrig;
 
-                            break MAIN;
+                            isDuringUpdate = false;
+                            endEventCallback.onEvent(this);
+                            return delta;
                         }
                         else if (canAutoReverse) {
                             // {REVERSE}{AUTO_REVERSE}
@@ -1134,15 +1130,15 @@ abstract class BaseTween<T> {
                             // still in the "finished" state, and haven't been reversed somewhere
                             currentTime = newTime;
 
-                            delta = 0.0F;
-                            break MAIN;
+                            isDuringUpdate = false;
+                            endEventCallback.onEvent(this);
+                            return 0.0F;
                         }
 
                         // restart the timeline, since we've had our time adjusted to a point where we are running again.
                         state = State.DELAY;
 
-                        deltaHolder.delta = delta;
-                        update(REVERSE, deltaHolder);
+                        update(REVERSE, delta);
 
                         // loop to new state
                         continue;
@@ -1155,12 +1151,5 @@ abstract class BaseTween<T> {
                 // </editor-fold>
             }
         } while (true);
-
-
-        isDuringUpdate = false;
-        endEventCallback.onEvent(this);
-
-        deltaHolder.delta = delta;
-        return state == State.FINISHED;
     }
 }

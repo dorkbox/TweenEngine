@@ -1141,7 +1141,7 @@ class Tween extends BaseTween<Tween> {
      */
     @SuppressWarnings("Duplicates")
     protected
-    void update(final boolean updateDirection, final DeltaHolder deltaHolder) {
+    void update(final boolean updateDirection, final float delta) {
         final Object target = this.target;
         final TweenEquation equation = this.equation;
 
