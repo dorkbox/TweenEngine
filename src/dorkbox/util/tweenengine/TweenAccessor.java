@@ -82,6 +82,7 @@ interface TweenAccessor<T> {
 	 * @param target The target object of the tween.
 	 * @param tweenType An integer representing the tween type.
 	 * @param returnValues An array which should be modified by this method.
+     *
 	 * @return The count of modified slots from the returnValues array.
 	 */
     int getValues(T target, int tweenType, float[] returnValues);

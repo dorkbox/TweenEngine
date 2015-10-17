@@ -132,14 +132,22 @@ class TweenCallback {
 
     public static final
     class Events {
+        /** <b>BEGIN</b>: right after the delay (if any) */
         public static final int BEGIN = 1;              // 00000001
+        /** <b>START</b>: at each iteration beginning */
         public static final int START = 1 << 1;         // 00000010
+        /** <b>END</b>: at each iteration ending, before the repeat delay */
         public static final int END = 1 << 2;           // 00000100
+        /** <b>COMPLETE</b>: at last END event */
         public static final int COMPLETE = 1 << 3;      // 00001000
 
+        /** <b>BACK_BEGIN</b>: at the beginning of the first backward iteration */
         public static final int BACK_BEGIN = 1 << 4;    // 00010000
+        /** <b>BACK_START</b>: at each backward iteration beginning, after the repeat delay */
         public static final int BACK_START = 1 << 5;    // 00100000
+        /** <b>BACK_END</b>: at each backward iteration ending */
         public static final int BACK_END = 1 << 6;      // 01000000
+        /** <b>BACK_COMPLETE</b>: at last BACK_END event */
         public static final int BACK_COMPLETE = 1 << 7; // 10000000
 
         public static final int ANY_FORWARD = 0x0F;     // 00001111

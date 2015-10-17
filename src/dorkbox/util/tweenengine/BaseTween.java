@@ -44,12 +44,12 @@ import java.util.concurrent.CopyOnWriteArrayList;
  * engine gets a big delta time at once.
  * <p/>
  * <p/>
- * Additionally, floating-point operations are always slower than integer ops at
- * same data size, so internally we use INTEGER, since we want consistent
- * timelines & events, as floats will drift (they are approximations)
- *  <p/>
- *  from: http://nicolas.limare.net/pro/notes/2014/12/12_arit_speed/
- *        https://software.intel.com/en-us/forums/watercooler-catchall/topic/306267
+ * WARNING: <p/>
+ * Individual tweens and timelines are NOT THREAD SAFE. Do not access any part
+ * of them outside of the render (or animation) thread. For object visibility in
+ * different threads, use {@link Tween#flushRead()} before you access
+ * objects that were changed by the tween engine, as it will properly make
+ * objects visible to that thread.
  *
  * @see Tween
  * @see Timeline
@@ -59,8 +59,8 @@ import java.util.concurrent.CopyOnWriteArrayList;
 @SuppressWarnings("unused")
 public
 abstract class BaseTween<T> {
-    private enum State {
-        DELAY, START, RUN, END,
+    enum State {
+        DELAY, RUN,
 
         /** FINISHED means EVERYTHING (including repetitions) is done */
         FINISHED
@@ -74,29 +74,36 @@ abstract class BaseTween<T> {
     };
 
     // we are a simple state machine...
-    private State state = null;
+    public State state = null; // todo can make private
 
 	// General
 	private int repeatCountOrig;
 	private int repeatCount;
 
 	private boolean canAutoReverse;
-    boolean isInitialized;
     private boolean isPaused;
     private boolean isKilled;
+
+    /** Used by tween */
+    protected boolean isInitialized;
 
 	// Timings
     private float startDelay;  // this is the initial delay at the start of a timeline/tween (only happens once). (doesn't change)
 	private float repeatDelay; // this is the delay when a timeline/tween is repeating (doesn't change)
 
-	protected float duration; // how long the timeline/tween runs (doesn't change)
+    /** Used by tween */
+    protected float duration; // how long the timeline/tween runs (doesn't change)
 
 
     // represents the amount of time spent in the current iteration or delay
     // protected because our timeline has to be able to adjust for delays when initially building the system.
-    // when FORWARDS - if < 0, it is a delay
-    // when REVERSE - if > duration, it is a delay
+    // when FORWARDS - if <= 0, it is a delay
+    // when REVERSE - if >= duration, it is a delay
+    /** Used by timeline */
     protected float currentTime;
+
+    private static final boolean START_VALUES = true;
+    private static final boolean TARGET_VALUES = false;
 
     // Direction state
     private static final boolean FORWARDS = true;
@@ -107,16 +114,21 @@ abstract class BaseTween<T> {
     private boolean canTriggerBeginEvent;
     private boolean isInAutoReverse;
 
+    /** Used by tween manager */
+    protected boolean isDuringUpdate;
+
 	// Misc
-    private volatile long lightSyncObject = System.nanoTime();
 	private Object userData;
 
     /** Used by tween manager */
     protected boolean isAutoRemoveEnabled;
     protected boolean isAutoStartEnabled;
 
-    protected UpdateAction startEvent = NULL_ACTION;
-    protected UpdateAction endEvent = NULL_ACTION;
+    protected final DeltaHolder deltaHolder = new DeltaHolder();
+
+
+    private UpdateAction startEventCallback = NULL_ACTION;
+    private UpdateAction endEventCallback = NULL_ACTION;
 
     // callbacks (optimized for fast call w/ many callbacks). Verification for multiple triggers is on add.
     private final List<TweenCallback> forwards_Begin = new CopyOnWriteArrayList<TweenCallback>();
@@ -135,44 +147,22 @@ abstract class BaseTween<T> {
     protected
     void reset() {
         repeatCount = repeatCountOrig = 0;
-
         state = null;
 
         duration = startDelay = repeatDelay = currentTime = 0.0F;
-        isInitialized = isPaused = isKilled = isInAutoReverse = false;
+        isPaused = isKilled = isInAutoReverse = isDuringUpdate = isInitialized = false;
         canTriggerBeginEvent = true;
 
         clearCallbacks();
         userData = null;
-        endEvent = startEvent = NULL_ACTION;
+        endEventCallback = startEventCallback = NULL_ACTION;
 
         isAutoRemoveEnabled = isAutoStartEnabled = true;
-        flushWrite();
     }
 
 	// -------------------------------------------------------------------------
 	// Public API
 	// -------------------------------------------------------------------------
-
-    /**
-     * Flushes the visibility of all tween fields from the cache for access/use from different threads.
-     * <p>
-     * This does not block and does not prevent race conditions.
-     *
-     * @return the last time (in nanos) that the field modifications were flushed
-     */
-    public final long flushRead() {
-        return lightSyncObject;
-    }
-
-    /**
-     * Flushes the visibility of all tween field modifications from the cache for access/use from different threads.
-     * <p>
-     * This does not block and does not prevent race conditions.
-     */
-    public final void flushWrite() {
-        lightSyncObject = System.nanoTime();
-    }
 
     /**
      * Clears all of the callback.
@@ -249,15 +239,6 @@ abstract class BaseTween<T> {
 		return (T) this;
 	}
 
-
-    /**
-     * Adjusts the startDelay of the tween/timeline during initialization
-     * @param startDelay how many seconds to adjust the start delay
-     */
-    protected void adjustStartDelay(final float startDelay) {
-        this.startDelay += startDelay;
-    }
-
 	/**
 	 * Adds a start delay to the tween or timeline in seconds.
 	 *
@@ -268,15 +249,11 @@ abstract class BaseTween<T> {
     @SuppressWarnings("unchecked")
     public
     T delay(final float delay) {
-        flushRead();
-
         if (state != null) {
             throw new RuntimeException("You can't modify the delay if it is already started");
         }
 
         this.startDelay += delay;
-        flushWrite();
-
         return (T) this;
     }
 
@@ -287,7 +264,6 @@ abstract class BaseTween<T> {
 	public
     void kill() {
         isKilled = true;
-        flushWrite();
 	}
 
 	/**
@@ -307,7 +283,6 @@ abstract class BaseTween<T> {
 	public
     void pause() {
         isPaused = true;
-        flushWrite();
 	}
 
 	/**
@@ -316,7 +291,6 @@ abstract class BaseTween<T> {
 	public
     void resume() {
         isPaused = false;
-        flushWrite();
 	}
 
 	/**
@@ -331,8 +305,6 @@ abstract class BaseTween<T> {
     @SuppressWarnings("unchecked")
 	public
     T repeat(final int count, final float delay) {
-        flushRead();
-
         if (state != null) {
             throw new RuntimeException("You can't change the repetitions of a tween or timeline once it is started");
         }
@@ -346,7 +318,6 @@ abstract class BaseTween<T> {
         repeatDelay = delay;
         canAutoReverse = false;
 
-        flushWrite();
         return (T) this;
 	}
 
@@ -368,9 +339,45 @@ abstract class BaseTween<T> {
 
         canAutoReverse = true;
 
-        flushWrite();
         return (T) this;
 	}
+
+    /**
+     * Sets the "start" callback, which is called when the tween/timeline starts running.
+     *
+     * @param startCallback this is the object that will be notified when the tween/timeline starts running
+     *
+     * @return The current tween or timeline, for chaining instructions.
+     */
+    @SuppressWarnings("unchecked")
+    public final
+    T setStartEvent(final UpdateAction<T> startCallback) {
+        if (state != null) {
+            throw new RuntimeException("You can't set events on a timeline once it is started");
+        }
+
+        this.startEventCallback = startCallback;
+        return (T) this;
+    }
+
+    /**
+     * Sets the "end" callback, which is called when the tween/timeline finishes running.
+     *
+     * @param endCallback this is the object that will be notified when the tween/timeline finishes running
+     *
+     * @return The current tween or timeline, for chaining instructions.
+     */
+    @SuppressWarnings("unchecked")
+    public final
+    T setEndEvent(final UpdateAction<T> endCallback) {
+        if (state != null) {
+            throw new RuntimeException("You can't set events on a timeline once it is started");
+        }
+
+        this.endEventCallback = endCallback;
+        return (T) this;
+    }
+
 
 	/**
 	 * Attaches an object to this tween or timeline. It can be useful in order
@@ -383,7 +390,6 @@ abstract class BaseTween<T> {
 	public
     T setUserData(final Object data) {
 		userData = data;
-        flushWrite();
 		return (T) this;
 	}
 
@@ -399,19 +405,11 @@ abstract class BaseTween<T> {
     T start() {
         build();
 
-        // initialize all of the starting values
         canTriggerBeginEvent = true;
         currentTime = -startDelay;
 
-        // goto delay or start
-        if (startDelay > 0.0F) {
-            state = State.DELAY;
-        }
-        else {
-            state = State.START;
-        }
+        state = State.DELAY;
 
-        flushWrite();
         return (T) this;
     }
 
@@ -437,26 +435,23 @@ abstract class BaseTween<T> {
      */
     public
     float getCurrentTime() {
-        flushRead();
         return currentTime;
     }
 
 	/**
-	 * Gets the delay of the tween or timeline. Nothing will happen before
+	 * Gets the delay of the Timeline/Tween. Nothing will happen before
 	 * this delay in seconds
 	 */
 	public
     float getStartDelay() {
-        flushRead();
         return startDelay;
 	}
 
 	/**
-	 * Gets the duration of a single iteration in seconds
+	 * Gets the duration of a Timeline/Tween "single iteration" (not counting repeats) in seconds
 	 */
 	public
     float getDuration() {
-        flushRead();
         return duration;
 	}
 
@@ -470,7 +465,6 @@ abstract class BaseTween<T> {
      */
     public
     float getFullDuration() {
-        flushRead();
         if (repeatCountOrig < 0) {
             return -1;
         }
@@ -482,7 +476,6 @@ abstract class BaseTween<T> {
 	 */
 	public
     int getRepeatCount() {
-        flushRead();
         return repeatCountOrig;
 	}
 
@@ -491,7 +484,6 @@ abstract class BaseTween<T> {
 	 */
 	public
     float getRepeatDelay() {
-        flushRead();
         return repeatDelay;
 	}
 
@@ -501,7 +493,6 @@ abstract class BaseTween<T> {
 	@SuppressWarnings("unchecked")
     public
     T getUserData() {
-        flushRead();
         return (T) userData;
 	}
 
@@ -509,14 +500,12 @@ abstract class BaseTween<T> {
      * Returns the direction the tween/timeline currently is in.
      *  <p/>
      * Reverse direction can be impacted by a negative value for {@link #update(float)}
-     * or {@link #update(float), or via a tween reversing direction because
-     * of {@link #repeatAutoReverse(int, float)}
+     * or via a tween reversing direction because of {@link #repeatAutoReverse(int, float)}
      *
-     * @return true if the current tween stage is in the forwads direction, false if reverse (or Backwards)
+     * @return true if the current tween stage is in the forwards direction, false if reverse (or Backwards)
      */
     public final
     boolean getDirection() {
-        flushRead();
         return direction;
     }
 
@@ -525,35 +514,32 @@ abstract class BaseTween<T> {
     // -------------------------------------------------------------------------
 
     /**
-     * @return true if the timeline/tween is waiting inside of a delay.
+     * @return true if the Timeline/Tween is waiting inside of a delay.
      */
     public final
     boolean isInDelay() {
-        flushRead();
         return state == State.DELAY;
     }
 
     /**
-     * @return true if the timeline/tween is in waiting inside of a delay.
+     * @return true if the timeline/tween is currently "auto-reversing" in it's direction.
      */
     public final
     boolean isInAutoReverse() {
-        flushRead();
         return isInAutoReverse;
     }
 
 
     /**
-	 * Returns true if the tween or timeline has been started.
+	 * Returns true if the Timeline/Tween has been started.
 	 */
 	public
     boolean isStarted() {
-        flushRead();
         return state != null;
 	}
 
 	/**
-	 * Returns true if the tween is finished (i.e. if the tween has reached
+	 * Returns true if the Timeline/Tween is finished (i.e. if the tween has reached
 	 * its end or has been killed). A tween may be restarted by a timeline
      * when there is a direction change in the timeline.
      *
@@ -562,7 +548,6 @@ abstract class BaseTween<T> {
 	 */
 	public
     boolean isFinished() {
-        flushRead();
         return state == State.FINISHED || isKilled;
 	}
 
@@ -571,7 +556,6 @@ abstract class BaseTween<T> {
 	 */
 	public
     boolean canAutoReverse() {
-        flushRead();
         return canAutoReverse;
 	}
 
@@ -580,7 +564,6 @@ abstract class BaseTween<T> {
 	 */
 	public
     boolean isPaused() {
-        flushRead();
         return isPaused;
 	}
 
@@ -595,28 +578,25 @@ abstract class BaseTween<T> {
     boolean containsTarget(final Object target, final int tweenType);
 
     /**
-     * Updates a timeline's children in seconds. Base impl does nothing.
+     * Updates a timeline's children. Only called during State.RUN
      */
     protected abstract
-    void updateChildrenState(final float delta);
+    void update(final boolean updateDirection, final DeltaHolder deltaHolder);
 
     /**
-     * When done with all the adjustments and notifications, update the object
+     * Forces a Timeline/Tween to have it's start/target values
      *
-     * If a timeline/tween is outside it's animation cycle time, it will "snap" to the start/end points
+     * @param updateDirection direction in which the force is happening. Affects children iteration order (timelines) and start/target
+     *                        values (tweens)
+     *
+     * @param updateValue this is the start (true) or target (false) to set the tween to.
      */
     protected abstract
-    void updateValues();
+    void setValues(final boolean updateDirection, final boolean updateValue);
 
 	// -------------------------------------------------------------------------
 	// Protected API
 	// -------------------------------------------------------------------------
-
-    // used by the build process to correct start delay for parent timeline
-    protected
-    void resetStartDelay() {
-        this.startDelay = 0.0F;
-    }
 
     protected
     void initializeValues() {
@@ -625,66 +605,84 @@ abstract class BaseTween<T> {
     /**
      * Kills every tweens associated to the given target. Will also kill every
      * timelines containing a tween associated to the given target.
+     *
+     * @return true if the target was killed, false if we do not contain the target, and it was not killed
      */
     protected
-    void killTarget(final Object target) {
+    boolean killTarget(final Object target) {
         if (containsTarget(target)) {
             kill();
+            return true;
         }
+
+        return false;
     }
 
     /**
      * Kills every tweens associated to the given target and tween type. Will
      * also kill every timelines containing a tween associated to the given
      * target and tween type.
+     *
+     * @return true if the target was killed, false if we do not contain the target, and it was not killed
      */
     protected
-    void killTarget(final Object target, final int tweenType) {
+    boolean killTarget(final Object target, final int tweenType) {
         if (containsTarget(target, tweenType)) {
             kill();
-        }
-    }
-
-    @SuppressWarnings("unchecked")
-    public final
-    T setStartEvent(final UpdateAction<T> startEvent) {
-        flushRead();
-        if (state != null) {
-            throw new RuntimeException("You can't set events on a timeline once it is started");
+            return true;
         }
 
-        this.startEvent = startEvent;
-        flushWrite();
-        return (T) this;
-    }
-
-    @SuppressWarnings("unchecked")
-    public final
-    T setEndEvent(final UpdateAction<T> endEvent) {
-        flushRead();
-        if (state != null) {
-            throw new RuntimeException("You can't set events on a timeline once it is started");
-        }
-
-        this.endEvent = endEvent;
-        flushWrite();
-        return (T) this;
+        return false;
     }
 
     /**
-     * used to recursively adjust the current time for children in a timeline (or self, if a tween)
+     * Adjust the tween for when repeat + auto-reverse is used
+     *
+     * @param updateDirection the future direction for all children
      */
     protected
-    void adjustTime(final float offset, final boolean direction) {
-        currentTime += offset;
-        this.direction = direction;
+    void adjustForRepeat_AutoReverse(final boolean updateDirection) {
+        direction = updateDirection;
+        state = State.DELAY;
+
+        if (updateDirection) {
+            currentTime = 0;
+        }
+        else {
+            currentTime = duration;
+        }
     }
+
+    /**
+     * Adjust the current time (set to the start value for the tween) and change state to DELAY.
+     * </p>
+     * For timelines, this also changes what the current tween is (for when iterating over tweens)
+     *
+     * @param updateDirection the future direction for all children
+     */
+    protected
+    void adjustForRepeat_Linear(final boolean updateDirection) {
+        direction = updateDirection;
+        state = State.DELAY;
+
+        if (direction) {
+            currentTime = 0;
+        }
+        else {
+            currentTime = duration;
+        }
+    }
+
 
     // -------------------------------------------------------------------------
 	// Update engine
 	// -------------------------------------------------------------------------
 
-    protected boolean isDuringUpdate = false;
+    public
+    boolean update(final float delta) {
+        deltaHolder.delta = delta;
+        return update(deltaHolder);
+    }
 
     /**
      * Updates the tween or timeline state and values.
@@ -700,44 +698,27 @@ abstract class BaseTween<T> {
      * <p>
      * The tween manager doesn't call this method, it correctly calls
      * updateState + updateValues on timeline/tweens
+     * </p>
+     * Copyright dorkbox, llc
      *
-     * @param delta A delta time in SECONDS between now and the last call.
+     * @param deltaHolder the time (in seconds) that has elapsed since the last update
+     *
+     * @return true if this tween/timeline is finished (STATE = FINISHED)
      */
-    // only called if the user manually calls update. The timeline and tweenManager will NOT call this method.
-    @SuppressWarnings("unchecked")
-    public
-    void update(final float delta) {
+    @SuppressWarnings({"unchecked", "Duplicates"})
+    protected
+    boolean update(DeltaHolder deltaHolder) {
+        float delta = deltaHolder.delta;
+
+        // when updating a timeline, should iterate over each entry one at a time - and progress to the next one when the previous one
+        // is finished. This will change un-init to be sequential (if more that one in a row)
+        // if a timeline is parallel, then they all update (in array loop)
+
+
         isDuringUpdate = true;
 
-        flushRead();
-        startEvent.onEvent(this);
-
-        // update state
-        updateState(delta);
-
-        // values will ONLY be updated if the tween was initialized (reached START state at least once)
-        updateValues();
-
-        isDuringUpdate = false;
-        flushWrite();
-
-        endEvent.onEvent(this);
-    }
-
-    /**
-     * Update ONLY the state of the animation timeline/tween. This will
-     * adjust currentTime and direction (and other relevant state).
-     * </p>
-     * Also, this will notify all relevant state events.
-     *
-     * @param delta the time (in seconds) that has elapsed since the that state update
-     */
-    protected
-    void updateState(float delta) {
-        // redone by dorkbox, llc
-
         if (isPaused || isKilled) {
-            return;
+            return true;
         }
 
         if (isInAutoReverse) {
@@ -745,7 +726,7 @@ abstract class BaseTween<T> {
         }
 
         // the INITIAL, incoming delta from the app, will be positive or negative.
-        boolean direction = delta >= 0.0F;
+        boolean direction = delta >= -0.0F;
         this.direction = direction;
 
         final float duration = this.duration;
@@ -777,11 +758,18 @@ abstract class BaseTween<T> {
          *            ╭╴  [XXXXXXXXXX]-<<-[R.DELAY] <─╯
          *            ╰╴> [R.DELAY]->>-[XXXXXXXXXX]  ...
          *
+         * Time must "cross the finish line" in order for the tween to be considered finished.
          */
 
-        // FORWARDS: 0 >= time < duration
-        // REVERSE:  0 > time <= duration   (reverse always goes from duration -> 0)
+        // The LAST tween (in a timeline) that was modified is what keeps track of "overflow" of time, which is when an animation runs
+        // longer that the tween duration. This is necessary in order to accurately reverse the animation and have the correct delays
 
+        // FORWARDS: 0 > time <= duration
+        // REVERSE:  0 >= time < duration   (reverse always goes from duration -> 0)
+
+        startEventCallback.onEvent(this);
+
+        MAIN:
         do {
             float newTime = currentTime + delta;
 
@@ -789,28 +777,22 @@ abstract class BaseTween<T> {
                 // {FORWARDS}
                 // <editor-fold>
 
-                // FORWARDS:  0 >= time < duration
+                // FORWARDS: 0 > time <= duration
                 switch (state) {
                     case DELAY: {
-                        // stay in delay, or goto next state?
-                        if (newTime < 0.0F) {
+                        if (newTime <= 0.0F) {
                             // still in delay
                             currentTime = newTime;
-                            updateChildrenState(delta);
-                            return;
-                        } else {
-                            // fallthrough to next state. Adjust state, currentTime, newTime, delta
-                            state = State.START;
-
-                            // FALLTHROUGH
+                            delta = 0.0F;
+                            break MAIN;
                         }
-                    }
-                    case START: {
+
                         currentTime = 0.0F;
 
                         if (canTriggerBeginEvent) {
                             canTriggerBeginEvent = false;
 
+                            // initialize during start (but after delay), so that it's at the same point in either direction
                             if (!isInitialized) {
                                 isInitialized = true;
                                 initializeValues();
@@ -827,38 +809,35 @@ abstract class BaseTween<T> {
                             callbacks.get(i).onEvent(TweenCallback.Events.START, this);
                         }
 
-                        currentTime = newTime;
-
-                        // always goto next state (it will determine weather to stay or not)
+                        // goto next state
                         state = State.RUN;
+
+                        // set the start values - update reverse, so that the FIRST tween takes priority if multiple tweens affect the
+                        // same target
+                        setValues(REVERSE, START_VALUES);
+
+                        // adjust the delta so that it is shifted based on the length of (previous) iteration
+                        delta = newTime;
 
                         // FALLTHROUGH
                     }
                     case RUN: {
-                        // stay in running forwards (inside update cycle), or continue to next state?
-                        if (newTime < duration) {
+                        if (newTime <= duration) {
                             // still in running forwards
                             currentTime = newTime;
-                            updateChildrenState(delta);
-                            return;
-                        } else {
-                            // goto end state
-                            state = State.END;
+
+                            deltaHolder.delta = delta;
+                            update(FORWARDS, deltaHolder);
+
+                            delta = 0.0F;
+                            break MAIN;
                         }
 
-                        // FALLTHROUGH
-                    }
-                    case END: {
+                        state = State.FINISHED;
                         currentTime = duration;
-                        updateChildrenState(delta);
 
                         // adjust the delta so that it is shifted based on the length of (previous) iteration
                         delta = newTime - duration;
-
-                        final List<TweenCallback> callbacks = this.forwards_End;
-                        for (int i = 0, n = callbacks.size(); i < n; i++) {
-                            callbacks.get(i).onEvent(TweenCallback.Events.END, this);
-                        }
 
                         final int repeatCountStack = repeatCount;
                         ////////////////////////////////////////////
@@ -868,26 +847,49 @@ abstract class BaseTween<T> {
                         // 3) we are in linear repeat mode
                         if (repeatCountStack == 0) {
                             // {FORWARDS}{FINISHED}
-                            state = State.FINISHED;
+
+                            // -- update is REVERSE so that the FIRST tween data takes priority, if there are
+                            //    multiple tweens that have the same target
+
+                            // "instant" tweens (duration 0) cannot trigger a set-to-startpoint (since they are always [enabled] while
+                            // running). They are [disabled] by their parent timeline when the parent reaches the end of it's duration
+                            // in the FORWARDS direction, this doesn't matter, but in REVERSE, it does.
+                            setValues(REVERSE, TARGET_VALUES);
+
+
+                            final List<TweenCallback> callbacks = this.forwards_End;
+                            for (int i = 0, n = callbacks.size(); i < n; i++) {
+                                callbacks.get(i).onEvent(TweenCallback.Events.END, this);
+                            }
 
                             final List<TweenCallback> callbacks2 = this.forwards_Complete;
                             for (int i = 0, n = callbacks2.size(); i < n; i++) {
                                 callbacks2.get(i).onEvent(TweenCallback.Events.COMPLETE, this);
                             }
 
+                            // don't do this, because it will xfer to the next tween (if a timeline), or will get added in the FINISHED
+                            // case (if not a timeline, to record "overflow" of time)
+                            //    currentTime = newTime;
+
                             // we're done going forwards
                             canTriggerBeginEvent = true;
                             isInAutoReverse = false;
-                            currentTime = newTime;
 
-                            // nothing left to do
-                            return;
+                            // have to reset our repeat count, so outside repeats will start us in the correct state
+                            repeatCount = repeatCountOrig;
+
+                            break MAIN;
                         }
                         else if (canAutoReverse) {
                             // {FORWARDS}{AUTO_REVERSE}
                             if (repeatCountStack > 0) {
                                 // -1 means repeat forever
                                 repeatCount--;
+                            }
+
+                            final List<TweenCallback> callbacks = this.forwards_End;
+                            for (int i = 0, n = callbacks.size(); i < n; i++) {
+                                callbacks.get(i).onEvent(TweenCallback.Events.END, this);
                             }
 
                             final List<TweenCallback> callbacks2 = this.forwards_Complete;
@@ -898,21 +900,14 @@ abstract class BaseTween<T> {
                             // we're done going forwards
                             canTriggerBeginEvent = true;
                             isInAutoReverse = !isInAutoReverse; // if we are NOT in autoReverse, then "isInAutoReverse" is true if we reverse
-                            currentTime = newTime;
 
                             // make sure any checks after this returns accurately reflect the correct REVERSE direction
                             direction = REVERSE;
-                            // any extra time (what's left in delta) will be applied/calculated on the next loop around
-                            final float repeatDelay = this.repeatDelay;
-                            adjustTime(repeatDelay - delta, REVERSE);
-                            delta = -delta;
 
-                            // always goto next state (it will determine weather to stay or not)
-                            if (repeatDelay > 0.0F) {
-                                state = State.DELAY;
-                            } else {
-                                state = State.START;
-                            }
+                            // any extra time (what's left in delta) will be applied/calculated on the next loop around
+                            adjustForRepeat_AutoReverse(REVERSE);
+                            currentTime += repeatDelay;
+                            delta = -delta;
 
                             // loop to new state
                             continue;
@@ -924,34 +919,35 @@ abstract class BaseTween<T> {
                                 repeatCount--;
                             }
 
+                            final List<TweenCallback> callbacks = this.forwards_End;
+                            for (int i = 0, n = callbacks.size(); i < n; i++) {
+                                callbacks.get(i).onEvent(TweenCallback.Events.END, this);
+                            }
+
                             isInAutoReverse = false;
-                            currentTime = newTime;
 
                             // any extra time (what's left in delta) will be applied/calculated on the next loop around
-                            final float repeatDelay = this.repeatDelay;
-                            adjustTime(-newTime - repeatDelay, FORWARDS);
-
-                            // always goto next state (it will determine weather to stay or not)
-                            if (repeatDelay > 0.0F) {
-                                state = State.DELAY;
-                            } else {
-                                state = State.START;
-                            }
+                            adjustForRepeat_Linear(FORWARDS);
+                            currentTime = -repeatDelay + delta;
 
                             // loop to new state
                             continue;
                         }
                     }
                     case FINISHED: {
-                        if (newTime < 0.0F || newTime >= duration) {
+                        if (newTime <= 0.0F || newTime > duration) {
                             // still in the "finished" state, and haven't been reversed somewhere
                             currentTime = newTime;
-                            updateChildrenState(delta);
-                            return;
+
+                            delta = 0.0F;
+                            break MAIN;
                         }
 
                         // restart the timeline, since we've had our time adjusted to a point where we are running again.
-                        state = State.START;
+                        state = State.DELAY;
+
+                        deltaHolder.delta = delta;
+                        update(FORWARDS, deltaHolder);
 
                         // loop to new state
                         continue;
@@ -970,28 +966,22 @@ abstract class BaseTween<T> {
                 // {REVERSE}
                 // <editor-fold>
 
-                // REVERSE:  0 > time <= duration   (reverse always goes from duration -> 0)
+                // REVERSE:  0 >= time < duration   (reverse always goes from duration -> 0)
                 switch (state) {
                     case DELAY: {
-                        // stay in delay, or goto next state?
-                        if (newTime > duration) {
+                        if (newTime >= duration) {
                             // still in delay
                             currentTime = newTime;
-                            updateChildrenState(delta);
-                            return;
-                        } else {
-                            // fallthrough to next state. Adjust state, currentTime, newTime, delta
-                            state = State.START;
-
-                            // FALLTHROUGH
+                            delta = 0.0F;
+                            break MAIN;
                         }
-                    }
-                    case START: {
+
                         currentTime = duration;
 
                         if (canTriggerBeginEvent) {
                             canTriggerBeginEvent = false;
 
+                            // initialize during start (but after delay), so that it's at the same point in either direction
                             if (!isInitialized) {
                                 isInitialized = true;
                                 initializeValues();
@@ -1008,38 +998,36 @@ abstract class BaseTween<T> {
                             callbacks.get(i).onEvent(TweenCallback.Events.BACK_START, this);
                         }
 
-                        currentTime = newTime;
-
-                        // always goto next state (it will determine weather to stay or not)
+                        // goto next state
                         state = State.RUN;
+
+                        // -- update is REVERSE so that the FIRST tween data takes priority, if there are
+                        //    multiple tweens that have the same target
+                        setValues(REVERSE, TARGET_VALUES);
+
+                        // adjust the delta so that it is shifted based on the length of (previous) iteration
+                        delta = -(duration - newTime);
 
                         // FALLTHROUGH
                     }
                     case RUN: {
-                        // stay in running reverse (inside update cycle), or continue to next state?
-                        if (newTime > 0.0F) {
+                        // stay in running reverse
+                        if (newTime >= 0.0F) {
                             // still in running reverse
                             currentTime = newTime;
-                            updateChildrenState(delta);
-                            return;
-                        } else {
-                            // goto end state
-                            state = State.END;
+
+                            deltaHolder.delta = delta;
+                            update(REVERSE, deltaHolder);
+
+                            delta = 0.0F;
+                            break MAIN;
                         }
 
-                        // FALLTHROUGH
-                    }
-                    case END: {
+                        state = State.FINISHED;
                         currentTime = 0.0F;
-                        updateChildrenState(delta);
 
                         // adjust the delta so that it is shifted based on the length of (previous) iteration
                         delta = newTime;
-
-                        final List<TweenCallback> callbacks = this.reverse_End;
-                        for (int i = 0, n = callbacks.size(); i < n; i++) {
-                            callbacks.get(i).onEvent(TweenCallback.Events.BACK_END, this);
-                        }
 
                         final int repeatCountStack = repeatCount;
                         ////////////////////////////////////////////
@@ -1049,26 +1037,54 @@ abstract class BaseTween<T> {
                         // 3) we are in linear repeat mode
                         if (repeatCountStack == 0) {
                             // {REVERSE}{FINISHED}
-                            state = State.FINISHED;
+
+                            // set the "start" values, backwards because values are relative to forwards
+                            // -- update is FORWARDS so that the LAST tween data takes priority, if there are
+                            //    multiple tweens that have the same target
+                            if (duration <= 0.000001F) {
+                                // "instant" tweens (duration 0) cannot trigger a set-to-startpoint (since they are always [enabled] while
+                                // running). They are [disabled] by their parent timeline when the parent reaches the end of it's duration
+                                // always set to target value (even though it's reverse)
+                                setValues(FORWARDS, TARGET_VALUES);
+                            }
+                            else {
+                                // set the "start" values, flipped because we are in reverse
+                                setValues(FORWARDS, START_VALUES);
+                            }
+
+                            final List<TweenCallback> callbacks = this.reverse_End;
+                            for (int i = 0, n = callbacks.size(); i < n; i++) {
+                                callbacks.get(i).onEvent(TweenCallback.Events.BACK_END, this);
+                            }
 
                             final List<TweenCallback> callbacks2 = this.reverse_Complete;
                             for (int i = 0, n = callbacks2.size(); i < n; i++) {
                                 callbacks2.get(i).onEvent(TweenCallback.Events.BACK_COMPLETE, this);
                             }
 
+                            // don't do this, because it will xfer to the next tween (if a timeline), or will get added in the FINISHED
+                            // case (if not a timeline, to record "overflow" of time)
+                            //    currentTime = newTime;
+
                             // we're done going reverse
                             canTriggerBeginEvent = true;
                             isInAutoReverse = false;
-                            currentTime = newTime;
 
-                            // nothing left to do
-                            return;
+                            // have to reset our repeat count, so outside repeats will start us in the correct state
+                            repeatCount = repeatCountOrig;
+
+                            break MAIN;
                         }
                         else if (canAutoReverse) {
                             // {REVERSE}{AUTO_REVERSE}
                             if (repeatCountStack > 0) {
                                 // -1 means repeat forever
                                 repeatCount--;
+                            }
+
+                            final List<TweenCallback> callbacks = this.reverse_End;
+                            for (int i = 0, n = callbacks.size(); i < n; i++) {
+                                callbacks.get(i).onEvent(TweenCallback.Events.BACK_END, this);
                             }
 
                             final List<TweenCallback> callbacks2 = this.reverse_Complete;
@@ -1079,21 +1095,14 @@ abstract class BaseTween<T> {
                             // we're done going forwards
                             canTriggerBeginEvent = true;
                             isInAutoReverse = !isInAutoReverse; // if we are NOT in autoReverse, then "isInAutoReverse" is true if we reverse
-                            currentTime = newTime;
 
-                            // make sure any checks after this returns accurately reflect the correct REVERSE direction
-                            direction = true;
+                            // make sure any checks after this returns accurately reflect the correct FORWARDS direction
+                            direction = FORWARDS;
+
                             // any extra time (what's left in delta) will be applied/calculated on the next loop around
-                            final float repeatDelay = this.repeatDelay;
-                            adjustTime(-repeatDelay - delta, FORWARDS);
+                            adjustForRepeat_AutoReverse(FORWARDS);
+                            currentTime -= repeatDelay;
                             delta = -delta;
-
-                            // always goto next state (it will determine weather to stay or not)
-                            if (repeatDelay > 0.0F) {
-                                state = State.DELAY;
-                            } else {
-                                state = State.START;
-                            }
 
                             // loop to new state
                             continue;
@@ -1105,34 +1114,35 @@ abstract class BaseTween<T> {
                                 repeatCount--;
                             }
 
+                            final List<TweenCallback> callbacks = this.forwards_End;
+                            for (int i = 0, n = callbacks.size(); i < n; i++) {
+                                callbacks.get(i).onEvent(TweenCallback.Events.END, this);
+                            }
+
                             isInAutoReverse = false;
-                            currentTime = newTime;
 
                             // any extra time (what's left in delta) will be applied/calculated on the next loop around
-                            final float repeatDelay = this.repeatDelay;
-                            adjustTime(-newTime + duration + repeatDelay, REVERSE);
-
-                            // always goto next state (it will determine weather to stay or not)
-                            if (repeatDelay > 0.0F) {
-                                state = State.DELAY;
-                            } else {
-                                state = State.START;
-                            }
+                            adjustForRepeat_Linear(REVERSE);
+                            currentTime = newTime + repeatDelay;
 
                             // loop to new state
                             continue;
                         }
                     }
                     case FINISHED: {
-                        if (newTime <= 0.0F || newTime > duration) {
+                        if (newTime < 0.0F || newTime >= duration) {
                             // still in the "finished" state, and haven't been reversed somewhere
                             currentTime = newTime;
-                            updateChildrenState(delta);
-                            return;
+
+                            delta = 0.0F;
+                            break MAIN;
                         }
 
                         // restart the timeline, since we've had our time adjusted to a point where we are running again.
-                        state = State.START;
+                        state = State.DELAY;
+
+                        deltaHolder.delta = delta;
+                        update(REVERSE, deltaHolder);
 
                         // loop to new state
                         continue;
@@ -1145,5 +1155,12 @@ abstract class BaseTween<T> {
                 // </editor-fold>
             }
         } while (true);
+
+
+        isDuringUpdate = false;
+        endEventCallback.onEvent(this);
+
+        deltaHolder.delta = delta;
+        return state == State.FINISHED;
     }
 }

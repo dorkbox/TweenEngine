@@ -40,17 +40,27 @@ import java.util.List;
  * Its main interest is that it handles the tween/timeline life-cycles for you,
  * as well as releasing pooled objects.
  * <p/>
- *
  * If you don't use a TweenManager, you must make sure to release the tween
  * objects back to the pool manually {@link BaseTween#free()}
  * <p/>
- *
- * Just give it a bunch of tweens or timelines and call update() periodically,
- * you don't need to care for anything else! Relax and enjoy your animations.
+ * Just give it a bunch of tweens or timelines and call {@link TweenManager#update()}
+ * periodically, you don't need to do anything else! Relax and enjoy your animations.
+ * <p/>
+ * More fine-grained control is available as well via {@link TweenManager#update(float)}
+ * to update via seconds (1.0F == 1.0 seconds).
+ * <p/>
+ * <p/>
+ * WARNING: <p/>
+ * Individual tweens and timelines are NOT THREAD SAFE. Do not access any part
+ * of them outside of the render (or animation) thread. For object visibility in
+ * different threads, use {@link Tween#flushRead()} before you access
+ * objects that were changed by the tween engine, as it will correctly make
+ * objects visible to that thread.
  *
  * @see Tween
  * @see Timeline
  * @author Aurelien Ribon | http://www.aurelienribon.com/
+ * @author dorkbox, llc
  */
 @SuppressWarnings("unused")
 public
@@ -70,7 +80,6 @@ class TweenManager {
     public static
     void setAutoRemove(final BaseTween<?> tween, final boolean value) {
         tween.isAutoRemoveEnabled = value;
-        tween.flushWrite();
     }
 
     /**
@@ -82,14 +91,11 @@ class TweenManager {
     public static
     void setAutoStart(final BaseTween<?> tween, final boolean value) {
         tween.isAutoStartEnabled = value;
-        tween.flushWrite();
     }
 
     // -------------------------------------------------------------------------
 	// Public API
 	// -------------------------------------------------------------------------
-
-    private volatile long lightSyncObject = System.nanoTime();
 
 	private final ArrayList<BaseTween<?>> tweenArrayList = new ArrayList<BaseTween<?>>(20);
 	private BaseTween<?>[] childrenArray = new BaseTween<?>[0];
@@ -99,6 +105,7 @@ class TweenManager {
     private UpdateAction startEvent = BaseTween.NULL_ACTION;
     private UpdateAction endEvent = BaseTween.NULL_ACTION;
 
+    private long lastTime = System.nanoTime();
 
     /**
      * Sets an event handler so that a notification is broadcast when the manager starts updating the current frame of animation.
@@ -106,7 +113,6 @@ class TweenManager {
     public
     void setStartEvent(final UpdateAction<TweenManager> startEvent) {
         this.startEvent = startEvent;
-        flushWrite();
     }
 
     /**
@@ -115,27 +121,6 @@ class TweenManager {
     public
     void setEndEvent(final UpdateAction<TweenManager> endEvent) {
         this.endEvent = endEvent;
-        flushWrite();
-    }
-
-    /**
-     * Flushes the visibility of all tween fields from the cache for access/use from different threads.
-     * <p>
-     * This does not block and does not prevent race conditions.
-     *
-     * @return the last time (in nanos) that the field modifications were flushed
-     */
-    public final long flushRead() {
-        return lightSyncObject;
-    }
-
-    /**
-     * Flushes the visibility of all tween field modifications from the cache for access/use from different threads.
-     * <p>
-     * This does not block and does not prevent race conditions.
-     */
-    public final void flushWrite() {
-        lightSyncObject = System.nanoTime();
     }
 
 	/**
@@ -145,7 +130,6 @@ class TweenManager {
 	 */
 	public
     TweenManager add(final BaseTween<?> tween) {
-        flushRead();
         if (!tweenArrayList.contains(tween)) {
             tweenArrayList.add(tween);
         }
@@ -154,7 +138,6 @@ class TweenManager {
         childrenArray = new BaseTween[tweenArrayList.size()];
         tweenArrayList.toArray(childrenArray);
 
-        flushWrite();
         if (tween.isAutoStartEnabled) {
             tween.start();
         }
@@ -167,7 +150,6 @@ class TweenManager {
 	 */
 	public
     boolean containsTarget(final Object target) {
-        flushRead();
         for (int i = 0, n = childrenArray.length; i < n; i++) {
             final BaseTween<?> tween = childrenArray[i];
             if (tween.containsTarget(target)) {
@@ -183,7 +165,6 @@ class TweenManager {
 	 */
 	public
     boolean containsTarget(final Object target, final int tweenType) {
-        flushRead();
         for (int i = 0, n = childrenArray.length; i < n; i++) {
             final BaseTween<?> tween = childrenArray[i];
             if (tween.containsTarget(target, tweenType)) {
@@ -198,7 +179,6 @@ class TweenManager {
 	 */
 	public
     void killAll() {
-        flushRead();
         boolean needsRefresh = false;
 
         final Iterator<BaseTween<?>> iterator = tweenArrayList.iterator();
@@ -218,27 +198,27 @@ class TweenManager {
             // setup our children array, so update iterations are faster  (marginal improvement)
             childrenArray = new BaseTween[tweenArrayList.size()];
             tweenArrayList.toArray(childrenArray);
-            flushWrite();
         }
     }
 
     /**
 	 * Kills every tweens associated to the given target. Will also kill every
 	 * timelines containing a tween associated to the given target.
+     *
+     * @return true if the target was killed, false if we do not contain the target, and it was not killed
 	 */
 	@SuppressWarnings("Duplicates")
     public
-    void killTarget(final Object target) {
-        flushRead();
+    boolean killTarget(final Object target) {
         boolean needsRefresh = false;
 
         final Iterator<BaseTween<?>> iterator = tweenArrayList.iterator();
         while (iterator.hasNext()) {
             final BaseTween<?> tween = iterator.next();
-            tween.killTarget(target);
+            boolean killTarget = tween.killTarget(target);
 
             // kill if not during an update, and if specified
-            if (!tween.isDuringUpdate && tween.isFinished()) {
+            if (killTarget && !tween.isDuringUpdate && tween.isFinished()) {
                 needsRefresh = true;
                 iterator.remove();
                 tween.free();
@@ -249,28 +229,32 @@ class TweenManager {
             // setup our children array, so update iterations are faster  (marginal improvement)
             childrenArray = new BaseTween[tweenArrayList.size()];
             tweenArrayList.toArray(childrenArray);
-            flushWrite();
+
+            return true;
         }
+
+        return false;
     }
 
 	/**
 	 * Kills every tweens associated to the given target and tween type. Will
 	 * also kill every timelines containing a tween associated to the given
 	 * target and tween type.
+     *
+     * @return true if the target was killed, false if we do not contain the target, and it was not killed
 	 */
 	@SuppressWarnings("Duplicates")
     public
-    void killTarget(final Object target, final int tweenType) {
-        flushRead();
+    boolean killTarget(final Object target, final int tweenType) {
         boolean needsRefresh = false;
 
         final Iterator<BaseTween<?>> iterator = tweenArrayList.iterator();
         while (iterator.hasNext()) {
             final BaseTween<?> tween = iterator.next();
-            tween.killTarget(target, tweenType);
+            boolean killTarget = tween.killTarget(target, tweenType);
 
             // kill if not during an update, and if specified
-            if (!tween.isDuringUpdate && tween.isFinished()) {
+            if (killTarget && !tween.isDuringUpdate && tween.isFinished()) {
                 needsRefresh = true;
                 iterator.remove();
                 tween.free();
@@ -281,17 +265,18 @@ class TweenManager {
             // setup our children array, so update iterations are faster  (marginal improvement)
             childrenArray = new BaseTween[tweenArrayList.size()];
             tweenArrayList.toArray(childrenArray);
-            flushWrite();
+
+            return true;
         }
+
+        return false;
     }
 
 	/**
 	 * Increases the minimum capacity of the manager. Defaults to 20.
 	 */
 	public void ensureCapacity(final int minCapacity) {
-        flushRead();
         tweenArrayList.ensureCapacity(minCapacity);
-        flushWrite();
 	}
 
 	/**
@@ -300,7 +285,6 @@ class TweenManager {
     public
     void pause() {
 		isPaused = true;
-        flushWrite();
 	}
 
 	/**
@@ -309,30 +293,48 @@ class TweenManager {
 	public
     void resume() {
 		isPaused = false;
-        flushWrite();
 	}
 
     /**
-     * Updates every tweens with a delta time in SECONDS and handles the
+     * Updates every added tween/timeline based upon the elapsed time between
+     * now and the previous time this method was called. This method also
+     * handles the tween life-cycles automatically.
+     * <p/>
+     * If a tween is finished, it will be removed from the manager.
+     */
+    public
+    void update() {
+        long time = System.nanoTime();
+
+        // time in seconds. Converted to int before the division, because IDIV is
+        // 1 order magnitude faster than LDIV (and int's work for us anyways)
+        // see: http://www.cs.nuim.ie/~jpower/Research/Papers/2008/lambert-qapl08.pdf
+        //noinspection NumericCastThatLosesPrecision
+        float deltaTime = ((int) (time - this.lastTime)) / 1.0E9F;
+        this.lastTime = time;
+
+        update(deltaTime);
+    }
+
+    /**
+     * Updates every added tween with a delta time in SECONDS and handles the
      * tween life-cycles automatically.
      * <p/>
      * If a tween is finished, it will be removed from the manager.
      * <p/>
      * The delta time represents the elapsed time in seconds between now and the
-     * last update call. Each tween or timeline manages its local time, and adds
+     * previous update call. Each tween or timeline manages its local time, and adds
      * this delta to its local time to update itself.
      * <p/>
-     *
      * Slow motion, fast motion and backward play can be easily achieved by
      * tweaking this delta time. Multiply it by -1 to play the animation
      * backward, or by 0.5 to play it twice slower than its normal speed.
      *
-     * @param delta A delta time in SECONDS between now and the last call.
+     * @param delta A delta time in SECONDS between now and the previous call.
      */
     @SuppressWarnings("unchecked")
     public
     void update(final float delta) {
-        flushRead();
         if (!isPaused) {
             // on start sync
             startEvent.onEvent(this);
@@ -360,7 +362,6 @@ class TweenManager {
                 // setup our children array, so update iterations are faster  (marginal improvement)
                 childrenArray = new BaseTween[tweenArrayList.size()];
                 tweenArrayList.toArray(childrenArray);
-                flushWrite();
             }
         }
     }
@@ -374,7 +375,6 @@ class TweenManager {
 	 */
 	public
     int size() {
-		flushRead();
         return childrenArray.length;
 	}
 
@@ -386,7 +386,6 @@ class TweenManager {
 	 */
 	public
     int getRunningTweensCount() {
-        flushRead();
         return getTweensCount(tweenArrayList);
 	}
 
@@ -398,7 +397,6 @@ class TweenManager {
 	 */
 	public
     int getRunningTimelinesCount() {
-        flushRead();
         return getTimelinesCount(tweenArrayList);
     }
 
@@ -409,7 +407,6 @@ class TweenManager {
 	 */
 	public
     List<BaseTween<?>> getObjects() {
-        flushRead();
 		return Collections.unmodifiableList(tweenArrayList);
 	}
 

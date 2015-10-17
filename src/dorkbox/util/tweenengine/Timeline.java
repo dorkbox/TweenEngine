@@ -62,13 +62,13 @@ import java.util.List;
  *     .push(Tween.set(myObject, OPACITY).target(0))
  *     .push(Tween.set(myObject, SCALE).target(0, 0))
  *     .beginParallel()
- *          .push(Tween.to(myObject, OPACITY, 500).target(1).ease(Quad.INOUT))
- *          .push(Tween.to(myObject, SCALE, 500).target(1, 1).ease(Quad.INOUT))
+ *          .push(Tween.to(myObject, OPACITY, .5F).target(1).ease(Quad.INOUT))
+ *          .push(Tween.to(myObject, SCALE, .5F).target(1, 1).ease(Quad.INOUT))
  *     .end()
- *     .pushPause(1000)
- *     .push(Tween.to(myObject, POSITION_X, 500).target(100).ease(Quad.INOUT))
- *     .push(Tween.to(myObject, ROTATION, 500).target(360).ease(Quad.INOUT))
- *     .repeat(5, 500)
+ *     .pushPause(1.0F)
+ *     .push(Tween.to(myObject, POSITION_X, .5F).target(100).ease(Quad.INOUT))
+ *     .push(Tween.to(myObject, ROTATION, .5F).target(360).ease(Quad.INOUT))
+ *     .repeat(5, .5F)
  *     .start(myManager);
  * }</pre>
  *
@@ -78,7 +78,7 @@ import java.util.List;
  * @author Aurelien Ribon | http://www.aurelienribon.com/
  * @author dorkbox, llc
  */
-@SuppressWarnings("unused")
+@SuppressWarnings({"unused", "Duplicates"})
 public final
 class Timeline extends BaseTween<Timeline> {
 	// -------------------------------------------------------------------------
@@ -90,7 +90,7 @@ class Timeline extends BaseTween<Timeline> {
     private static final PoolableObject<Timeline> poolableObject = new PoolableObject<Timeline>() {
         @Override
         public
-        void reset(final Timeline object) {
+        void onReturn(final Timeline object) {
             object.reset();
         }
 
@@ -132,7 +132,7 @@ class Timeline extends BaseTween<Timeline> {
 
 	/**
 	 * Creates a new timeline with a 'sequence' behavior. Its children will
-	 * be delayed so that they are triggered one after the other.
+	 * be updated one after the other.
 	 */
 	public static
     Timeline createSequence() {
@@ -143,7 +143,7 @@ class Timeline extends BaseTween<Timeline> {
 
 	/**
 	 * Creates a new timeline with a 'parallel' behavior. Its children will be
-	 * triggered all at once.
+	 * updated all at once.
 	 */
 	public static
     Timeline createParallel() {
@@ -151,6 +151,8 @@ class Timeline extends BaseTween<Timeline> {
 		tl.setup(Modes.PARALLEL);
 		return tl;
 	}
+
+
 
     // -------------------------------------------------------------------------
 	// Attributes
@@ -161,10 +163,18 @@ class Timeline extends BaseTween<Timeline> {
 
 	private final List<BaseTween<?>> children = new ArrayList<BaseTween<?>>(10);
     private BaseTween<?>[] childrenArray = null;
+    private int childrenSize;
+    private int childrenSizeMinusOne;
+
+    private Modes mode;
+    private boolean isBuilt;
+
     protected Timeline parent;
-    private Timeline current;
-	private Modes mode;
-	private boolean isBuilt;
+    // current is used for TWO things.
+    //  - Tracking what to start/end during construction
+    //  - Tracking WHICH tween/timeline (of the children) is currently being run.
+    private BaseTween<?> current;
+    private int currentIndex;
 
 	// -------------------------------------------------------------------------
 	// Setup
@@ -182,17 +192,14 @@ class Timeline extends BaseTween<Timeline> {
 		children.clear();
         childrenArray = null;
 		current = parent = null;
+        currentIndex = 0;
 		isBuilt = false;
-
-        flushWrite();
 	}
 
 	private
     void setup(final Modes mode) {
 		this.mode = mode;
 		this.current = this;
-
-        flushWrite();
 	}
 
 	// -------------------------------------------------------------------------
@@ -206,14 +213,12 @@ class Timeline extends BaseTween<Timeline> {
 	 */
 	public
     Timeline push(final Tween tween) {
-        flushRead();
         if (isBuilt) {
             throw new RuntimeException("You can't push anything to a timeline once it is started");
         }
 
-        current.children.add(tween);
+        children.add(tween);
 
-        flushWrite();
         return this;
 	}
 
@@ -224,18 +229,13 @@ class Timeline extends BaseTween<Timeline> {
 	 */
 	public
     Timeline push(final Timeline timeline) {
-        flushRead();
         if (isBuilt) {
             throw new RuntimeException("You can't push anything to a timeline once it is started");
         }
-        if (timeline.current != timeline) {
-            throw new RuntimeException("You forgot to call a few 'end()' statements in your pushed timeline");
-        }
 
-        timeline.parent = current;
-        current.children.add(timeline);
+        timeline.parent = this;
+        children.add(timeline);
 
-        flushWrite();
         return this;
     }
 
@@ -249,15 +249,13 @@ class Timeline extends BaseTween<Timeline> {
 	 */
 	public
     Timeline pushPause(final float time) {
-        flushRead();
         if (isBuilt) {
             throw new RuntimeException("You can't push anything to a timeline once it is started");
         }
 
-        current.children.add(Tween.mark()
-                                  .delay(time));
+        children.add(Tween.mark()
+                          .delay(time));
 
-        flushWrite();
         return this;
 	}
 
@@ -265,46 +263,48 @@ class Timeline extends BaseTween<Timeline> {
 	 * Starts a nested timeline with a 'sequence' behavior. Don't forget to
 	 * call {@link Timeline#end()} to close this nested timeline.
 	 *
-	 * @return The current timeline, for chaining instructions.
+	 * @return The new sequential timeline, for chaining instructions.
 	 */
     public
     Timeline beginSequence() {
-        flushRead();
         if (isBuilt) {
             throw new RuntimeException("You can't push anything to a timeline once it is started");
         }
 
-        Timeline tl = pool.takeUninterruptibly();
-        tl.parent = current;
-        tl.mode = Modes.SEQUENCE;
-        current.children.add(tl);
-        current = tl;
+        Timeline timeline = pool.takeUninterruptibly();
+        children.add(timeline);
 
-        flushWrite();
-        return this;
+        timeline.parent = this;
+        timeline.mode = Modes.SEQUENCE;
+
+        // keep track of which timeline we are on
+        current = timeline;
+
+        return timeline;
 	}
 
 	/**
 	 * Starts a nested timeline with a 'parallel' behavior. Don't forget to
 	 * call {@link Timeline#end()} to close this nested timeline.
 	 *
-	 * @return The current timeline, for chaining instructions.
+	 * @return The new parallel timeline, for chaining instructions.
 	 */
     public
     Timeline beginParallel() {
-        flushRead();
         if (isBuilt) {
             throw new RuntimeException("You can't push anything to a timeline once it is started");
         }
 
-        Timeline tl = pool.takeUninterruptibly();
-        tl.parent = current;
-        tl.mode = Modes.PARALLEL;
-        current.children.add(tl);
-        current = tl;
+        Timeline timeline = pool.takeUninterruptibly();
+        children.add(timeline);
 
-        flushWrite();
-        return this;
+        timeline.parent = this;
+        timeline.mode = Modes.PARALLEL;
+
+        // keep track of which timeline we are on
+        current = timeline;
+
+        return timeline;
 	}
 
 	/**
@@ -314,18 +314,23 @@ class Timeline extends BaseTween<Timeline> {
 	 */
     public
     Timeline end() {
-        flushRead();
         if (isBuilt) {
             throw new RuntimeException("You can't push anything to a timeline once it is started");
         }
         if (current == this) {
-            throw new RuntimeException("Nothing to end...");
+            throw new RuntimeException("Nothing to end, calling end before begin!");
         }
 
-        current = current.parent;
+        current = parent;
 
-        flushWrite();
-        return this;
+        if (current == null) {
+            throw new RuntimeException("Whoops! Shouldn't be null!");
+        }
+        if (current.getClass() != Timeline.class) {
+            throw new RuntimeException("You cannot end something other than a Timeline!");
+        }
+
+        return (Timeline) current;
 	}
 
 	/**
@@ -334,12 +339,11 @@ class Timeline extends BaseTween<Timeline> {
 	 */
 	public
     List<BaseTween<?>> getChildren() {
-        flushRead();
         if (isBuilt) {
-            return Collections.unmodifiableList(current.children);
+            return Collections.unmodifiableList(children);
         }
         else {
-            return current.children;
+            return children;
         }
     }
 
@@ -351,7 +355,6 @@ class Timeline extends BaseTween<Timeline> {
     @Override
     public
     Timeline build() {
-        flushRead();
         if (isBuilt) {
             return this;
         }
@@ -366,9 +369,7 @@ class Timeline extends BaseTween<Timeline> {
 
             switch (mode) {
                 case SEQUENCE:
-                    final float tDelay = duration;
                     duration += obj.getFullDuration();
-                    obj.adjustStartDelay(tDelay);
                     break;
 
                 case PARALLEL:
@@ -377,50 +378,35 @@ class Timeline extends BaseTween<Timeline> {
             }
         }
 
-        // have to save the delay, because adjustStartDelay adds to startDelay (and we want to recursively handle children), so
-        // we save (my) current, modify, restore saved.
-        final float startDelay = getStartDelay();
-        resetStartDelay();
-        adjustStartDelay(startDelay);
-
         isBuilt = true;
 
-        flushWrite();
         return this;
-    }
-
-
-    /**
-     * Adjusts the startDelay of the tween/timeline during initialization
-     * @param startDelay how many seconds to adjust the start delay
-     */
-    protected void adjustStartDelay(final float startDelay) {
-        super.adjustStartDelay(startDelay);
-
-        for (int i = 0, n = children.size(); i < n; i++) {
-            final BaseTween<?> obj = children.get(i);
-            obj.adjustStartDelay(startDelay);
-        }
     }
 
     @Override
 	public
     Timeline start() {
-        flushRead();
         super.start();
 
-        int size = children.size();
+        childrenSize = children.size();
+        childrenSizeMinusOne = childrenSize - 1;
 
         // setup our children array, so update iterations are faster
-        childrenArray = new BaseTween[size];
+        childrenArray = new BaseTween[childrenSize];
         children.toArray(childrenArray);
 
-        for (int i = 0; i < size; i++) {
+        for (int i = 0; i < childrenSize; i++) {
             final BaseTween<?> obj = childrenArray[i];
             obj.start();
         }
 
-        flushWrite();
+        if (childrenSize > 0) {
+            current = childrenArray[0];
+        } else {
+            throw new RuntimeException("Creating a timeline with zero children. This is likely unintended, and if it is, this is not " +
+                                       "permitted.");
+        }
+
         return this;
     }
 
@@ -439,36 +425,144 @@ class Timeline extends BaseTween<Timeline> {
 	// BaseTween impl.
 	// -------------------------------------------------------------------------
 
+
+    /**
+     * Recursively adjust the tweens for when repeat + auto-reverse is used
+     *
+     * @param updateDirection the future direction for all children
+     */
     @Override
-    protected final
-    void adjustTime(final float repeatDelay, final boolean direction) {
-        super.adjustTime(repeatDelay, direction);
+    protected
+    void adjustForRepeat_AutoReverse(final boolean updateDirection) {
+        super.adjustForRepeat_AutoReverse(updateDirection);
 
         for (int i = 0, n = childrenArray.length; i < n; i++) {
             final BaseTween<?> tween = childrenArray[i];
-            tween.adjustTime(repeatDelay, direction);
+            tween.adjustForRepeat_AutoReverse(updateDirection);
         }
     }
 
     /**
-     * Updates a timeline's children. Base impl does nothing.
+     * Adjust the current time (set to the start value for the tween) and change state to DELAY.
+     * </p>
+     * For timelines, this also changes what the current tween is (for when iterating over tweens)
+     *
+     * @param updateDirection the future direction for all children
      */
     protected
-    void updateChildrenState(final float delta) {
+    void adjustForRepeat_Linear(final boolean updateDirection) {
+        super.adjustForRepeat_Linear(updateDirection);
+
         for (int i = 0, n = childrenArray.length; i < n; i++) {
             final BaseTween<?> tween = childrenArray[i];
-            tween.updateState(delta);
+            tween.adjustForRepeat_Linear(updateDirection);
+        }
+
+        // this only matters if we are a sequence, because PARALLEL operates on all of them at the same time
+        if (mode == Modes.SEQUENCE) {
+            if (updateDirection) {
+                currentIndex = 0;
+            }
+            else {
+                currentIndex = childrenSize-1;
+            }
+
+            current = childrenArray[currentIndex];
         }
     }
 
     /**
-     * Updates just the values of all children timeline/tweens
+     * Updates a timeline's children, in different orders.
      */
-    protected final
-    void updateValues() {
-        for (int i = 0, n = childrenArray.length; i < n; i++) {
-            final BaseTween<?> tween = childrenArray[i];
-            tween.updateValues();
+    protected
+    void update(final boolean updateDirection, final DeltaHolder deltaHolder) {
+        if (mode == Modes.SEQUENCE) {
+            // update children one at a time.
+
+            if (updateDirection) {
+                while (deltaHolder.delta != 0) {
+                    final boolean finished = current.update(deltaHolder);
+                    if (finished) {
+                        // iterate to the next one when it's finished, but don't go beyond the last child
+                        if (currentIndex < childrenSizeMinusOne) {
+                            currentIndex++;
+                            current = childrenArray[currentIndex];
+                        } else if (this.parent != null) {
+                            // keep track of implicit time "overflow", where currentTime + delta > duration.
+                            // This logic is so that this is recorded only on the outermost timeline for when timelines reverse direction
+                            return;
+                        }
+                    }
+                }
+            }
+            else {
+                while (deltaHolder.delta != 0) {
+                    final boolean finished = current.update(deltaHolder);
+                    if (finished) {
+                        // iterate to the previous one (because we are in reverse) when it's finished, but don't go beyond the first child
+                        if (currentIndex > 0) {
+                            currentIndex--;
+                            current = childrenArray[currentIndex];
+                        } else if (this.parent != null) {
+                            // keep track of implicit time "overflow", where currentTime + delta > duration.
+                            // This logic is so that this is recorded only on the outermost timeline for when timelines reverse direction
+                            return;
+                        }
+                    }
+                }
+            }
+        }
+
+        // update all children at once
+        else {
+            final float saved = deltaHolder.delta;
+
+            if (updateDirection) {
+                for (int i = 0, n = childrenArray.length; i < n; i++) {
+                    final BaseTween<?> tween = childrenArray[i];
+                    deltaHolder.delta = saved;
+                    final boolean finished = tween.update(deltaHolder);
+                    if (finished) {
+                        // each child has to track "overflow" info to set delay's correctly when the timeline reverses
+                        tween.currentTime += deltaHolder.delta;
+                    }
+                }
+            }
+            else {
+                for (int i = childrenArray.length - 1; i >= 0; i--) {
+                    final BaseTween<?> tween = childrenArray[i];
+                    deltaHolder.delta = saved;
+                    final boolean finished = tween.update(deltaHolder);
+                    if (finished) {
+                        // each child has to track "overflow" info to set delay's correctly when the timeline reverses
+                        tween.currentTime += deltaHolder.delta;
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Forces a timeline/tween to have it's start/target values
+     *
+     * @param updateDirection direction in which the force is happening. Affects children iteration order (timelines) and start/target
+     *                        values (tweens)
+     *
+     * @param updateValue this is the start (true) or target (false) to set the tween to.
+     */
+    protected
+    void setValues(final boolean updateDirection, final boolean updateValue) {
+        if (updateDirection) {
+            for (int i = 0, n = childrenArray.length; i < n; i++) {
+                final BaseTween<?> tween = childrenArray[i];
+                tween.setValues(true, updateValue);
+            }
+        }
+        else {
+            for (int i = childrenArray.length - 1; i >= 0; i--) {
+                final BaseTween<?> tween = childrenArray[i];
+                tween.setValues(false, updateValue);
+            }
         }
     }
 
