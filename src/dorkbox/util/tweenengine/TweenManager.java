@@ -1,19 +1,5 @@
 /*
  * Copyright 2012 Aurelien Ribon
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
- *
  * Copyright 2015 dorkbox, llc
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -36,26 +22,25 @@ import java.util.Iterator;
 import java.util.List;
 
 /**
- * A TweenManager updates all your tweens and timelines at once.
- * Its main interest is that it handles the tween/timeline life-cycles for you,
- * as well as releasing pooled objects.
+ * A TweenManager updates all your tweens and timelines at once. Its main interest is that it handles the tween/timeline life-cycles
+ * for you, as well as releasing pooled objects.
  * <p/>
- * If you don't use a TweenManager, you must make sure to release the tween
- * objects back to the pool manually {@link BaseTween#free()}
+ * If you don't use a TweenManager, you must make sure to release the tween objects back to the pool manually {@link BaseTween#free()}
  * <p/>
- * Just give it a bunch of tweens or timelines and call {@link TweenManager#update()}
- * periodically, you don't need to do anything else! Relax and enjoy your animations.
+ * Just give it a bunch of tweens or timelines and call {@link TweenManager#update()} periodically, you don't need to do anything else!
+ * Relax and enjoy your animations.
  * <p/>
- * More fine-grained control is available as well via {@link TweenManager#update(float)}
- * to update via seconds (1.0F == 1.0 seconds).
+ * More fine-grained control is available as well via {@link TweenManager#update(float)} to update via seconds (1.0F == 1.0 seconds).
  * <p/>
  * <p/>
  * WARNING: <p/>
- * Individual tweens and timelines are NOT THREAD SAFE. Do not access any part
- * of them outside of the render (or animation) thread. For object visibility in
- * different threads, use {@link Tween#flushRead()} before you access
- * objects that were changed by the tween engine, as it will correctly make
- * objects visible to that thread.
+ * Individual tweens and timelines are NOT THREAD SAFE. Do not access any part of them outside of the render (or animation) thread.
+ * <p/>
+ * For object visibility in different threads, use {@link Tween#flushWrite()} inside an endCallback (so the objects are flushed), and
+ * then before you access those objects, call {@link Tween#flushRead()} which will then correctly make those objects (which were
+ * changed by the tween engine), visible to your thread.
+ * <p/>
+ * A "heavyweight" synchronization technique is not required in a modern JVM, flushWrite/Read is sufficient
  *
  * @see Tween
  * @see Timeline
@@ -70,12 +55,10 @@ class TweenManager {
 	// -------------------------------------------------------------------------
 
 	/**
-	 * Disables or enables the "auto remove" mode of any tween manager for a
-	 * particular tween or timeline. This mode is activated by default. The
-	 * interest of deactivating it is to prevent some tweens or timelines from
-	 * being automatically removed from a manager once they are finished.
-	 * Therefore, if you update a manager backwards, the tweens or timelines
-	 * will be played again, even if they were finished.
+	 * Disables or enables the "auto remove" mode of any tween manager for a particular tween or timeline. This mode is activated by
+     * default. The interest of deactivating it is to prevent some tweens or timelines from being automatically removed from a manager
+     * once they are finished. Therefore, if you update a manager backwards, the tweens or timelines will be played again, even if they
+     * were finished.
 	 */
     public static
     void setAutoRemove(final BaseTween<?> tween, final boolean value) {
@@ -83,10 +66,9 @@ class TweenManager {
     }
 
     /**
-	 * Disables or enables the "auto start" mode of any tween manager for a
-	 * particular tween or timeline. This mode is activated by default. If it
-	 * is not enabled, add a tween or timeline to any manager won't start it
-	 * automatically, and you'll need to call .start() manually on your object.
+	 * Disables or enables the "auto start" mode of any tween manager for a particular tween or timeline. This mode is activated
+     * by default. If it is not enabled, add a tween or timeline to any manager won't start it automatically, and you'll need to
+     * call .start() manually on your object.
 	 */
     public static
     void setAutoStart(final BaseTween<?> tween, final boolean value) {
@@ -102,25 +84,39 @@ class TweenManager {
 
 	private boolean isPaused = false;
 
-    private UpdateAction startEvent = BaseTween.NULL_ACTION;
-    private UpdateAction endEvent = BaseTween.NULL_ACTION;
+    private UpdateAction startEventCallback = BaseTween.NULL_ACTION;
+    private UpdateAction endEventCallback = BaseTween.NULL_ACTION;
 
     private long lastTime = System.nanoTime();
 
     /**
      * Sets an event handler so that a notification is broadcast when the manager starts updating the current frame of animation.
+     *
+     * @return The manager, for instruction chaining.
      */
     public
-    void setStartEvent(final UpdateAction<TweenManager> startEvent) {
-        this.startEvent = startEvent;
+    TweenManager setStartCallback(final UpdateAction<TweenManager> startCallback) {
+        if (startCallback == null) {
+            throw new RuntimeException("Callback cannot be null! Use BaseTween.NULL_ACTION if you wish to 'unset' the callback");
+        }
+
+        this.startEventCallback = startCallback;
+        return this;
     }
 
     /**
      * Sets an event handler so that a notification is broadcast when the manager finishes updating the current frame of animation.
+     *
+     * @return The manager, for instruction chaining.
      */
     public
-    void setEndEvent(final UpdateAction<TweenManager> endEvent) {
-        this.endEvent = endEvent;
+    TweenManager setEndCallback(final UpdateAction<TweenManager> endCallback) {
+        if (endCallback == null) {
+            throw new RuntimeException("Callback cannot be null! Use BaseTween.NULL_ACTION if you wish to 'unset' the callback");
+        }
+
+        this.endEventCallback = endCallback;
+        return this;
     }
 
 	/**
@@ -145,8 +141,7 @@ class TweenManager {
 	}
 
 	/**
-	 * Returns true if the manager contains any valid interpolation associated
-	 * to the given target object.
+	 * Returns true if the manager contains any valid interpolation associated to the given target object.
 	 */
 	public
     boolean containsTarget(final Object target) {
@@ -160,8 +155,7 @@ class TweenManager {
     }
 
 	/**
-	 * Returns true if the manager contains any valid interpolation associated
-	 * to the given target object and to the given tween type.
+	 * Returns true if the manager contains any valid interpolation associated to the given target object and to the given tween type.
 	 */
 	public
     boolean containsTarget(final Object target, final int tweenType) {
@@ -202,8 +196,7 @@ class TweenManager {
     }
 
     /**
-	 * Kills every tweens associated to the given target. Will also kill every
-	 * timelines containing a tween associated to the given target.
+	 * Kills every tweens associated to the given target. Will also kill every timelines containing a tween associated to the given target.
      *
      * @return true if the target was killed, false if we do not contain the target, and it was not killed
 	 */
@@ -237,9 +230,8 @@ class TweenManager {
     }
 
 	/**
-	 * Kills every tweens associated to the given target and tween type. Will
-	 * also kill every timelines containing a tween associated to the given
-	 * target and tween type.
+	 * Kills every tweens associated to the given target and tween type. Will also kill every timelines containing a tween associated
+     * to the given target and tween type.
      *
      * @return true if the target was killed, false if we do not contain the target, and it was not killed
 	 */
@@ -296,9 +288,8 @@ class TweenManager {
 	}
 
     /**
-     * Updates every added tween/timeline based upon the elapsed time between
-     * now and the previous time this method was called. This method also
-     * handles the tween life-cycles automatically.
+     * Updates every added tween/timeline based upon the elapsed time between now and the previous time this method was called. This
+     * method also handles the tween life-cycles automatically.
      * <p/>
      * If a tween is finished, it will be removed from the manager.
      */
@@ -317,18 +308,15 @@ class TweenManager {
     }
 
     /**
-     * Updates every added tween with a delta time in SECONDS and handles the
-     * tween life-cycles automatically.
+     * Updates every added tween with a delta time in SECONDS and handles the tween life-cycles automatically.
      * <p/>
      * If a tween is finished, it will be removed from the manager.
      * <p/>
-     * The delta time represents the elapsed time in seconds between now and the
-     * previous update call. Each tween or timeline manages its local time, and adds
-     * this delta to its local time to update itself.
+     * The delta time represents the elapsed time in seconds between now and the previous update call. Each tween or timeline manages its
+     * local time, and adds this delta to its local time to update itself.
      * <p/>
-     * Slow motion, fast motion and backward play can be easily achieved by
-     * tweaking this delta time. Multiply it by -1 to play the animation
-     * backward, or by 0.5 to play it twice slower than its normal speed.
+     * Slow motion, fast motion and backward play can be easily achieved by tweaking this delta time. Multiply it by -1 to play the
+     * animation backward, or by 0.5 to play it twice slower than its normal speed.
      *
      * @param delta A delta time in SECONDS between now and the previous call.
      */
@@ -337,21 +325,21 @@ class TweenManager {
     void update(final float delta) {
         if (!isPaused) {
             // on start sync
-            startEvent.onEvent(this);
+            startEventCallback.onEvent(this);
 
             for (int i = 0, n = childrenArray.length; i < n; i++) {
                 BaseTween<?> tween = childrenArray[i];
                 tween.update(delta);
             }
 
-            // on finish sync
-            endEvent.onEvent(this);
-
             boolean needsRefresh = false;
 
             for (int i = childrenArray.length - 1; i >= 0; i--) {
                 final BaseTween<?> tween = childrenArray[i];
                 if (tween.isAutoRemoveEnabled && tween.isFinished()) {
+                    // guarantee the tween/timeline values are set at the end
+                    tween.setValues(true, false);
+
                     needsRefresh = true;
                     tweenArrayList.remove(i);
                     tween.free();
@@ -363,13 +351,15 @@ class TweenManager {
                 childrenArray = new BaseTween[tweenArrayList.size()];
                 tweenArrayList.toArray(childrenArray);
             }
+
+            // on finish sync
+            endEventCallback.onEvent(this);
         }
     }
 
     /**
-	 * Gets the number of managed objects. An object may be a tween or a
-	 * timeline. A timeline only counts for 1 object, since it
-	 * manages its children itself.
+	 * Gets the number of managed objects. An object may be a tween or a timeline. A timeline only counts for 1 object, since it manages
+     * its children itself.
 	 * <p/>
 	 * To get the count of running tweens, see {@link #getRunningTweensCount()}.
 	 */
@@ -379,8 +369,7 @@ class TweenManager {
 	}
 
 	/**
-	 * Gets the number of running tweens. This number includes the tweens
-	 * located inside timelines (and nested timelines).
+	 * Gets the number of running tweens. This number includes the tweens located inside timelines (and nested timelines).
 	 * <p/>
 	 * <b>Provided for debug purpose only.</b>
 	 */
@@ -390,8 +379,7 @@ class TweenManager {
 	}
 
 	/**
-	 * Gets the number of running timelines. This number includes the timelines
-	 * nested inside other timelines.
+	 * Gets the number of running timelines. This number includes the timelines nested inside other timelines.
 	 * <p/>
 	 * <b>Provided for debug purpose only.</b>
 	 */

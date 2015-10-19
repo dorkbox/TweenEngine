@@ -28,6 +28,7 @@
  *  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  *
+ * Copyright 2012 Aurelien Ribon
  * Copyright 2015 dorkbox, llc
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -69,7 +70,9 @@ enum TweenEquations {
     }),
 
 
+    ///////////////////////////////////////////////////////
     // Quad based
+    ///////////////////////////////////////////////////////
     Quad_In(new TweenEquation() {
         @Override
         public final
@@ -114,7 +117,9 @@ enum TweenEquations {
     }),
 
 
+    ///////////////////////////////////////////////////////
     // Cubic
+    ///////////////////////////////////////////////////////
     Cubic_In(new TweenEquation() {
         @Override
         public
@@ -159,7 +164,9 @@ enum TweenEquations {
     }),
 
 
+    ///////////////////////////////////////////////////////
     // Quart
+    ///////////////////////////////////////////////////////
     Quart_In(new TweenEquation() {
         @Override
         public
@@ -206,7 +213,9 @@ enum TweenEquations {
     }),
 
 
+    ///////////////////////////////////////////////////////
     // Quint
+    ///////////////////////////////////////////////////////
     Quint_In(new TweenEquation() {
         @Override
         public
@@ -257,7 +266,9 @@ enum TweenEquations {
     }),
 
 
+    ///////////////////////////////////////////////////////
     // Circle
+    ///////////////////////////////////////////////////////
     Circle_In(new TweenEquation() {
         @Override
         public final
@@ -302,7 +313,9 @@ enum TweenEquations {
     }),
 
 
+    ///////////////////////////////////////////////////////
     // Sine
+    ///////////////////////////////////////////////////////
     Sine_In(new TweenEquation() {
         @Override
         public
@@ -344,7 +357,9 @@ enum TweenEquations {
     }),
 
 
+    ///////////////////////////////////////////////////////
     // Exponential
+    ///////////////////////////////////////////////////////
     Expo_In(new TweenEquation() {
         @Override
         public
@@ -405,7 +420,9 @@ enum TweenEquations {
     }),
 
 
+    ///////////////////////////////////////////////////////
     // Back
+    ///////////////////////////////////////////////////////
     Back_In(new TweenEquation() {
 
         @Override
@@ -452,7 +469,9 @@ enum TweenEquations {
     }),
 
 
+    ///////////////////////////////////////////////////////
     // Bounce
+    ///////////////////////////////////////////////////////
     Bounce_In(new TweenEquation() {
         @Override
         public final
@@ -510,7 +529,9 @@ enum TweenEquations {
     }),
 
 
+    ///////////////////////////////////////////////////////
     // Elastic
+    ///////////////////////////////////////////////////////
     Elastic_In(new TweenEquation() {
         @Override
         public
@@ -624,10 +645,9 @@ enum TweenEquations {
     }
 
     /**
-     * Takes an easing name and gives you the corresponding TweenEquation.
-     * You probably won't need this, but tools will love that.
+     * Takes an easing name and gives you the corresponding TweenEquation. You probably won't need this, but tools will love that.
      *
-     * @param name The name of an easing, like "Quad.INOUT".
+     * @param name The name of an easing, like "Quad_InOut".
      *
      * @return The parsed equation, or null if there is no match.
      */
@@ -652,6 +672,7 @@ enum TweenEquations {
      * Computes the next value of the interpolation.
      *
      * @param time The current time, between 0 and 1.
+     *
      * @return The corresponding value.
      */
     public

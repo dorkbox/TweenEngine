@@ -1,19 +1,5 @@
 /*
  * Copyright 2012 Aurelien Ribon
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
- *
  * Copyright 2015 dorkbox, llc
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -34,22 +20,22 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
- * BaseTween is the base class of Tween and Timeline. It defines the
- * iteration engine used to play animations for any number of times, and in
- * any direction, at any speed.
+ * BaseTween is the base class of Tween and Timeline. It defines the iteration engine used to play animations for any number of times,
+ * and in any direction, at any speed.
  * <p/>
  * <p/>
- * It is responsible for calling the different callbacks at the right moments,
- * and for making sure that every callbacks are triggered, even if the update
- * engine gets a big delta time at once.
+ * It is responsible for calling the different callbacks at the right moments, and for making sure that every callbacks are triggered,
+ * even if the update engine gets a big delta time at once.
  * <p/>
  * <p/>
  * WARNING: <p/>
- * Individual tweens and timelines are NOT THREAD SAFE. Do not access any part
- * of them outside of the render (or animation) thread. For object visibility in
- * different threads, use {@link Tween#flushRead()} before you access
- * objects that were changed by the tween engine, as it will properly make
- * objects visible to that thread.
+ * Individual tweens and timelines are NOT THREAD SAFE. Do not access any part of them outside of the render (or animation) thread.
+ * <p/>
+ * For object visibility in different threads, use {@link Tween#flushWrite()} inside an endCallback (so the objects are flushed), and
+ * then before you access those objects, call {@link Tween#flushRead()} which will then correctly make those objects (which were
+ * changed by the tween engine), visible to your thread.
+ * <p/>
+ * A "heavyweight" synchronization technique is not required in a modern JVM, flushWrite/Read is sufficient
  *
  * @see Tween
  * @see Timeline
@@ -60,10 +46,8 @@ import java.util.concurrent.CopyOnWriteArrayList;
 public
 abstract class BaseTween<T> {
     enum State {
-        DELAY, RUN,
-
-        /** FINISHED means EVERYTHING (including repetitions) is done */
-        FINISHED
+        // if there is a DELAY, the tween will remain inside "START" until it's finished with the delay
+        START, RUN, FINISHED
     }
 
     public static final UpdateAction NULL_ACTION = new UpdateAction<Object>() {
@@ -74,7 +58,7 @@ abstract class BaseTween<T> {
     };
 
     // we are a simple state machine...
-    public State state = null; // todo can make private
+    protected State state = null;
 
 	// General
 	private int repeatCountOrig;
@@ -182,9 +166,8 @@ abstract class BaseTween<T> {
     }
 
     /**
-     * Adds a callback. By default, it will be fired at the completion of the
-     * tween or timeline (event COMPLETE). If you want to change this behavior
-     * use the {@link TweenCallback#TweenCallback(int)} constructor.
+     * Adds a callback. By default, it will be fired at the completion of the tween or timeline (event COMPLETE). If you want to change
+     * this behavior use the {@link TweenCallback#TweenCallback(int)} constructor.
      *
      * @see TweenCallback
      */
@@ -223,19 +206,6 @@ abstract class BaseTween<T> {
         return (T) this;
     }
 
-    /**
-	 * Builds and validates the object. Only needed if you want to finalize a
-	 * tween or timeline without starting it, since a call to ".start()" also
-	 * calls this method.
-	 *
-	 * @return The current object, for chaining instructions.
-	 */
-    @SuppressWarnings("unchecked")
-	public
-    T build() {
-		return (T) this;
-	}
-
 	/**
 	 * Adds a start delay to the tween or timeline in seconds.
 	 *
@@ -246,17 +216,13 @@ abstract class BaseTween<T> {
     @SuppressWarnings("unchecked")
     public
     T delay(final float delay) {
-        if (state != null) {
-            throw new RuntimeException("You can't modify the delay if it is already started");
-        }
-
         this.startDelay += delay;
+        this.currentTime -= delay;
         return (T) this;
     }
 
     /**
-	 * Kills the tween or timeline. If you are using a TweenManager, this object
-	 * will be removed automatically.
+	 * Kills the tween or timeline. If you are using a TweenManager, this object will be removed automatically.
 	 */
 	public
     void kill() {
@@ -264,11 +230,9 @@ abstract class BaseTween<T> {
 	}
 
 	/**
-	 * Stops and resets the tween or timeline, and sends it to its pool, for
-	 * later reuse.
+	 * Stops and resets the tween or timeline, and sends it to its pool, for later reuse.
      * <p>
-     * If you use a {@link TweenManager}, this method is automatically called
-     * once the animation is complete.
+     * If you use a {@link TweenManager}, this method is automatically called once the animation is complete.
 	 */
 	public
     void free() {
@@ -293,8 +257,7 @@ abstract class BaseTween<T> {
 	/**
 	 * Repeats the tween or timeline for a given number of times.
      *
-	 * @param count The number of repetitions. For infinite repetition,
-	 *              use {@link Tween#INFINITY} or -1.
+	 * @param count The number of repetitions. For infinite repetition, use {@link Tween#INFINITY} or -1.
 	 * @param delay A delay between each iteration, in seconds.
      *
 	 * @return The current tween or timeline, for chaining instructions.
@@ -302,12 +265,9 @@ abstract class BaseTween<T> {
     @SuppressWarnings("unchecked")
 	public
     T repeat(final int count, final float delay) {
-        if (state != null) {
-            throw new RuntimeException("You can't change the repetitions of a tween or timeline once it is started");
-        }
-
         if (count < -1) {
-            throw new RuntimeException("Count " + count + " is an invalid option. It must be -1 for infinite or > 0 for finite.");
+            throw new RuntimeException("Count " + count + " is an invalid option. It must be -1 (Tween.INFINITY) for infinite or > 0 for " +
+                                       "finite.");
         }
 
         repeatCountOrig = count;
@@ -323,8 +283,7 @@ abstract class BaseTween<T> {
      * </p>
 	 * Once an iteration is complete, it will be played in reverse.
 	 *
-	 * @param count The number of repetitions. For infinite repetition,
-	 *              use {@link Tween#INFINITY} or -1.
+	 * @param count The number of repetitions. For infinite repetition, use {@link Tween#INFINITY} or -1.
 	 * @param delay A delay before each repetition, in seconds.
      *
 	 * @return The current tween or timeline, for chaining instructions.
@@ -348,9 +307,9 @@ abstract class BaseTween<T> {
      */
     @SuppressWarnings("unchecked")
     public final
-    T setStartEvent(final UpdateAction<T> startCallback) {
-        if (state != null) {
-            throw new RuntimeException("You can't set events on a timeline once it is started");
+    T setStartCallback(final UpdateAction<T> startCallback) {
+        if (startCallback == null) {
+            throw new RuntimeException("Callback cannot be null! Use BaseTween.NULL_ACTION if you wish to 'unset' the callback");
         }
 
         this.startEventCallback = startCallback;
@@ -366,53 +325,40 @@ abstract class BaseTween<T> {
      */
     @SuppressWarnings("unchecked")
     public final
-    T setEndEvent(final UpdateAction<T> endCallback) {
-        if (state != null) {
-            throw new RuntimeException("You can't set events on a timeline once it is started");
+    T setEndCallback(final UpdateAction<T> endCallback) {
+        if (endCallback == null) {
+            throw new RuntimeException("Callback cannot be null! Use BaseTween.NULL_ACTION if you wish to 'unset' the callback");
         }
 
         this.endEventCallback = endCallback;
         return (T) this;
     }
 
+    /**
+     * Prepares the state of the tween before running (or initializing)
+     */
+    protected
+    void setup() {
+        canTriggerBeginEvent = true;
+        state = State.START;
+    }
 
-	/**
-	 * Attaches an object to this tween or timeline. It can be useful in order
-	 * to retrieve some data from a TweenCallback.
-	 *
-	 * @param data Any kind of object.
-	 * @return The current tween or timeline, for chaining instructions.
-	 */
-    @SuppressWarnings("unchecked")
-	public
-    T setUserData(final Object data) {
-		userData = data;
-		return (T) this;
-	}
 
     /**
-     * Starts or restarts the object unmanaged. You will need to take care of
-     * its life-cycle. If you want the tween to be managed for you, use a
-     * {@link TweenManager}.
+     * Starts or restarts the object unmanaged. You will need to take care of its life-cycle. If you want the tween to be managed for you,
+     * use a {@link TweenManager}.
      *
      * @return The current object, for chaining instructions.
      */
     @SuppressWarnings("unchecked")
     public
     T start() {
-        build();
-
-        canTriggerBeginEvent = true;
-        currentTime = -startDelay;
-
-        state = State.DELAY;
-
+        setup();
         return (T) this;
     }
 
     /**
-     * Convenience method to add an object to a manager. Its life-cycle will be
-     * handled for you. Relax and enjoy the animation.
+     * Convenience method to add an object to a manager. Its life-cycle will be handled for you. Relax and enjoy the animation.
      *
      * @return The current object, for chaining instructions.
      */
@@ -436,8 +382,7 @@ abstract class BaseTween<T> {
     }
 
 	/**
-	 * Gets the delay of the Timeline/Tween. Nothing will happen before
-	 * this delay in seconds
+	 * Gets the delay of the Timeline/Tween in seconds. Nothing will happen until this delay is complete.
 	 */
 	public
     float getStartDelay() {
@@ -484,20 +429,11 @@ abstract class BaseTween<T> {
         return repeatDelay;
 	}
 
-	/**
-	 * Gets the attached data, or null if none.
-	 */
-	@SuppressWarnings("unchecked")
-    public
-    T getUserData() {
-        return (T) userData;
-	}
-
     /**
      * Returns the direction the tween/timeline currently is in.
-     *  <p/>
-     * Reverse direction can be impacted by a negative value for {@link #update(float)}
-     * or via a tween reversing direction because of {@link #repeatAutoReverse(int, float)}
+     * <p/>
+     * Reverse direction can be impacted by a negative value for {@link #update(float)} or via a tween reversing direction because of
+     * {@link #repeatAutoReverse(int, float)}
      *
      * @return true if the current tween stage is in the forwards direction, false if reverse (or Backwards)
      */
@@ -515,7 +451,7 @@ abstract class BaseTween<T> {
      */
     public final
     boolean isInDelay() {
-        return state == State.DELAY;
+        return state == State.START;
     }
 
     /**
@@ -528,20 +464,19 @@ abstract class BaseTween<T> {
 
 
     /**
-	 * Returns true if the Timeline/Tween has been started.
+	 * Returns true if the Timeline/Tween has been initialized. This is the most accurate method to determine if a Timeline/Tween has
+     * been started.
 	 */
 	public
-    boolean isStarted() {
-        return state != null;
+    boolean isInitialized() {
+        return isInitialized;
 	}
 
 	/**
-	 * Returns true if the Timeline/Tween is finished (i.e. if the tween has reached
-	 * its end or has been killed). A tween may be restarted by a timeline
-     * when there is a direction change in the timeline.
-     *
-     * If you don't use a TweenManager, you may want to call
-     * {@link BaseTween#free()} to reuse the object later.
+	 * Returns true if the Timeline/Tween is finished (i.e. if the tween has reached its end or has been killed). A tween may be restarted
+     * by a timeline when there is a direction change in the timeline.
+     * </p>
+     * If you don't use a TweenManager, you may want to call {@link BaseTween#free()} to reuse the object later.
 	 */
 	public
     boolean isFinished() {
@@ -564,6 +499,34 @@ abstract class BaseTween<T> {
         return isPaused;
 	}
 
+    // -------------------------------------------------------------------------
+    // User Data
+    // -------------------------------------------------------------------------
+
+    /**
+     * Attaches an object to this tween or timeline. It can be useful in order
+     * to retrieve some data from a TweenCallback.
+     *
+     * @param data Any kind of object.
+     *
+     * @return The current tween or timeline, for chaining instructions.
+     */
+    @SuppressWarnings("unchecked")
+    public
+    T setUserData(final Object data) {
+        userData = data;
+        return (T) this;
+    }
+
+    /**
+     * Gets the attached data, or null if none.
+     */
+    @SuppressWarnings("unchecked")
+    public
+    T getUserData() {
+        return (T) userData;
+    }
+
 	// -------------------------------------------------------------------------
 	// Abstract API
 	// -------------------------------------------------------------------------
@@ -585,7 +548,6 @@ abstract class BaseTween<T> {
      *
      * @param updateDirection direction in which the force is happening. Affects children iteration order (timelines) and start/target
      *                        values (tweens)
-     *
      * @param updateValue this is the start (true) or target (false) to set the tween to.
      */
     protected abstract
@@ -600,8 +562,7 @@ abstract class BaseTween<T> {
     }
 
     /**
-     * Kills every tweens associated to the given target. Will also kill every
-     * timelines containing a tween associated to the given target.
+     * Kills every tweens associated to the given target. Will also kill every timelines containing a tween associated to the given target.
      *
      * @return true if the target was killed, false if we do not contain the target, and it was not killed
      */
@@ -616,9 +577,8 @@ abstract class BaseTween<T> {
     }
 
     /**
-     * Kills every tweens associated to the given target and tween type. Will
-     * also kill every timelines containing a tween associated to the given
-     * target and tween type.
+     * Kills every tweens associated to the given target and tween type. Will also kill every timelines containing a tween associated to
+     * the given target and tween type.
      *
      * @return true if the target was killed, false if we do not contain the target, and it was not killed
      */
@@ -640,7 +600,7 @@ abstract class BaseTween<T> {
     protected
     void adjustForRepeat_AutoReverse(final boolean updateDirection) {
         direction = updateDirection;
-        state = State.DELAY;
+        state = State.START;
 
         if (updateDirection) {
             currentTime = 0;
@@ -660,7 +620,7 @@ abstract class BaseTween<T> {
     protected
     void adjustForRepeat_Linear(final boolean updateDirection) {
         direction = updateDirection;
-        state = State.DELAY;
+        state = State.START;
 
         if (direction) {
             currentTime = 0;
@@ -680,15 +640,12 @@ abstract class BaseTween<T> {
      * <p>
      * <b>You may want to use a TweenManager to update objects for you.</b>
      * <p>
-     * Slow motion, fast motion and backward play can be easily achieved by
-     * tweaking this delta time.
+     * Slow motion, fast motion and backward play can be easily achieved by tweaking this delta time.
      * <p>
-     * Multiply it by -1 to play the animation backward, or by 0.5
-     * to play it twice-as-slow than its normal speed.
+     * Multiply it by -1 to play the animation backward, or by 0.5 to play it twice-as-slow than its normal speed.
      * <p>
      * <p>
-     * The tween manager doesn't call this method, it correctly calls
-     * updateState + updateValues on timeline/tweens
+     * The tween manager doesn't call this method, it correctly calls updateState + updateValues on timeline/tweens
      * </p>
      * Copyright dorkbox, llc
      *
@@ -699,11 +656,6 @@ abstract class BaseTween<T> {
     @SuppressWarnings({"unchecked", "Duplicates"})
     public
     float update(float delta) {
-        // when updating a timeline, should iterate over each entry one at a time - and progress to the next one when the previous one
-        // is finished. This will change un-init to be sequential (if more that one in a row)
-        // if a timeline is parallel, then they all update (in array loop)
-
-
         isDuringUpdate = true;
 
         if (isPaused || isKilled) {
@@ -767,7 +719,7 @@ abstract class BaseTween<T> {
 
                 // FORWARDS: 0 > time <= duration
                 switch (state) {
-                    case DELAY: {
+                    case START: {
                         if (newTime <= 0.0F) {
                             // still in delay
                             currentTime = newTime;
@@ -802,8 +754,8 @@ abstract class BaseTween<T> {
                         // goto next state
                         state = State.RUN;
 
-                        // set the start values - update reverse, so that the FIRST tween takes priority if multiple tweens affect the
-                        // same target
+                        // -- update is REVERSE so that the FIRST tween data takes priority, if there are
+                        //    multiple tweens that have the same target
                         setValues(REVERSE, START_VALUES);
 
                         // adjust the delta so that it is shifted based on the length of (previous) iteration
@@ -937,7 +889,7 @@ abstract class BaseTween<T> {
                         }
 
                         // restart the timeline, since we've had our time adjusted to a point where we are running again.
-                        state = State.DELAY;
+                        state = State.START;
 
                         update(FORWARDS, delta);
 
@@ -960,7 +912,7 @@ abstract class BaseTween<T> {
 
                 // REVERSE:  0 >= time < duration   (reverse always goes from duration -> 0)
                 switch (state) {
-                    case DELAY: {
+                    case START: {
                         if (newTime >= duration) {
                             // still in delay
                             currentTime = newTime;
@@ -995,9 +947,10 @@ abstract class BaseTween<T> {
                         // goto next state
                         state = State.RUN;
 
-                        // -- update is REVERSE so that the FIRST tween data takes priority, if there are
+                        // -- update is FORWARDS so that the LAST tween data takes priority, if there are
                         //    multiple tweens that have the same target
-                        setValues(REVERSE, TARGET_VALUES);
+                        // this is opposite of the logic in FORWARDS.START
+                        setValues(FORWARDS, TARGET_VALUES);
 
                         // adjust the delta so that it is shifted based on the length of (previous) iteration
                         delta = -(duration - newTime);
@@ -1033,12 +986,13 @@ abstract class BaseTween<T> {
                             // {REVERSE}{FINISHED}
 
                             // set the "start" values, backwards because values are relative to forwards
+
                             // -- update is FORWARDS so that the LAST tween data takes priority, if there are
                             //    multiple tweens that have the same target
                             if (duration <= 0.000001F) {
                                 // "instant" tweens (duration 0) cannot trigger a set-to-startpoint (since they are always [enabled] while
                                 // running). They are [disabled] by their parent timeline when the parent reaches the end of it's duration
-                                // always set to target value (even though it's reverse)
+                                // This is why it's always set to target value (even though it's reverse)
                                 setValues(FORWARDS, TARGET_VALUES);
                             }
                             else {
@@ -1136,7 +1090,7 @@ abstract class BaseTween<T> {
                         }
 
                         // restart the timeline, since we've had our time adjusted to a point where we are running again.
-                        state = State.DELAY;
+                        state = State.START;
 
                         update(REVERSE, delta);
 

@@ -1,19 +1,5 @@
 /*
  * Copyright 2012 Aurelien Ribon
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
- *
  * Copyright 2015 dorkbox, llc
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -38,24 +24,18 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Core class of the Tween Engine. A Tween is basically an interpolation
- * between two values of an object attribute. However, the main interest of a
- * Tween is that you can apply an easing formula on this interpolation, in
- * order to smooth the transitions or to achieve cool effects like springs or
- * bounces.
+ * Core class of the Tween Engine. A Tween is basically an interpolation between two values of an object attribute. However, the main
+ * interest of a Tween is that you can apply an easing formula on this interpolation, in order to smooth the transitions or to achieve
+ * cool effects like springs or bounces.
  * <p/>
  *
- * The Universal Tween Engine is called "universal" because it is able to apply
- * interpolations on every attribute from every possible object. Therefore,
- * every object in your application can be animated with cool effects: it does
- * not matter if your application is a game, a desktop interface or even a
- * console program! If it makes sense to animate something, then it can be
- * animated through this engine.
+ * The Tween Engine is also "universal" because it is able to apply interpolations on every attribute from every possible object. Therefore,
+ * every object in your application can be animated with cool effects: it does not matter if your application is a game, a desktop
+ * interface or even a console program! If it makes sense to animate something, then it can be animated through this engine.
  * <p/>
  *
- * This class contains many static factory methods to create and instantiate
- * new interpolations easily. The common way to create a Tween is by using one
- * of these factories:
+ * This class contains many static factory methods to create and instantiate new interpolations easily. The common way to create a Tween is
+ * by using one of these factories:
  * <p/>
  *
  * - Tween.to(...)<br/>
@@ -66,47 +46,41 @@ import java.util.Map;
  *
  * <h2>Example - firing a Tween</h2>
  *
- * The following example will move the target horizontal position from its
- * current value to x=200 and y=300, during 500ms, but only after a delay of
- * 1000ms. The animation will also be repeated 2 times (the starting position
- * is registered at the end of the delay, so the animation will automatically
- * restart from this registered position).
+ * The following example will move the target horizontal position from its current value to x=200 and y=300, during 500ms, but only after
+ * a delay of 1000ms. The animation will also be repeated 2 times (the starting position is registered at the end of the delay, so the
+ * animation will automatically restart from this registered position).
  * <p/>
  *
  * <pre> {@code
  * Tween.to(myObject, POSITION_XY, 500)
  *      .target(200, 300)
- *      .ease(Quad.INOUT)
- *      .delay(1000)
- *      .repeat(2, 200)
+ *      .ease(Quad_InOut)
+ *      .delay(1.0F)
+ *      .repeat(2, 0.02F)
  *      .start(myManager);
  * }</pre>
  *
- * Tween life-cycles can be automatically managed for you, thanks to the
- * {@link TweenManager} class. If you choose to manage your tween when you start
- * it, then you don't need to care about it anymore. <b>Tweens are
- * <i>fire-and-forget</i>: don't think about them anymore once you started
- * them (if they are managed of course).</b>
+ * Tween life-cycles can be automatically managed for you, thanks to the {@link TweenManager} class. If you choose to manage your tween
+ * when you start it, then you don't need to care about it anymore. <b>Tweens are <i>fire-and-forget</i>: don't think about them anymore
+ * once you started them (if they are managed of course).</b>
  * <p/>
  *
- * You need to periodically update the tween engine, in order to compute the new
- * values. If your tweens are managed, only update the manager; else you need
- * to call {@link Tween#update(int)} on your tweens periodically.
+ * You need to periodically update the tween engine, in order to compute the new values. If your tweens are managed, only update the
+ * manager; else you need to call {@link Tween#update(float)} on your tweens periodically.
  * <p/>
  *
  * <h2>Example - setting up the engine</h2>
  *
- * The engine cannot directly change your objects attributes, since it doesn't
- * know them. Therefore, you need to tell him how to get and set the different
- * attributes of your objects: <b>you need to implement the {@link
- * TweenAccessor} interface for each object class you will animate</b>. Once
- * done, don't forget to register these implementations, using the static method
+ * The engine cannot directly change your objects attributes, since it doesn't know them. Therefore, you need to tell him how to get and
+ * set the different attributes of your objects: <b>you need to implement the {@link TweenAccessor} interface for each object class you
+ * will animate</b>. Once done, don't forget to register these implementations, using the static method
  * {@link Tween#registerAccessor(Class, TweenAccessor)}, when you start your application.
  *
  * @see TweenAccessor
  * @see TweenManager
  * @see TweenEquation
  * @see Timeline
+ *
  * @author Aurelien Ribon | http://www.aurelienribon.com/
  * @author dorkbox, llc
  */
@@ -169,8 +143,7 @@ class Tween extends BaseTween<Tween> {
     }
 
     /**
-	 * Changes the limit of allowed waypoints for each tween. Defaults to 0 to
-	 * reduce memory footprint.
+	 * Changes the limit of allowed waypoints for each tween. Defaults to 0 to reduce memory footprint.
 	 */
     public static
     void setWaypointsLimit(int limit) {
@@ -201,8 +174,7 @@ class Tween extends BaseTween<Tween> {
     static ObjectPool<Tween> pool = ObjectPoolFactory.create(poolableObject, 1024);
 
 	/**
-	 * Used for debug purpose. Gets the current number of objects that are
-	 * waiting in the Tween pool.
+	 * Used for debug purpose. Gets the current number of objects that are waiting in the Tween pool.
 	 */
 	public static int getPoolSize() {
 		return pool.size();
@@ -224,14 +196,12 @@ class Tween extends BaseTween<Tween> {
 
 	private static final Map<Class<?>, TweenAccessor<?>> registeredAccessors = new HashMap<Class<?>, TweenAccessor<?>>();
 
-	/**
-	 * Registers an accessor with the class of an object. This accessor will be
-	 * used by tweens applied to every objects implementing the registered
-	 * class, or inheriting from it.
+    /**
+     * Registers an accessor with the class of an object. This accessor will be used by tweens applied to every objects implementing the
+     * registered class, or inheriting from it.
 	 *
 	 * @param someClass An object class.
-	 * @param defaultAccessor The accessor that will be used to tween any
-	 * object of class "someClass".
+	 * @param defaultAccessor The accessor that will be used to tween any object of class "someClass".
 	 */
     public static
     void registerAccessor(final Class<?> someClass, final TweenAccessor<?> defaultAccessor) {
@@ -261,30 +231,26 @@ class Tween extends BaseTween<Tween> {
 	// -------------------------------------------------------------------------
 
 	/**
-	 * Factory creating a new standard interpolation. This is the most common
-	 * type of interpolation. The starting values are retrieved automatically
-	 * after the delay (if any).
+	 * Factory creating a new standard interpolation. This is the most common type of interpolation. The starting values are
+     * retrieved automatically after the delay (if any).
 	 * <br/><br/>
 	 *
-	 * <b>You need to set the target values of the interpolation by using one
-	 * of the target() methods</b>. The interpolation will run from the
-	 * starting values to these target values.
+	 * <b>You need to set the target values of the interpolation by using one of the target() methods</b>. The interpolation will run
+     * from the starting values to these target values.
 	 * <br/><br/>
 	 *
-	 * The common use of Tweens is "fire-and-forget": you do not need to care
-	 * for tweens once you added them to a TweenManager, they will be updated
-	 * automatically, and cleaned once finished.
+	 * The common use of Tweens is "fire-and-forget": you do not need to care for tweens once you added them to a TweenManager, they will
+     * be updated automatically, and cleaned once finished.
 	 * <br/><br/>
 	 *
 	 * <pre> {@code
 	 * Tween.to(myObject, POSITION, 1.0F)
 	 *      .target(50, 70)
-	 *      .ease(Quad.INOUT)
+	 *      .ease(Quad_InOut)
 	 *      .start(myManager);
 	 * }</pre>
 	 *
-	 * Several options such as delay, repetitions and callbacks can be added to
-	 * the tween.
+	 * Several options such as delay, repetitions and callbacks can be added to the tween.
 	 *
 	 * @param target The target object of the interpolation.
 	 * @param tweenType The desired type of interpolation, used for TweenAccessor methods.
@@ -302,29 +268,25 @@ class Tween extends BaseTween<Tween> {
 	}
 
 	/**
-	 * Factory creating a new reversed interpolation. The ending values are
-	 * retrieved automatically after the delay (if any).
+	 * Factory creating a new reversed interpolation. The ending values are retrieved automatically after the delay (if any).
 	 * <br/><br/>
 	 *
-	 * <b>You need to set the starting values of the interpolation by using one
-	 * of the target() methods</b>. The interpolation will run from the
-	 * starting values to these target values.
+	 * <b>You need to set the starting values of the interpolation by using one of the target() methods</b>. The interpolation will run
+     * from the starting values to these target values.
 	 * <br/><br/>
 	 *
-	 * The common use of Tweens is "fire-and-forget": you do not need to care
-	 * for tweens once you added them to a TweenManager, they will be updated
-	 * automatically, and cleaned once finished. Common call:
+	 * The common use of Tweens is "fire-and-forget": you do not need to care for tweens once you added them to a TweenManager, they will
+     * be updated automatically, and cleaned once finished. Common call:
 	 * <br/><br/>
 	 *
 	 * <pre> {@code
 	 * Tween.from(myObject, POSITION, 1.0F)
 	 *      .target(0, 0)
-	 *      .ease(Quad.INOUT)
+	 *      .ease(Quad_InOut)
 	 *      .start(myManager);
 	 * }</pre>
 	 *
-	 * Several options such as delay, repetitions and callbacks can be added to
-	 * the tween.
+	 * Several options such as delay, repetitions and callbacks can be added to the tween.
 	 *
 	 * @param target The target object of the interpolation.
 	 * @param tweenType The desired type of interpolation.
@@ -343,18 +305,15 @@ class Tween extends BaseTween<Tween> {
 	}
 
 	/**
-	 * Factory creating a new instantaneous interpolation (thus this is not
-	 * really an interpolation).
+	 * Factory creating a new instantaneous interpolation (thus this is not really an interpolation).
 	 * <br/><br/>
 	 *
-	 * <b>You need to set the target values of the interpolation by using one
-	 * of the target() methods</b>. The interpolation will set the target
-	 * attribute to these values after the delay (if any).
+	 * <b>You need to set the target values of the interpolation by using one of the target() methods</b>. The interpolation will set
+     * the target attribute to these values after the delay (if any).
 	 * <br/><br/>
 	 *
-	 * The common use of Tweens is "fire-and-forget": you do not need to care
-	 * for tweens once you added them to a TweenManager, they will be updated
-	 * automatically, and cleaned once finished. Common call:
+	 * The common use of Tweens is "fire-and-forget": you do not need to care for tweens once you added them to a TweenManager, they will
+     * be updated automatically, and cleaned once finished. Common call:
 	 * <br/><br/>
 	 *
 	 * <pre> {@code
@@ -364,8 +323,7 @@ class Tween extends BaseTween<Tween> {
 	 *      .start(myManager);
 	 * }</pre>
 	 *
-	 * Several options such as delay, repetitions and callbacks can be added to
-	 * the tween.
+	 * Several options such as delay, repetitions and callbacks can be added to the tween.
 	 *
 	 * @param target The target object of the interpolation.
 	 * @param tweenType The desired type of interpolation.
@@ -381,13 +339,11 @@ class Tween extends BaseTween<Tween> {
 	}
 
 	/**
-	 * Factory creating a new timer. The given callback will be triggered on
-	 * each iteration start, after the delay.
+	 * Factory creating a new timer. The given callback will be triggered on each iteration start, after the delay.
 	 * <br/><br/>
 	 *
-	 * The common use of Tweens is "fire-and-forget": you do not need to care
-	 * for tweens once you added them to a TweenManager, they will be updated
-	 * automatically, and cleaned once finished. Common call:
+	 * The common use of Tweens is "fire-and-forget": you do not need to care for tweens once you added them to a TweenManager, they will
+     * be updated automatically, and cleaned once finished. Common call:
 	 * <br/><br/>
 	 *
 	 * <pre> {@code
@@ -412,10 +368,9 @@ class Tween extends BaseTween<Tween> {
 	}
 
 	/**
-	 * Convenience method to create an empty tween. Such object is only useful
-	 * when placed inside animation sequences (see {@link Timeline}), in which
-	 * it may act as a beacon, so you can set a callback on it in order to
-	 * trigger some action at the right moment.
+	 * Convenience method to create an empty tween. Such object is only useful when placed inside animation sequences
+     * (see {@link Timeline}), in which it may act as a beacon, so you can set a callback on it in order to trigger some action at the
+     * right moment.
 	 *
 	 * @return The generated Tween.
 	 * @see Timeline
@@ -479,25 +434,46 @@ class Tween extends BaseTween<Tween> {
 		isFrom = isRelative = false;
         combinedAttrsCnt = waypointsCount = 0;
 
+        for (int i = 0, n = startValues.length; i < n; i++) {
+            startValues[i] = 0.0F;
+        }
+        for (int i = 0, n = targetValues.length; i < n; i++) {
+            targetValues[i] = 0.0F;
+        }
+        for (int i = 0, n = waypoints.length; i < n; i++) {
+            waypoints[i] = 0.0F;
+        }
+
+
         if (accessorBuffer.length != combinedAttrsLimit) {
             accessorBuffer = new float[combinedAttrsLimit];
+        } else {
+            for (int i = 0, n = accessorBuffer.length; i < n; i++) {
+                accessorBuffer[i] = 0.0F;
+            }
         }
 
         if (pathBuffer.length != (2 + waypointsLimit) * combinedAttrsLimit) {
             pathBuffer = new float[(2 + waypointsLimit) * combinedAttrsLimit];
+        } else {
+            for (int i = 0, n = pathBuffer.length; i < n; i++) {
+                pathBuffer[i] = 0.0F;
+            }
         }
     }
 
     private void
     setup(final Object target, final int tweenType, final float duration) {
         if (duration < 0.0F) {
-            throw new RuntimeException("Duration can't be negative");
+            throw new RuntimeException("Duration can not be negative");
         }
 
         this.target = target;
         this.targetClass = target != null ? findTargetClass() : null;
         this.type = tweenType;
         this.duration = duration;
+
+        setup();
 	}
 
 	private
@@ -525,25 +501,24 @@ class Tween extends BaseTween<Tween> {
 	// -------------------------------------------------------------------------
 
     /**
-     * Sets the easing equation of the tween. Existing equations are located in
-     * {@link TweenEquations}, but you can of course implement your own, see
-     * {@link TweenEquation}.
+     * Sets the easing equation of the tween. Existing equations are located in {@link TweenEquations}, but you can of course implement your
+     * own, see {@link TweenEquation}.
      * <p/>
-     * Default equation is Quad.INOUT.
+     * Default equation is Quad_InOut.
      * <p/>
      *
      * <b>Provided Equations are:</b><br/>
-     * - Linear.INOUT,<br/>
-     * - Quad.IN | OUT | INOUT,<br/>
-     * - Cubic.IN | OUT | INOUT,<br/>
-     * - Quart.IN | OUT | INOUT,<br/>
-     * - Quint.IN | OUT | INOUT,<br/>
-     * - Circle.IN | OUT | INOUT,<br/>
-     * - Sine.IN | OUT | INOUT,<br/>
-     * - Expo.IN | OUT | INOUT,<br/>
-     * - Back.IN | OUT | INOUT,<br/>
-     * - Bounce.IN | OUT | INOUT,<br/>
-     * - Elastic.IN | OUT | INOUT
+     * - Linear,<br/>
+     * - Quad.In | Out | InOut,<br/>
+     * - Cubic.In | Out | InOut,<br/>
+     * - Quart.In | Out | InOut,<br/>
+     * - QuInt.In | Out | InOut,<br/>
+     * - Circle.In | Out | InOut,<br/>
+     * - SIne.In | Out | InOut,<br/>
+     * - Expo.In | Out | InOut,<br/>
+     * - Back.In | Out | InOut,<br/>
+     * - Bounce.In | Out | InOut,<br/>
+     * - Elastic.In | Out | InOut
      *
      * @return The current tween, for chaining instructions.
      * @see TweenEquation
@@ -556,25 +531,24 @@ class Tween extends BaseTween<Tween> {
 	}
 
     /**
-     * Sets the easing equation of the tween. Existing equations are located in
-     * {@link TweenEquations}, but you can of course implement your own, see
-     * {@link TweenEquation}.
+     * Sets the easing equation of the tween. Existing equations are located in {@link TweenEquations}, but you can of course implement
+     * your own, see {@link TweenEquation}.
      * <p/>
-     * Default equation is Quad.INOUT.
+     * Default equation is Quad_InOut.
      * <p/>
      *
      * <b>Provided Equations are:</b><br/>
-     * - Linear.INOUT,<br/>
-     * - Quad.IN | OUT | INOUT,<br/>
-     * - Cubic.IN | OUT | INOUT,<br/>
-     * - Quart.IN | OUT | INOUT,<br/>
-     * - Quint.IN | OUT | INOUT,<br/>
-     * - Circle.IN | OUT | INOUT,<br/>
-     * - Sine.IN | OUT | INOUT,<br/>
-     * - Expo.IN | OUT | INOUT,<br/>
-     * - Back.IN | OUT | INOUT,<br/>
-     * - Bounce.IN | OUT | INOUT,<br/>
-     * - Elastic.IN | OUT | INOUT
+     * - Linear,<br/>
+     * - Quad.In | Out | InOut,<br/>
+     * - Cubic.In | Out | InOut,<br/>
+     * - Quart.In | Out | InOut,<br/>
+     * - QuInt.In | Out | InOut,<br/>
+     * - Circle.In | Out | InOut,<br/>
+     * - SIne.In | Out | InOut,<br/>
+     * - Expo.In | Out | InOut,<br/>
+     * - Back.In | Out | InOut,<br/>
+     * - Bounce.In | Out | InOut,<br/>
+     * - Elastic.In | Out | InOut
      *
      * @return The current tween, for chaining instructions.
      * @see TweenEquation
@@ -588,9 +562,8 @@ class Tween extends BaseTween<Tween> {
 
 
 	/**
-	 * Forces the tween to use the TweenAccessor registered with the given
-	 * target class. Useful if you want to use a specific accessor associated
-	 * to an interface, for instance.
+	 * Forces the tween to use the TweenAccessor registered with the given target class. Useful if you want to use a specific accessor
+     * associated to an interface, for instance.
 	 *
 	 * @param targetClass A class registered with an accessor.
      *
@@ -598,17 +571,16 @@ class Tween extends BaseTween<Tween> {
 	 */
 	public
     Tween cast(final Class<?> targetClass) {
-        if (isStarted()) {
-            throw new RuntimeException("You can't cast the target of a tween once it is started");
+        if (isInitialized) {
+            throw new RuntimeException("You can't cast the target of a tween once it has been initialized");
         }
         this.targetClass = targetClass;
         return this;
 	}
 
 	/**
-	 * Sets the target value of the interpolation. The interpolation will run
-	 * from the <b>value at start time (after the delay, if any)</b> to this
-	 * target value.
+	 * Sets the target value of the interpolation. The interpolation will run from the <b>value at start time (after the delay, if any)</b>
+     * to this target value.
 	 * <p/>
 	 *
 	 * To sum-up:<br/>
@@ -626,9 +598,8 @@ class Tween extends BaseTween<Tween> {
 	}
 
 	/**
-	 * Sets the target values of the interpolation. The interpolation will run
-	 * from the <b>values at start time (after the delay, if any)</b> to these
-	 * target values.
+	 * Sets the target values of the interpolation. The interpolation will run from the <b>values at start time (after the delay, if
+     * any)</b> to these target values.
 	 * <p/>
 	 *
 	 * To sum-up:<br/>
@@ -648,9 +619,8 @@ class Tween extends BaseTween<Tween> {
 	}
 
 	/**
-	 * Sets the target values of the interpolation. The interpolation will run
-	 * from the <b>values at start time (after the delay, if any)</b> to these
-	 * target values.
+	 * Sets the target values of the interpolation. The interpolation will run from the <b>values at start time (after the delay, if
+     * any)</b> to these target values.
 	 * <p/>
 	 *
 	 * To sum-up:<br/>
@@ -672,10 +642,9 @@ class Tween extends BaseTween<Tween> {
 	}
 
 	/**
-	 * Sets the target values of the interpolation. The interpolation will run
-	 * from the <b>values at start time (after the delay, if any)</b> to these
-	 * target values.
-	 * <p/>
+     * Sets the target values of the interpolation. The interpolation will run from the <b>values at start time (after the delay, if
+     * any)</b> to these target values.
+     * <p/>
 	 *
 	 * To sum-up:<br/>
 	 * - start values: values at start time, after delay<br/>
@@ -697,8 +666,7 @@ class Tween extends BaseTween<Tween> {
 	}
 
 	/**
-	 * Sets the target value of the interpolation, relatively to the <b>value
-	 * at start time (after the delay, if any)</b>.
+	 * Sets the target value of the interpolation, relatively to the <b>value at start time (after the delay, if any)</b>.
 	 * <p/>
 	 *
 	 * To sum-up:<br/>
@@ -712,14 +680,13 @@ class Tween extends BaseTween<Tween> {
 	public
     Tween targetRelative(final float targetValue) {
 		isRelative = true;
-		targetValues[0] = isStarted() ? targetValue + startValues[0] : targetValue;
+		targetValues[0] = isInitialized ? targetValue + startValues[0] : targetValue;
 		return this;
 	}
 
 	/**
-	 * Sets the target values of the interpolation, relatively to the <b>values
-	 * at start time (after the delay, if any)</b>.
-	 * <p/>
+     * Sets the target value of the interpolation, relatively to the <b>value at start time (after the delay, if any)</b>.
+     * <p/>
 	 *
 	 * To sum-up:<br/>
 	 * - start values: values at start time, after delay<br/>
@@ -733,16 +700,15 @@ class Tween extends BaseTween<Tween> {
 	public
     Tween targetRelative(final float targetValue1, final float targetValue2) {
 		isRelative = true;
-        final boolean started = isStarted();
-        targetValues[0] = started ? targetValue1 + startValues[0] : targetValue1;
-		targetValues[1] = started ? targetValue2 + startValues[1] : targetValue2;
+        final boolean initialized = isInitialized;
+        targetValues[0] = initialized ? targetValue1 + startValues[0] : targetValue1;
+		targetValues[1] = initialized ? targetValue2 + startValues[1] : targetValue2;
 		return this;
 	}
 
 	/**
-	 * Sets the target values of the interpolation, relatively to the <b>values
-	 * at start time (after the delay, if any)</b>.
-	 * <p/>
+     * Sets the target value of the interpolation, relatively to the <b>value at start time (after the delay, if any)</b>.
+     * <p/>
 	 *
 	 * To sum-up:<br/>
 	 * - start values: values at start time, after delay<br/>
@@ -757,19 +723,18 @@ class Tween extends BaseTween<Tween> {
 	public
     Tween targetRelative(final float targetValue1, final float targetValue2, final float targetValue3) {
 		isRelative = true;
-        final boolean started = isStarted();
+        final boolean initialized = isInitialized;
 
         final float[] startValues = this.startValues;
-        targetValues[0] = started ? targetValue1 + startValues[0] : targetValue1;
-		targetValues[1] = started ? targetValue2 + startValues[1] : targetValue2;
-		targetValues[2] = started ? targetValue3 + startValues[2] : targetValue3;
+        targetValues[0] = initialized ? targetValue1 + startValues[0] : targetValue1;
+		targetValues[1] = initialized ? targetValue2 + startValues[1] : targetValue2;
+		targetValues[2] = initialized ? targetValue3 + startValues[2] : targetValue3;
 		return this;
 	}
 
 	/**
-	 * Sets the target values of the interpolation, relatively to the <b>values
-	 * at start time (after the delay, if any)</b>.
-	 * <p/>
+     * Sets the target value of the interpolation, relatively to the <b>value at start time (after the delay, if any)</b>.
+     * <p/>
 	 *
 	 * To sum-up:<br/>
 	 * - start values: values at start time, after delay<br/>
@@ -783,12 +748,12 @@ class Tween extends BaseTween<Tween> {
     Tween targetRelative(final float... targetValues) {
         final int length = targetValues.length;
 
-        final boolean started = isStarted();
+        final boolean initialized = isInitialized;
         final float[] startValues = this.startValues;
 
         if (length > combinedAttrsLimit) throwCombinedAttrsLimitReached();
 		for (int i = 0; i < length; i++) {
-            this.targetValues[i] = started ? targetValues[i] + startValues[i] : targetValues[i];
+            this.targetValues[i] = initialized ? targetValues[i] + startValues[i] : targetValues[i];
 		}
 
 		isRelative = true;
@@ -796,11 +761,9 @@ class Tween extends BaseTween<Tween> {
 	}
 
 	/**
-	 * Adds a waypoint to the path. The default path runs from the start values
-	 * to the end values linearly. If you add waypoints, the default path will
-	 * use a smooth catmull-rom spline to navigate between the waypoints, but
-	 * you can change this behavior by using the {@link #path(TweenPath)}
-	 * method.
+	 * Adds a waypoint to the path. The default path runs from the start values to the end values linearly. If you add waypoints, the
+     * default path will use a smooth catmull-rom spline to navigate between the waypoints, but you can change this behavior by using the
+     * {@link #path(TweenPath)} method.
 	 *
 	 * @param targetValue The target of this waypoint.
      *
@@ -819,14 +782,11 @@ class Tween extends BaseTween<Tween> {
 	}
 
 	/**
-	 * Adds a waypoint to the path. The default path runs from the start values
-	 * to the end values linearly. If you add waypoints, the default path will
-	 * use a smooth catmull-rom spline to navigate between the waypoints, but
-	 * you can change this behavior by using the {@link #path(TweenPath)}
-	 * method.
+     * Adds a waypoint to the path. The default path runs from the start values to the end values linearly. If you add waypoints, the
+     * default path will use a smooth catmull-rom spline to navigate between the waypoints, but you can change this behavior by using the
+     * {@link #path(TweenPath)} method.
 	 * <p/>
-	 * Note that if you want waypoints relative to the start values, use one of
-	 * the .targetRelative() methods to define your target.
+	 * Note that if you want waypoints relative to the start values, use one of the .targetRelative() methods to define your target.
 	 *
 	 * @param targetValue1 The 1st target of this waypoint.
 	 * @param targetValue2 The 2nd target of this waypoint.
@@ -851,14 +811,11 @@ class Tween extends BaseTween<Tween> {
 	}
 
 	/**
-	 * Adds a waypoint to the path. The default path runs from the start values
-	 * to the end values linearly. If you add waypoints, the default path will
-	 * use a smooth catmull-rom spline to navigate between the waypoints, but
-	 * you can change this behavior by using the {@link #path(TweenPath)}
-	 * method.
+     * Adds a waypoint to the path. The default path runs from the start values to the end values linearly. If you add waypoints, the
+     * default path will use a smooth catmull-rom spline to navigate between the waypoints, but you can change this behavior by using the
+     * {@link #path(TweenPath)} method.
 	 * <p/>
-	 * Note that if you want waypoints relative to the start values, use one of
-	 * the .targetRelative() methods to define your target.
+	 * Note that if you want waypoints relative to the start values, use one of the .targetRelative() methods to define your target.
 	 *
 	 * @param targetValue1 The 1st target of this waypoint.
 	 * @param targetValue2 The 2nd target of this waypoint.
@@ -885,14 +842,11 @@ class Tween extends BaseTween<Tween> {
 	}
 
 	/**
-	 * Adds a waypoint to the path. The default path runs from the start values
-	 * to the end values linearly. If you add waypoints, the default path will
-	 * use a smooth catmull-rom spline to navigate between the waypoints, but
-	 * you can change this behavior by using the {@link #path(TweenPath)}
-	 * method.
+     * Adds a waypoint to the path. The default path runs from the start values to the end values linearly. If you add waypoints, the
+     * default path will use a smooth catmull-rom spline to navigate between the waypoints, but you can change this behavior by using the
+     * {@link #path(TweenPath)} method.
 	 * <p/>
-	 * Note that if you want waypoints relative to the start values, use one of
-	 * the .targetRelative() methods to define your target.
+	 * Note that if you want waypoints relative to the start values, use one of the .targetRelative() methods to define your target.
 	 *
 	 * @param targetValues The targets of this waypoint.
      *
@@ -911,9 +865,8 @@ class Tween extends BaseTween<Tween> {
 	}
 
 	/**
-	 * Sets the algorithm that will be used to navigate through the waypoints,
-	 * from the start values to the end values. Default is a catmull-rom spline,
-	 * but you can find other paths in the {@link TweenPaths} class.
+	 * Sets the algorithm that will be used to navigate through the waypoints, from the start values to the end values. Default is a
+     * catmull-rom spline, but you can find other paths in the {@link TweenPaths} class.
 	 *
 	 * @param path A TweenPath implementation.
      *
@@ -928,9 +881,8 @@ class Tween extends BaseTween<Tween> {
 	}
 
     /**
-     * Sets the algorithm that will be used to navigate through the waypoints,
-     * from the start values to the end values. Default is a catmull-rom spline,
-     * but you can find other paths in the {@link TweenPaths} class.
+     * Sets the algorithm that will be used to navigate through the waypoints, from the start values to the end values. Default is a
+     * catmull-rom spline, but you can find other paths in the {@link TweenPaths} class.
      *
      * @param path A TweenPath implementation.
      *
@@ -973,10 +925,8 @@ class Tween extends BaseTween<Tween> {
 	}
 
 	/**
-	 * Gets the target values. The returned buffer is as long as the maximum
-	 * allowed combined values. Therefore, you're surely not interested in all
-	 * its content. Use {@link Tween#getCombinedAttributesCount()} to get the number of
-	 * interesting slots.
+	 * Gets the target values. The returned buffer is as long as the maximum allowed combined values. Therefore, you're surely not
+     * interested in all its content. Use {@link Tween#getCombinedAttributesCount()} to get the number of interesting slots.
 	 */
 	public float[]
     getTargetValues() {
@@ -1014,7 +964,9 @@ class Tween extends BaseTween<Tween> {
 	@SuppressWarnings({"unchecked", "FieldRepeatedlyAccessedInMethod"})
     @Override
 	public
-    Tween build() {
+    Tween start() {
+        super.start();
+
         final Object target = this.target;
         if (target == null) {
             return this;
@@ -1046,11 +998,9 @@ class Tween extends BaseTween<Tween> {
 
 
     /**
-     * Forces a timeline/tween to have it's start/target values
+     * Forces a timeline/tween to have it's start/target values. Repeat behavior is also correctly modeled in the decision process
      *
-     * @param updateDirection direction in which the force is happening. Affects children iteration order (timelines) and start/target
-     *                        values (tweens)
-     *
+     * @param updateDirection direction in which the update is happening. Affects children iteration order (timelines)
      * @param updateValue this is the start (true) or target (false) to set the tween to.
      */
     protected
@@ -1133,11 +1083,13 @@ class Tween extends BaseTween<Tween> {
 	}
 
     /**
-     * When done with all the adjustments and notifications, update the object. Only called during State.RUN
+     * When done with all the adjustments and notifications, update the object. Only called during State.RUN. Other state updates will
+     * use {@link BaseTween#setValues(boolean, boolean)}
      * <p>
      * values will ONLY be updated if the tween was initialized (reached START state at least once)
      * <p>
-     * If a timeline/tween is outside it's animation cycle time, it will "snap" to the start/end points
+     * If a timeline/tween is outside it's animation cycle time, it will "snap" to the start/end points via
+     * {@link BaseTween#setValues(boolean, boolean)}
      */
     @SuppressWarnings("Duplicates")
     protected
