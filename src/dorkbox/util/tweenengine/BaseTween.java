@@ -45,10 +45,10 @@ import java.util.concurrent.CopyOnWriteArrayList;
 @SuppressWarnings("unused")
 public
 abstract class BaseTween<T> {
-    enum State {
-        // if there is a DELAY, the tween will remain inside "START" until it's finished with the delay
-        START, RUN, FINISHED
-    }
+    // if there is a DELAY, the tween will remain inside "START" until it's finished with the delay
+    protected static final int START = 1;
+    protected static final int RUN = 2;
+    protected static final int FINISHED = 3;
 
     public static final UpdateAction NULL_ACTION = new UpdateAction<Object>() {
         @Override
@@ -58,7 +58,7 @@ abstract class BaseTween<T> {
     };
 
     // we are a simple state machine...
-    protected State state = null;
+    protected int state = 0;
 
 	// General
 	private int repeatCountOrig;
@@ -128,7 +128,7 @@ abstract class BaseTween<T> {
     protected
     void reset() {
         repeatCount = repeatCountOrig = 0;
-        state = null;
+        state = 0;
 
         duration = startDelay = repeatDelay = currentTime = 0.0F;
         isPaused = isKilled = isInAutoReverse = isDuringUpdate = isInitialized = false;
@@ -340,7 +340,7 @@ abstract class BaseTween<T> {
     protected
     void setup() {
         canTriggerBeginEvent = true;
-        state = State.START;
+        state = START;
     }
 
 
@@ -451,7 +451,7 @@ abstract class BaseTween<T> {
      */
     public final
     boolean isInDelay() {
-        return state == State.START;
+        return state == START;
     }
 
     /**
@@ -480,7 +480,7 @@ abstract class BaseTween<T> {
 	 */
 	public
     boolean isFinished() {
-        return state == State.FINISHED || isKilled;
+        return state == FINISHED || isKilled;
 	}
 
 	/**
@@ -600,7 +600,7 @@ abstract class BaseTween<T> {
     protected
     void adjustForRepeat_AutoReverse(final boolean updateDirection) {
         direction = updateDirection;
-        state = State.START;
+        state = START;
 
         if (updateDirection) {
             currentTime = 0;
@@ -620,7 +620,7 @@ abstract class BaseTween<T> {
     protected
     void adjustForRepeat_Linear(final boolean updateDirection) {
         direction = updateDirection;
-        state = State.START;
+        state = START;
 
         if (direction) {
             currentTime = 0;
@@ -752,7 +752,7 @@ abstract class BaseTween<T> {
                         }
 
                         // goto next state
-                        state = State.RUN;
+                        state = RUN;
 
                         // -- update is REVERSE so that the FIRST tween data takes priority, if there are
                         //    multiple tweens that have the same target
@@ -775,7 +775,7 @@ abstract class BaseTween<T> {
                             return 0.0F;
                         }
 
-                        state = State.FINISHED;
+                        state = FINISHED;
                         currentTime = duration;
 
                         // adjust the delta so that it is shifted based on the length of (previous) iteration
@@ -889,7 +889,7 @@ abstract class BaseTween<T> {
                         }
 
                         // restart the timeline, since we've had our time adjusted to a point where we are running again.
-                        state = State.START;
+                        state = START;
 
                         update(FORWARDS, delta);
 
@@ -945,7 +945,7 @@ abstract class BaseTween<T> {
                         }
 
                         // goto next state
-                        state = State.RUN;
+                        state = RUN;
 
                         // -- update is FORWARDS so that the LAST tween data takes priority, if there are
                         //    multiple tweens that have the same target
@@ -970,7 +970,7 @@ abstract class BaseTween<T> {
                             return 0.0F;
                         }
 
-                        state = State.FINISHED;
+                        state = FINISHED;
                         currentTime = 0.0F;
 
                         // adjust the delta so that it is shifted based on the length of (previous) iteration
@@ -1090,7 +1090,7 @@ abstract class BaseTween<T> {
                         }
 
                         // restart the timeline, since we've had our time adjusted to a point where we are running again.
-                        state = State.START;
+                        state = START;
 
                         update(REVERSE, delta);
 

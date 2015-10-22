@@ -19,3 +19,9 @@
     - JCTools - Apache 2.0 License
       https://github.com/JCTools/JCTools
        Copyright 2013, JCTools, Nitsan Wakart
+
+
+    - Robert Penner's Easing Functions - BSD 3-clause License
+      http://robertpenner.com/easing/
+      Copyright 2001, Robert Penner
+        Tween easing algorithms

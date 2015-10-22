@@ -69,6 +69,21 @@ public abstract
 class TweenCallback {
     int triggers;
 
+    /**
+     * Creates a new TweenCallback with the default COMPLETE trigger. The available triggers, listed as
+     * members of the {@link TweenCallback.Events} class, are:
+     * <p/>
+     *
+     * <b>BEGIN</b>: right after the delay (if any)<br/>
+     * <b>START</b>: at each iteration beginning<br/>
+     * <b>END</b>: at each iteration ending, before the repeat delay<br/>
+     * <b>COMPLETE</b>: at last END event<br/>
+     * <b>BACK_BEGIN</b>: at the beginning of the first backward iteration<br/>
+     * <b>BACK_START</b>: at each backward iteration beginning, after the repeat delay<br/>
+     * <b>BACK_END</b>: at each backward iteration ending<br/>
+     * <b>BACK_COMPLETE</b>: at last BACK_END event
+     * <p/>
+     */
     public
     TweenCallback() {
         this.triggers = Events.COMPLETE;

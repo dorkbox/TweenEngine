@@ -260,8 +260,42 @@ class Tween extends BaseTween<Tween> {
 	 */
 	public static
     Tween to(final Object target, final int tweenType, final float duration) {
+		return to(target, tweenType, null, duration);
+	}
+
+	/**
+	 * Factory creating a new standard interpolation. This is the most common type of interpolation. The starting values are
+     * retrieved automatically after the delay (if any).
+	 * <br/><br/>
+	 *
+	 * <b>You need to set the target values of the interpolation by using one of the target() methods</b>. The interpolation will run
+     * from the starting values to these target values.
+	 * <br/><br/>
+	 *
+	 * The common use of Tweens is "fire-and-forget": you do not need to care for tweens once you added them to a TweenManager, they will
+     * be updated automatically, and cleaned once finished.
+	 * <br/><br/>
+	 *
+	 * <pre> {@code
+	 * Tween.to(myObject, POSITION, accessorObject, 1.0F)
+	 *      .target(50, 70)
+	 *      .ease(Quad_InOut)
+	 *      .start(myManager);
+	 * }</pre>
+	 *
+	 * Several options such as delay, repetitions and callbacks can be added to the tween.
+	 *
+	 * @param target The target object of the interpolation.
+	 * @param tweenType The desired type of interpolation, used for TweenAccessor methods.
+	 * @param targetAccessor The accessor object (optional) that is used to modify the target values (based on the tween type).
+	 * @param duration The duration of the interpolation, in seconds.
+     *
+	 * @return The generated Tween.
+	 */
+	public static
+    Tween to(final Object target, final int tweenType, final TweenAccessor targetAccessor, final float duration) {
 		Tween tween = pool.takeUninterruptibly();
-		tween.setup(target, tweenType, duration);
+		tween.setup(target, tweenType, targetAccessor, duration);
 		tween.ease(TweenEquations.Quad_InOut);
 		tween.path(TweenPaths.CatmullRom);
 		return tween;
@@ -296,8 +330,41 @@ class Tween extends BaseTween<Tween> {
 	 */
 	public static
     Tween from(final Object target, final int tweenType, final float duration) {
+		return from(target, tweenType, null, duration);
+	}
+
+	/**
+	 * Factory creating a new reversed interpolation. The ending values are retrieved automatically after the delay (if any).
+	 * <br/><br/>
+	 *
+	 * <b>You need to set the starting values of the interpolation by using one of the target() methods</b>. The interpolation will run
+     * from the starting values to these target values.
+	 * <br/><br/>
+	 *
+	 * The common use of Tweens is "fire-and-forget": you do not need to care for tweens once you added them to a TweenManager, they will
+     * be updated automatically, and cleaned once finished. Common call:
+	 * <br/><br/>
+	 *
+	 * <pre> {@code
+	 * Tween.from(myObject, POSITION, 1.0F)
+	 *      .target(0, 0)
+	 *      .ease(Quad_InOut)
+	 *      .start(myManager);
+	 * }</pre>
+	 *
+	 * Several options such as delay, repetitions and callbacks can be added to the tween.
+	 *
+	 * @param target The target object of the interpolation.
+	 * @param tweenType The desired type of interpolation.
+     * @param targetAccessor The accessor object (optional) that is used to modify the target values (based on the tween type).
+	 * @param duration The duration of the interpolation, in seconds.
+     *
+	 * @return The generated Tween.
+	 */
+	public static
+    Tween from(final Object target, final int tweenType, final TweenAccessor targetAccessor, final float duration) {
 		Tween tween = pool.takeUninterruptibly();
-		tween.setup(target, tweenType, duration);
+		tween.setup(target, tweenType, targetAccessor, duration);
 		tween.ease(TweenEquations.Quad_InOut);
 		tween.path(TweenPaths.CatmullRom);
 		tween.isFrom = true;
@@ -332,8 +399,40 @@ class Tween extends BaseTween<Tween> {
 	 */
 	public static
     Tween set(final Object target, final int tweenType) {
+		return set(target, tweenType, null);
+	}
+
+	/**
+	 * Factory creating a new instantaneous interpolation (thus this is not really an interpolation).
+	 * <br/><br/>
+	 *
+	 * <b>You need to set the target values of the interpolation by using one of the target() methods</b>. The interpolation will set
+     * the target attribute to these values after the delay (if any).
+	 * <br/><br/>
+	 *
+	 * The common use of Tweens is "fire-and-forget": you do not need to care for tweens once you added them to a TweenManager, they will
+     * be updated automatically, and cleaned once finished. Common call:
+	 * <br/><br/>
+	 *
+	 * <pre> {@code
+	 * Tween.set(myObject, POSITION)
+	 *      .target(50, 70)
+	 *      .delay(1.0F)
+	 *      .start(myManager);
+	 * }</pre>
+	 *
+	 * Several options such as delay, repetitions and callbacks can be added to the tween.
+	 *
+	 * @param target The target object of the interpolation.
+     * @param targetAccessor The accessor object (optional) that is used to modify the target values (based on the tween type).
+	 * @param tweenType The desired type of interpolation.
+     *
+	 * @return The generated Tween.
+	 */
+	public static
+    Tween set(final Object target, final int tweenType, final TweenAccessor targetAccessor) {
 		Tween tween = pool.takeUninterruptibly();
-		tween.setup(target, tweenType, 0.0F);
+		tween.setup(target, tweenType, targetAccessor, 0.0F);
 		tween.ease(TweenEquations.Quad_In);
 		return tween;
 	}
@@ -361,7 +460,7 @@ class Tween extends BaseTween<Tween> {
 	public static
     Tween call(final TweenCallback callback) {
 		Tween tween = pool.takeUninterruptibly();
-		tween.setup(null, -1, 0.0F);
+		tween.setup(null, -1, null, 0.0F);
         callback.triggers = TweenCallback.Events.START;
 		tween.addCallback(callback);
 		return tween;
@@ -378,7 +477,7 @@ class Tween extends BaseTween<Tween> {
 	public static
     Tween mark() {
 		Tween tween = pool.takeUninterruptibly();
-		tween.setup(null, -1, 0.0F);
+		tween.setup(null, -1, null, 0.0F);
 		return tween;
 	}
 
@@ -462,14 +561,19 @@ class Tween extends BaseTween<Tween> {
         }
     }
 
+    @SuppressWarnings("unchecked")
     private void
-    setup(final Object target, final int tweenType, final float duration) {
+    setup(final Object target, final int tweenType, final TweenAccessor targetAccessor, final float duration) {
         if (duration < 0.0F) {
             throw new RuntimeException("Duration can not be negative");
         }
 
         this.target = target;
-        this.targetClass = target != null ? findTargetClass() : null;
+        if (targetAccessor != null) {
+            accessor = targetAccessor;
+        } else {
+            this.targetClass = target != null ? findTargetClass() : null;
+        }
         this.type = tweenType;
         this.duration = duration;
 
@@ -480,10 +584,10 @@ class Tween extends BaseTween<Tween> {
     Class<?> findTargetClass() {
         final Object target = this.target;
 
-        if (registeredAccessors.containsKey(target.getClass())) {
+        if (target instanceof TweenAccessor) {
             return target.getClass();
         }
-        if (target instanceof TweenAccessor) {
+        if (registeredAccessors.containsKey(target.getClass())) {
             return target.getClass();
         }
 
@@ -972,10 +1076,15 @@ class Tween extends BaseTween<Tween> {
             return this;
         }
 
-        accessor = (TweenAccessor<Object>) registeredAccessors.get(targetClass);
-        if (accessor == null && target instanceof TweenAccessor) {
-            accessor = (TweenAccessor<Object>) target;
+        if (accessor == null) {
+            if (target instanceof TweenAccessor) {
+                accessor = (TweenAccessor<Object>) target;
+            }
+            else {
+                accessor = (TweenAccessor<Object>) registeredAccessors.get(targetClass);
+            }
         }
+
         if (accessor != null) {
             combinedAttrsCnt = accessor.getValues(target, type, accessorBuffer);
         }

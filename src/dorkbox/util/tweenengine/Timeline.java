@@ -436,7 +436,7 @@ class Timeline extends BaseTween<Timeline> {
                 while (delta != 0.0F) {
                     delta = current.update(delta);
 
-                    if (current.state == State.FINISHED) {
+                    if (current.state == FINISHED) {
                         // iterate to the next one when it's finished, but don't go beyond the last child
                         if (currentIndex < childrenSizeMinusOne) {
                             currentIndex++;
@@ -453,7 +453,7 @@ class Timeline extends BaseTween<Timeline> {
                 while (delta != 0.0F) {
                     delta = current.update(delta);
 
-                    if (current.state == State.FINISHED) {
+                    if (current.state == FINISHED) {
                         // iterate to the previous one (because we are in reverse) when it's finished, but don't go beyond the first child
                         if (currentIndex > 0) {
                             currentIndex--;
@@ -475,7 +475,7 @@ class Timeline extends BaseTween<Timeline> {
                     final BaseTween<?> tween = childrenArray[i];
                     final float returned = tween.update(delta);
 
-                    if (tween.state == State.FINISHED) {
+                    if (tween.state == FINISHED) {
                         // each child has to track "overflow" info to set delay's correctly when the timeline reverses
                         tween.currentTime += returned;
                     }
@@ -486,7 +486,7 @@ class Timeline extends BaseTween<Timeline> {
                     final BaseTween<?> tween = childrenArray[i];
                     final float returned = tween.update(delta);
 
-                    if (tween.state == State.FINISHED) {
+                    if (tween.state == FINISHED) {
                         // each child has to track "overflow" info to set delay's correctly when the timeline reverses
                         tween.currentTime += returned;
                     }
