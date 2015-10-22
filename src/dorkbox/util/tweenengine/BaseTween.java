@@ -56,6 +56,20 @@ abstract class BaseTween<T> {
         void onEvent(final Object tween) {
         }
     };
+    protected static final UpdateAction FLUSH_READ_ACTION = new UpdateAction<Object>() {
+        @Override
+        public
+        void onEvent(final Object tween) {
+            Tween.flushRead();
+        }
+    };
+    protected static final UpdateAction FLUSH_WRITE_ACTION = new UpdateAction<Object>() {
+        @Override
+        public
+        void onEvent(final Object tween) {
+            Tween.flushWrite();
+        }
+    };
 
     // we are a simple state machine...
     protected int state = 0;
@@ -366,6 +380,48 @@ abstract class BaseTween<T> {
     public
     T start(final TweenManager manager) {
         manager.add(this);
+        return (T) this;
+    }
+
+    /**
+     * Necessary only if another thread can modify your tweens/timelines. You must call {@link Tween#flushWrite()} in the other thread,
+     * so the tween/timelines can be aware of the changes.
+     * </p>
+     * Some older JVM's (Oracle 7+ is supported) should use a synchronized object instead, as their memory model might not support
+     * lightweight locks.
+     * </p>
+     * This sets the {@link BaseTween#setEndCallback(UpdateAction)}, so if you implement your own, you should call
+     * {@link Tween#flushRead()} in your callback implementation.
+     * </p>
+     * <b>This is only necessary to set on ONE tween/timeline/manager, as all threads and tween objects will be correct after this call
+     *    is complete.</b>
+     *
+     * @return The manager, for instruction chaining.
+     */
+    @SuppressWarnings("unchecked")
+    public T syncOnStart() {
+        startEventCallback = FLUSH_READ_ACTION;
+        return (T) this;
+    }
+
+    /**
+     * Necessary if another thread will be reading the values set by these tweens/timelines. You must call {@link Tween#flushRead()}
+     * in the other thread, before accessing the target object's values.
+     * </p>
+     * Some older JVM's (Oracle 7+ is supported) should use a synchronized object instead, as their memory model might not support
+     * lightweight locks.
+     * </p>
+     * This sets the {@link BaseTween#setEndCallback(UpdateAction)}, so if you implement your own, you should call
+     * {@link Tween#flushWrite()} in your callback implementation.
+     * </p>
+     * <b>This is only necessary to set on ONE tween/timeline/manager, as all threads and tween objects will be correct after this call
+     *    is complete.</b>
+     *
+     * @return The manager, for instruction chaining.
+     */
+    @SuppressWarnings("unchecked")
+    public T syncOnEnd() {
+        endEventCallback = FLUSH_WRITE_ACTION;
         return (T) this;
     }
 

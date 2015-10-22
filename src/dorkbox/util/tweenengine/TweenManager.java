@@ -119,6 +119,47 @@ class TweenManager {
         return this;
     }
 
+    /**
+     * Necessary only if another thread can modify your tweens/timelines. You must call {@link Tween#flushWrite()} in the other thread,
+     * so the tween/timelines can be aware of the changes.
+     * * </p>
+     * This sets the {@link TweenManager#setStartCallback(UpdateAction)}, so if you implement your own, you should call
+     * {@link Tween#flushRead()} in your callback implementation.
+     * </p>
+     * Some older JVM's (Oracle 7+ is supported) should use a synchronized object instead, as their memory model might not support
+     * lightweight locks.
+     * </p>
+     * <b>This is only necessary to set on ONE tween/timeline/manager, as all threads and tween objects will be correct after this call
+     *    is complete.</b>
+     *
+     * @return The manager, for instruction chaining.
+     */
+    public TweenManager syncOnStart() {
+        startEventCallback = BaseTween.FLUSH_READ_ACTION;
+        return this;
+    }
+
+    /**
+     * Necessary if another thread will be reading the values set by these tweens/timelines. You must call {@link Tween#flushRead()}
+     * in the other thread, before accessing the target object's values.
+     * </p>
+     * This sets the {@link TweenManager#setEndCallback(UpdateAction)}, so if you implement your own, you should call
+     * {@link Tween#flushWrite()} in your callback implementation.
+     * </p>
+     * Some older JVM's (Oracle 7+ is supported) should use a synchronized object instead, as their memory model might not support
+     * lightweight locks.
+     * </p>
+     * <b>This is only necessary to set on ONE tween/timeline/manager, as all threads and tween objects will be correct after this call
+     *    is complete.</b>
+     *
+     * @return The manager, for instruction chaining.
+     */
+    public TweenManager syncOnEnd() {
+        endEventCallback = BaseTween.FLUSH_WRITE_ACTION;
+        return this;
+    }
+
+
 	/**
 	 * Adds a tween or timeline to the manager and starts or restarts it.
 	 *

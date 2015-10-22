@@ -115,6 +115,9 @@ class Tween extends BaseTween<Tween> {
      * Flushes the visibility of all tween fields from the cache for access/use from different threads.
      * <p>
      * This does not block and does not prevent race conditions.
+     * </p>
+     * Some older JVM's (Oracle 7+ is supported) should use a synchronized object instead, as their memory model might not support
+     * lightweight locks.
      *
      * @return the last time (in nanos) that the field modifications were flushed
      */
@@ -126,6 +129,9 @@ class Tween extends BaseTween<Tween> {
      * Flushes the visibility of all tween field modifications from the cache for access/use from different threads.
      * <p>
      * This does not block and does not prevent race conditions.
+     * </p>
+     * Some older JVM's (Oracle 7+ is supported) should use a synchronized object instead, as their memory model might not support
+     * lightweight locks.
      */
     public static void flushWrite() {
         lightSyncObject = System.nanoTime();
