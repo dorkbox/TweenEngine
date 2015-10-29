@@ -80,7 +80,9 @@ abstract class BaseTween<T> {
 
 	private boolean canAutoReverse;
     private boolean isPaused;
-    private boolean isKilled;
+
+    /** Used by tween */
+    protected boolean isKilled;
 
     /** Used by tween */
     protected boolean isInitialized;

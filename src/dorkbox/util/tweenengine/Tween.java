@@ -1120,7 +1120,7 @@ class Tween extends BaseTween<Tween> {
      */
     protected
     void setValues(final boolean updateDirection, final boolean updateValue) {
-        if (target == null || !isInitialized) {
+        if (target == null || !isInitialized || isKilled) {
             return;
         }
 
@@ -1145,7 +1145,7 @@ class Tween extends BaseTween<Tween> {
 	protected
     void initializeValues() {
         final Object target = this.target;
-        if (target == null) {
+        if (target == null || isKilled) {
             return;
         }
 
@@ -1213,7 +1213,7 @@ class Tween extends BaseTween<Tween> {
         final TweenEquation equation = this.equation;
 
         // be aware that a tween can ONLY have it's values updated IFF it has been initialized (reached START state at least once)
-        if (target == null || equation == null || !isInitialized) {
+        if (target == null || equation == null || !isInitialized || isKilled) {
             return;
         }
 
