@@ -87,7 +87,7 @@ class TweenManager {
     private UpdateAction startEventCallback = BaseTween.NULL_ACTION;
     private UpdateAction endEventCallback = BaseTween.NULL_ACTION;
 
-    private long lastTime = System.nanoTime();
+    private long lastTime = 0L;
 
     /**
      * Sets an event handler so that a notification is broadcast when the manager starts updating the current frame of animation.
@@ -178,6 +178,7 @@ class TweenManager {
         if (tween.isAutoStartEnabled) {
             tween.start();
         }
+
         return this;
 	}
 
@@ -327,6 +328,16 @@ class TweenManager {
     void resume() {
 		isPaused = false;
 	}
+
+    /**
+     * Resets the last time this tweenManager had "update" called. This is useful when the timer (that {@link TweenManager#update()}) is
+     * usually called on, has been stopped for a while. This prevents the "first" update call to 'snap' to the target values because the
+     * time delta update was so large.
+     */
+    public
+    void resetUpdateTime() {
+        this.lastTime = System.nanoTime();
+    }
 
     /**
      * Updates every added tween/timeline based upon the elapsed time between now and the previous time this method was called. This
