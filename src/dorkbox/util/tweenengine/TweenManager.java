@@ -349,13 +349,23 @@ class TweenManager {
     void update() {
         long time = System.nanoTime();
 
-        // time in seconds. Converted to int before the division, because IDIV is
-        // 1 order magnitude faster than LDIV (and int's work for us anyways)
-        // see: http://www.cs.nuim.ie/~jpower/Research/Papers/2008/lambert-qapl08.pdf
-        //noinspection NumericCastThatLosesPrecision
-        float deltaTime = ((int) (time - this.lastTime)) / 1.0E9F;
+        final float deltaTime = (time - this.lastTime) / 1.0E9F;
         this.lastTime = time;
 
+        update(deltaTime);
+    }
+
+    /**
+     * Updates every added tween with a delta time in NANO-SECONDS and handles the tween life-cycles automatically. This
+     * method also handles the tween life-cycles automatically.
+     * <p/>
+     * If a tween is finished, it will be removed from the manager.
+     */
+    public
+    void update(long deltaInNanos) {
+        this.lastTime = deltaInNanos;
+
+        final float deltaTime = deltaInNanos / 1.0E9F;
         update(deltaTime);
     }
 
