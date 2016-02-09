@@ -116,7 +116,6 @@ A test executable can be found in the download section. Its source code, in the 
 
 Detailed documentation with code snippets and examples is available for the following topics:
   * [Get started](https://github.com/dorkbox/TweenEngine/wiki/GetStarted) --- A step-by-step example to get you started, with code
-
   * [The TweenAccessor interface](https://github.com/dorkbox/TweenEngine/wiki/TweenAccessor) --- Know how to implement it
   * [Tweens and options](https://github.com/dorkbox/TweenEngine/wiki/Tween) --- See what are the possibilities
   * [Timelines and options](https://github.com/dorkbox/TweenEngine/wiki/Timeline) --- Learn how to build powerful sequences
@@ -128,3 +127,8 @@ Detailed documentation with code snippets and examples is available for the foll
 
 Also, the following link will guide you to a discussion thread that started it all:
 http://www.badlogicgames.com/forum/viewtopic.php?f=17&t=494
+
+
+<h2>License</h2>
+
+This project is distributed under the terms of the Apache v2.0 License. See file "LICENSE" for further references.
