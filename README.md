@@ -1,9 +1,5 @@
 ![logo](https://raw.githubusercontent.com/dorkbox/TweenEngine/master/examples/tween-engine-big-logo.jpg)
 
-**Code license**
-
-Apache License 2.0
-
 Forked from [JavaUniversalTweenEngine](http://www.aurelienribon.com/blog/projects/universal-tween-engine), by Aurelien Ribon
 
 # Check out the demo! #
@@ -125,10 +121,33 @@ Detailed documentation with code snippets and examples is available for the foll
 
 **Use github issues**
 
-Also, the following link will guide you to a discussion thread that started it all:
-http://www.badlogicgames.com/forum/viewtopic.php?f=17&t=494
+
+
+<h4>We now release to maven!</h4> 
+
+```
+<dependency>
+  <groupId>com.dorkbox</groupId>
+  <artifactId>TweenEngine</artifactId>
+  <version>7.1</version>
+</dependency>
+```
+
+Or if you don't want to use Maven, you can access the files directly here:  
+https://oss.sonatype.org/content/repositories/releases/com/dorkbox/TweenEngine/    
+https://oss.sonatype.org/content/repositories/releases/com/dorkbox/ObjectPool/  
+
+https://repo1.maven.org/maven2/org/slf4j/slf4j-api/    
 
 
 <h2>License</h2>
 
 This project is distributed under the terms of the Apache v2.0 License. See file "LICENSE" for further references.
+
+
+
+
+
+
+
+

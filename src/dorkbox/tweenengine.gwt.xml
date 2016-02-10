@@ -1,0 +1,4 @@
+<?xml version="1.0" ?>
+<module rename-to="dorkbox.tweenengine">
+	<source path="tweenengine" />
+</module>

@@ -7,6 +7,7 @@
         <setting name="gwtScriptOutputStyle" value="DETAILED" />
         <setting name="gwtSdkUrl" value="file://" />
         <packaging>
+          <module name="dorkbox.tweenengine" enabled="false" />
           <module name="dorkbox.util.tweenengine" enabled="false" />
         </packaging>
       </configuration>
@@ -21,7 +22,6 @@
       <sourceFolder url="file://$MODULE_DIR$/demos-libGDX/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/demos-libGDX/data" type="java-resource" />
       <sourceFolder url="file://$MODULE_DIR$/demos-libGDX/libs" type="java-resource" />
-      <sourceFolder url="file://$MODULE_DIR$/demos-libGDX" isTestSource="false" />
       <excludeFolder url="file://$MODULE_DIR$/demos-libGDX/data-src" />
       <excludeFolder url="file://$MODULE_DIR$/dist" />
       <excludeFolder url="file://$MODULE_DIR$/examples" />
