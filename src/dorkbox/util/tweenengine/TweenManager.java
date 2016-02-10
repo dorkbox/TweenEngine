@@ -126,9 +126,6 @@ class TweenManager {
      * This sets the {@link TweenManager#setStartCallback(UpdateAction)}, so if you implement your own, you should call
      * {@link Tween#flushRead()} in your callback implementation.
      * </p>
-     * Some older JVM's (Oracle 7+ is supported) should use a synchronized object instead, as their memory model might not support
-     * lightweight locks.
-     * </p>
      * <b>This is only necessary to set on ONE tween/timeline/manager, as all threads and tween objects will be correct after this call
      *    is complete.</b>
      *
@@ -145,9 +142,6 @@ class TweenManager {
      * </p>
      * This sets the {@link TweenManager#setEndCallback(UpdateAction)}, so if you implement your own, you should call
      * {@link Tween#flushWrite()} in your callback implementation.
-     * </p>
-     * Some older JVM's (Oracle 7+ is supported) should use a synchronized object instead, as their memory model might not support
-     * lightweight locks.
      * </p>
      * <b>This is only necessary to set on ONE tween/timeline/manager, as all threads and tween objects will be correct after this call
      *    is complete.</b>

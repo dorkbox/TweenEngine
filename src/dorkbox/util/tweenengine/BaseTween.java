@@ -389,9 +389,6 @@ abstract class BaseTween<T> {
      * Necessary only if another thread can modify your tweens/timelines. You must call {@link Tween#flushWrite()} in the other thread,
      * so the tween/timelines can be aware of the changes.
      * </p>
-     * Some older JVM's (Oracle 7+ is supported) should use a synchronized object instead, as their memory model might not support
-     * lightweight locks.
-     * </p>
      * This sets the {@link BaseTween#setEndCallback(UpdateAction)}, so if you implement your own, you should call
      * {@link Tween#flushRead()} in your callback implementation.
      * </p>
@@ -409,9 +406,6 @@ abstract class BaseTween<T> {
     /**
      * Necessary if another thread will be reading the values set by these tweens/timelines. You must call {@link Tween#flushRead()}
      * in the other thread, before accessing the target object's values.
-     * </p>
-     * Some older JVM's (Oracle 7+ is supported) should use a synchronized object instead, as their memory model might not support
-     * lightweight locks.
      * </p>
      * This sets the {@link BaseTween#setEndCallback(UpdateAction)}, so if you implement your own, you should call
      * {@link Tween#flushWrite()} in your callback implementation.

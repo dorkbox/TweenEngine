@@ -17,7 +17,6 @@
 package dorkbox.util.tweenengine;
 
 import dorkbox.util.objectPool.ObjectPool;
-import dorkbox.util.objectPool.ObjectPoolFactory;
 import dorkbox.util.objectPool.PoolableObject;
 
 import java.util.ArrayList;
@@ -86,7 +85,7 @@ class Timeline extends BaseTween<Timeline> {
         }
     };
 
-    static ObjectPool<Timeline> pool = ObjectPoolFactory.create(poolableObject, 256);
+    static ObjectPool<Timeline> pool = new ObjectPool<Timeline>(poolableObject, 256);
 
 
 	/**
@@ -107,7 +106,7 @@ class Timeline extends BaseTween<Timeline> {
         if (constructorThread != Thread.currentThread()) {
             throw new RuntimeException("Timeline pool capacity must be changed during engine initialization!");
         }
-        pool = ObjectPoolFactory.create(poolableObject, poolSize);
+        pool = new ObjectPool<Timeline>(poolableObject, poolSize);
 	}
 
 	// -------------------------------------------------------------------------
