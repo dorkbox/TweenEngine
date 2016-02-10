@@ -7,18 +7,13 @@
     - Dorkbox ObjectPool - Apache 2.0 License
       https://github.com/dorkbox
       Copyright 2014, dorkbox, llc
-        Fast (via unsafe) and compatible java object pool factory
+        Fast and compatible java object pool
 
 
     - Java Universal Tween Engine - Apache 2.0 License
       https://code.google.com/p/java-universal-tween-engine/
       Copyright 2012, Aurelien Ribon
-        Abandoned project, origin of code fork.
-
-
-    - JCTools - Apache 2.0 License
-      https://github.com/JCTools/JCTools
-       Copyright 2013, JCTools, Nitsan Wakart
+        Abandoned project, origin of TweenEngine code fork.
 
 
     - Robert Penner's Easing Functions - BSD 3-clause License
