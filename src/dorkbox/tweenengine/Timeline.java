@@ -108,6 +108,14 @@ class Timeline extends BaseTween<Timeline> {
         pool = new ObjectPool<Timeline>(poolableObject, poolSize);
 	}
 
+    /**
+     * Gets the version number.
+     */
+    public static
+    String getVersion() {
+        return "7.1";
+    }
+
 	// -------------------------------------------------------------------------
 	// Static -- factories
 	// -------------------------------------------------------------------------
@@ -540,3 +548,5 @@ class Timeline extends BaseTween<Timeline> {
         return false;
     }
 }
+
+

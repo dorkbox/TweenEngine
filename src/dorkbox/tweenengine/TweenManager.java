@@ -75,6 +75,14 @@ class TweenManager {
         tween.isAutoStartEnabled = value;
     }
 
+    /**
+     * Gets the version number.
+     */
+    public static
+    String getVersion() {
+        return "7.0";
+    }
+
     // -------------------------------------------------------------------------
 	// Public API
 	// -------------------------------------------------------------------------
