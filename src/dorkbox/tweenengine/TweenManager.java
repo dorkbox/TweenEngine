@@ -345,20 +345,23 @@ class TweenManager {
      */
     public
     void update() {
-        update(System.nanoTime());
+        final long newTime = System.nanoTime();
+        final float deltaTime = (newTime - lastTime) / 1.0E9F;
+        this.lastTime = newTime;
+
+        update(deltaTime);
     }
 
     /**
-     * Updates every added tween with a new time in NANO-SECONDS and handles the tween life-cycles automatically.
+     * Updates every added tween with a delta time in NANO-SECONDS and handles the tween life-cycles automatically. This converts the
+     * delta time in nano-seconds to seconds.
      * <p/>
      * If a tween is finished, it will be removed from the manager.
      */
     public
-    void update(long newTimeInNanos) {
-        final float deltaTime = (newTimeInNanos - lastTime) / 1.0E9F;
-        this.lastTime = newTimeInNanos;
-
-        update(deltaTime);
+    void update(long deltaTimeInNanos) {
+        final float deltaTimeInSec = deltaTimeInNanos / 1.0E9F;
+        update(deltaTimeInSec);
     }
 
     /**

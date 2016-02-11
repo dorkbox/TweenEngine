@@ -113,7 +113,7 @@ class Timeline extends BaseTween<Timeline> {
      */
     public static
     String getVersion() {
-        return "7.1";
+        return "7.3";
     }
 
 	// -------------------------------------------------------------------------
@@ -548,5 +548,7 @@ class Timeline extends BaseTween<Timeline> {
         return false;
     }
 }
+
+
 
 
