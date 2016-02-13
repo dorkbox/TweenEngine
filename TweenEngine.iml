@@ -27,7 +27,7 @@
       <excludeFolder url="file://$MODULE_DIR$/examples" />
       <excludeFolder url="file://$MODULE_DIR$/libs" />
     </content>
-    <orderEntry type="jdk" jdkName="1.7" jdkType="JavaSDK" />
+    <orderEntry type="jdk" jdkName="1.6" jdkType="JavaSDK" />
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="module" module-name="ObjectPool" />
     <orderEntry type="library" name="lib-GDX (for tweenengine demo)" level="project" />
