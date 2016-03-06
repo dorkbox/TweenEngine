@@ -84,16 +84,8 @@ class Timeline extends BaseTween<Timeline> {
         }
     };
 
-    static ObjectPool<Timeline> pool = new ObjectPool<Timeline>(poolableObject, 256);
+    static ObjectPool<Timeline> pool = ObjectPool.Blocking(poolableObject, 256);
 
-
-	/**
-	 * Used for debug purpose. Gets the current number of empty timelines that are waiting in the Timeline pool.
-	 */
-	public static
-    int getPoolSize() {
-		return pool.size();
-	}
 
     /**
      * Increases the minimum capacity of the pool. Capacity defaults to 256.
@@ -105,7 +97,7 @@ class Timeline extends BaseTween<Timeline> {
         if (constructorThread != Thread.currentThread()) {
             throw new RuntimeException("Timeline pool capacity must be changed during engine initialization!");
         }
-        pool = new ObjectPool<Timeline>(poolableObject, poolSize);
+        pool = ObjectPool.Blocking(poolableObject, poolSize);
 	}
 
     /**
@@ -113,7 +105,7 @@ class Timeline extends BaseTween<Timeline> {
      */
     public static
     String getVersion() {
-        return "7.5";
+        return "7.6";
     }
 
 	// -------------------------------------------------------------------------
@@ -125,7 +117,7 @@ class Timeline extends BaseTween<Timeline> {
 	 */
 	public static
     Timeline createSequence() {
-		Timeline timeline = pool.takeUninterruptibly();
+		Timeline timeline = pool.take();
 		timeline.setup(Modes.SEQUENCE);
 		return timeline;
 	}
@@ -135,7 +127,7 @@ class Timeline extends BaseTween<Timeline> {
 	 */
 	public static
     Timeline createParallel() {
-		Timeline timeline = pool.takeUninterruptibly();
+		Timeline timeline = pool.take();
 		timeline.setup(Modes.PARALLEL);
 		return timeline;
 	}
@@ -250,7 +242,7 @@ class Timeline extends BaseTween<Timeline> {
 	 */
     public
     Timeline beginSequence() {
-        Timeline timeline = pool.takeUninterruptibly();
+        Timeline timeline = pool.take();
         children.add(timeline);
 
         timeline.parent = this;
@@ -270,7 +262,7 @@ class Timeline extends BaseTween<Timeline> {
 	 */
     public
     Timeline beginParallel() {
-        Timeline timeline = pool.takeUninterruptibly();
+        Timeline timeline = pool.take();
         children.add(timeline);
 
         timeline.parent = this;
@@ -377,7 +369,7 @@ class Timeline extends BaseTween<Timeline> {
             tween.free();
         }
 
-        pool.release(this);
+        pool.put(this);
     }
 
 	// -------------------------------------------------------------------------

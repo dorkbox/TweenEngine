@@ -170,14 +170,7 @@ class Tween extends BaseTween<Tween> {
         }
     };
 
-    static ObjectPool<Tween> pool = new ObjectPool<Tween>(poolableObject, 1024);
-
-	/**
-	 * Used for debug purpose. Gets the current number of objects that are waiting in the Tween pool.
-	 */
-	public static int getPoolSize() {
-		return pool.size();
-	}
+    static ObjectPool<Tween> pool = ObjectPool.Blocking(poolableObject, 1024);
 
 	/**
 	 * Increases the minimum capacity of the pool. Capacity defaults to 1024.
@@ -186,7 +179,7 @@ class Tween extends BaseTween<Tween> {
         if (constructorThread != Thread.currentThread()) {
             throw new RuntimeException("Tween pool capacity must be changed during engine initialization!");
         }
-        pool = new ObjectPool<Tween>(poolableObject, poolSize);
+        pool = ObjectPool.Blocking(poolableObject, poolSize);
     }
 
 	// -------------------------------------------------------------------------
@@ -293,7 +286,7 @@ class Tween extends BaseTween<Tween> {
 	 */
 	public static
     Tween to(final Object target, final int tweenType, final TweenAccessor targetAccessor, final float duration) {
-		Tween tween = pool.takeUninterruptibly();
+		Tween tween = pool.take();
 		tween.setup(target, tweenType, targetAccessor, duration);
 		tween.ease(TweenEquations.Quad_InOut);
 		tween.path(TweenPaths.CatmullRom);
@@ -362,7 +355,7 @@ class Tween extends BaseTween<Tween> {
 	 */
 	public static
     Tween from(final Object target, final int tweenType, final TweenAccessor targetAccessor, final float duration) {
-		Tween tween = pool.takeUninterruptibly();
+		Tween tween = pool.take();
 		tween.setup(target, tweenType, targetAccessor, duration);
 		tween.ease(TweenEquations.Quad_InOut);
 		tween.path(TweenPaths.CatmullRom);
@@ -430,7 +423,7 @@ class Tween extends BaseTween<Tween> {
 	 */
 	public static
     Tween set(final Object target, final int tweenType, final TweenAccessor targetAccessor) {
-		Tween tween = pool.takeUninterruptibly();
+		Tween tween = pool.take();
 		tween.setup(target, tweenType, targetAccessor, 0.0F);
 		tween.ease(TweenEquations.Quad_In);
 		return tween;
@@ -458,7 +451,7 @@ class Tween extends BaseTween<Tween> {
 	 */
 	public static
     Tween call(final TweenCallback callback) {
-		Tween tween = pool.takeUninterruptibly();
+		Tween tween = pool.take();
 		tween.setup(null, -1, null, 0.0F);
         callback.triggers = TweenCallback.Events.START;
 		tween.addCallback(callback);
@@ -475,7 +468,7 @@ class Tween extends BaseTween<Tween> {
 	 */
 	public static
     Tween mark() {
-		Tween tween = pool.takeUninterruptibly();
+		Tween tween = pool.take();
 		tween.setup(null, -1, null, 0.0F);
 		return tween;
 	}
@@ -1101,7 +1094,7 @@ class Tween extends BaseTween<Tween> {
     @Override
     public
     void free() {
-        pool.release(this);
+        pool.put(this);
     }
 
 
