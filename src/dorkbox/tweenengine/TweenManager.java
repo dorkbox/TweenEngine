@@ -51,25 +51,25 @@ public
 class TweenManager {
     public static final BaseTween[] BASE_TWEENS = new BaseTween[0];
     // -------------------------------------------------------------------------
-	// Static API
-	// -------------------------------------------------------------------------
+    // Static API
+    // -------------------------------------------------------------------------
 
-	/**
-	 * Disables or enables the "auto remove" mode of any tween manager for a particular tween or timeline. This mode is activated by
+    /**
+     * Disables or enables the "auto remove" mode of any tween manager for a particular tween or timeline. This mode is activated by
      * default. The interest of deactivating it is to prevent some tweens or timelines from being automatically removed from a manager
      * once they are finished. Therefore, if you update a manager backwards, the tweens or timelines will be played again, even if they
      * were finished.
-	 */
+     */
     public static
     void setAutoRemove(final BaseTween<?> tween, final boolean value) {
         tween.isAutoRemoveEnabled = value;
     }
 
     /**
-	 * Disables or enables the "auto start" mode of any tween manager for a particular tween or timeline. This mode is activated
+     * Disables or enables the "auto start" mode of any tween manager for a particular tween or timeline. This mode is activated
      * by default. If it is not enabled, add a tween or timeline to any manager won't start it automatically, and you'll need to
      * call .start() manually on your object.
-	 */
+     */
     public static
     void setAutoStart(final BaseTween<?> tween, final boolean value) {
         tween.isAutoStartEnabled = value;
@@ -84,13 +84,13 @@ class TweenManager {
     }
 
     // -------------------------------------------------------------------------
-	// Public API
-	// -------------------------------------------------------------------------
+    // Public API
+    // -------------------------------------------------------------------------
 
-	private final ArrayList<BaseTween<?>> tweenArrayList = new ArrayList<BaseTween<?>>(20);
-	private BaseTween<?>[] childrenArray = new BaseTween<?>[0];
+    private final ArrayList<BaseTween<?>> tweenArrayList = new ArrayList<BaseTween<?>>(20);
+    private BaseTween<?>[] childrenArray = new BaseTween<?>[0];
 
-	private boolean isPaused = false;
+    private boolean isPaused = false;
 
     private UpdateAction startEventCallback = BaseTween.NULL_ACTION;
     private UpdateAction endEventCallback = BaseTween.NULL_ACTION;
@@ -162,12 +162,12 @@ class TweenManager {
     }
 
 
-	/**
-	 * Adds a tween or timeline to the manager and starts or restarts it.
-	 *
-	 * @return The manager, for instruction chaining.
-	 */
-	public
+    /**
+     * Adds a tween or timeline to the manager and starts or restarts it.
+     *
+     * @return The manager, for instruction chaining.
+     */
+    public
     TweenManager add(final BaseTween<?> tween) {
         if (!tweenArrayList.contains(tween)) {
             tweenArrayList.add(tween);
@@ -181,12 +181,12 @@ class TweenManager {
         }
 
         return this;
-	}
+    }
 
-	/**
-	 * Returns true if the manager contains any valid interpolation associated to the given target object.
-	 */
-	public
+    /**
+     * Returns true if the manager contains any valid interpolation associated to the given target object.
+     */
+    public
     boolean containsTarget(final Object target) {
         for (int i = 0, n = childrenArray.length; i < n; i++) {
             final BaseTween<?> tween = childrenArray[i];
@@ -197,10 +197,10 @@ class TweenManager {
         return false;
     }
 
-	/**
-	 * Returns true if the manager contains any valid interpolation associated to the given target object and to the given tween type.
-	 */
-	public
+    /**
+     * Returns true if the manager contains any valid interpolation associated to the given target object and to the given tween type.
+     */
+    public
     boolean containsTarget(final Object target, final int tweenType) {
         for (int i = 0, n = childrenArray.length; i < n; i++) {
             final BaseTween<?> tween = childrenArray[i];
@@ -208,13 +208,13 @@ class TweenManager {
                 return true;
             }
         }
-		return false;
-	}
+        return false;
+    }
 
-	/**
-	 * Kills every managed tweens and timelines.
-	 */
-	public
+    /**
+     * Kills every managed tweens and timelines.
+     */
+    public
     void killAll() {
         boolean needsRefresh = false;
 
@@ -238,11 +238,11 @@ class TweenManager {
     }
 
     /**
-	 * Kills every tweens associated to the given target. Will also kill every timelines containing a tween associated to the given target.
+     * Kills every tweens associated to the given target. Will also kill every timelines containing a tween associated to the given target.
      *
      * @return true if the target was killed, false if we do not contain the target, and it was not killed
-	 */
-	@SuppressWarnings("Duplicates")
+     */
+    @SuppressWarnings("Duplicates")
     public
     boolean killTarget(final Object target) {
         boolean needsRefresh = false;
@@ -270,13 +270,13 @@ class TweenManager {
         return false;
     }
 
-	/**
-	 * Kills every tweens associated to the given target and tween type. Will also kill every timelines containing a tween associated
+    /**
+     * Kills every tweens associated to the given target and tween type. Will also kill every timelines containing a tween associated
      * to the given target and tween type.
      *
      * @return true if the target was killed, false if we do not contain the target, and it was not killed
-	 */
-	@SuppressWarnings("Duplicates")
+     */
+    @SuppressWarnings("Duplicates")
     public
     boolean killTarget(final Object target, final int tweenType) {
         boolean needsRefresh = false;
@@ -304,28 +304,28 @@ class TweenManager {
         return false;
     }
 
-	/**
-	 * Increases the minimum capacity of the manager. Defaults to 20.
-	 */
-	public void ensureCapacity(final int minCapacity) {
+    /**
+     * Increases the minimum capacity of the manager. Defaults to 20.
+     */
+    public void ensureCapacity(final int minCapacity) {
         tweenArrayList.ensureCapacity(minCapacity);
-	}
+    }
 
-	/**
-	 * Pauses the manager. Further update calls won't have any effect.
-	 */
+    /**
+     * Pauses the manager. Further update calls won't have any effect.
+     */
     public
     void pause() {
-		isPaused = true;
-	}
+        isPaused = true;
+    }
 
-	/**
-	 * Resumes the manager, if paused.
-	 */
-	public
+    /**
+     * Resumes the manager, if paused.
+     */
+    public
     void resume() {
-		isPaused = false;
-	}
+        isPaused = false;
+    }
 
     /**
      * Resets the last time this tweenManager had "update" called. This is useful when the timer (that {@link TweenManager#update()}) is
@@ -414,49 +414,49 @@ class TweenManager {
     }
 
     /**
-	 * Gets the number of managed objects. An object may be a tween or a timeline. A timeline only counts for 1 object, since it manages
+     * Gets the number of managed objects. An object may be a tween or a timeline. A timeline only counts for 1 object, since it manages
      * its children itself.
-	 * <p/>
-	 * To get the count of running tweens, see {@link #getRunningTweensCount()}.
-	 */
-	public
+     * <p/>
+     * To get the count of running tweens, see {@link #getRunningTweensCount()}.
+     */
+    public
     int size() {
         return childrenArray.length;
-	}
+    }
 
-	/**
-	 * Gets the number of running tweens. This number includes the tweens located inside timelines (and nested timelines).
-	 * <p/>
-	 * <b>Provided for debug purpose only.</b>
-	 */
-	public
+    /**
+     * Gets the number of running tweens. This number includes the tweens located inside timelines (and nested timelines).
+     * <p/>
+     * <b>Provided for debug purpose only.</b>
+     */
+    public
     int getRunningTweensCount() {
         return getTweensCount(tweenArrayList);
-	}
+    }
 
-	/**
-	 * Gets the number of running timelines. This number includes the timelines nested inside other timelines.
-	 * <p/>
-	 * <b>Provided for debug purpose only.</b>
-	 */
-	public
+    /**
+     * Gets the number of running timelines. This number includes the timelines nested inside other timelines.
+     * <p/>
+     * <b>Provided for debug purpose only.</b>
+     */
+    public
     int getRunningTimelinesCount() {
         return getTimelinesCount(tweenArrayList);
     }
 
     /**
-	 * Gets an immutable list of every managed object.
-	 * <p/>
-	 * <b>Provided for debug purpose only.</b>
-	 */
-	public
+     * Gets an immutable list of every managed object.
+     * <p/>
+     * <b>Provided for debug purpose only.</b>
+     */
+    public
     List<BaseTween<?>> getObjects() {
-		return Collections.unmodifiableList(tweenArrayList);
-	}
+        return Collections.unmodifiableList(tweenArrayList);
+    }
 
-	// -------------------------------------------------------------------------
-	// Helpers
-	// -------------------------------------------------------------------------
+    // -------------------------------------------------------------------------
+    // Helpers
+    // -------------------------------------------------------------------------
 
     private static
     int getTweensCount(final List<BaseTween<?>> objs) {

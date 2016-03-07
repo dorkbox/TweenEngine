@@ -24,7 +24,7 @@ package dorkbox.tweenengine;
 @SuppressWarnings("NumericCastThatLosesPrecision")
 public
 enum TweenPaths {
-	Linear(new TweenPath() {
+    Linear(new TweenPath() {
         @Override
         public
         float compute(float tweenValue, final float[] points, final int pointsCount) {

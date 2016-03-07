@@ -26,23 +26,23 @@ public abstract
 class TweenEquation {
 
     /**
-	 * Computes the next value of the interpolation.
-	 *
-	 * @param time The current time, between 0 and 1.
+     * Computes the next value of the interpolation.
      *
-	 * @return The corresponding value.
-	 */
+     * @param time The current time, between 0 and 1.
+     *
+     * @return The corresponding value.
+     */
     public abstract
     float compute(float time);
 
-	/**
-	 * @return true if the given string is the name of this equation (the name
-	 * is returned in the toString() method, don't forget to override it).
+    /**
+     * @return true if the given string is the name of this equation (the name
+     * is returned in the toString() method, don't forget to override it).
      * </p>
-	 * This method is usually used to save/load a tween to/from a text file.
-	 */
-	public
+     * This method is usually used to save/load a tween to/from a text file.
+     */
+    public
     boolean isValueOf(String string) {
-		return string.equals(toString());
-	}
+        return string.equals(toString());
+    }
 }

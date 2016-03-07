@@ -88,19 +88,19 @@ public final
 class Tween extends BaseTween<Tween> {
     private static final Thread constructorThread = Thread.currentThread();
 
-	// -------------------------------------------------------------------------
-	// Static -- misc
-	// -------------------------------------------------------------------------
+    // -------------------------------------------------------------------------
+    // Static -- misc
+    // -------------------------------------------------------------------------
 
-	/**
-	 * Used as parameter in {@link #repeat(int, float)} and {@link #repeatAutoReverse(int, float)} methods.
-	 */
-	public static final int INFINITY = -1;
+    /**
+     * Used as parameter in {@link #repeat(int, float)} and {@link #repeatAutoReverse(int, float)} methods.
+     */
+    public static final int INFINITY = -1;
 
     private static volatile long lightSyncObject = System.nanoTime();
 
-	private static int combinedAttrsLimit = 3;
-	private static int waypointsLimit = 0;
+    private static int combinedAttrsLimit = 3;
+    private static int waypointsLimit = 0;
 
     /**
      * Gets the version number.
@@ -130,9 +130,9 @@ class Tween extends BaseTween<Tween> {
         lightSyncObject = System.nanoTime();
     }
 
-	/**
-	 * Changes the limit for combined attributes. Defaults to 3 to reduce memory footprint.
-	 */
+    /**
+     * Changes the limit for combined attributes. Defaults to 3 to reduce memory footprint.
+     */
     public static
     void setCombinedAttributesLimit(int limit) {
         if (constructorThread != Thread.currentThread()) {
@@ -142,8 +142,8 @@ class Tween extends BaseTween<Tween> {
     }
 
     /**
-	 * Changes the limit of allowed waypoints for each tween. Defaults to 0 to reduce memory footprint.
-	 */
+     * Changes the limit of allowed waypoints for each tween. Defaults to 0 to reduce memory footprint.
+     */
     public static
     void setWaypointsLimit(int limit) {
         if (constructorThread != Thread.currentThread()) {
@@ -152,9 +152,9 @@ class Tween extends BaseTween<Tween> {
         Tween.waypointsLimit = limit;
     }
 
-	// -------------------------------------------------------------------------
-	// Static -- pool
-	// -------------------------------------------------------------------------
+    // -------------------------------------------------------------------------
+    // Static -- pool
+    // -------------------------------------------------------------------------
 
     private static final PoolableObject<Tween> poolableObject = new PoolableObject<Tween>() {
         @Override
@@ -172,29 +172,29 @@ class Tween extends BaseTween<Tween> {
 
     static ObjectPool<Tween> pool = ObjectPool.Blocking(poolableObject, 1024);
 
-	/**
-	 * Increases the minimum capacity of the pool. Capacity defaults to 1024.
-	 */
-	public static void setPoolSize(final int poolSize) {
+    /**
+     * Increases the minimum capacity of the pool. Capacity defaults to 1024.
+     */
+    public static void setPoolSize(final int poolSize) {
         if (constructorThread != Thread.currentThread()) {
             throw new RuntimeException("Tween pool capacity must be changed during engine initialization!");
         }
         pool = ObjectPool.Blocking(poolableObject, poolSize);
     }
 
-	// -------------------------------------------------------------------------
-	// Static -- tween accessors
-	// -------------------------------------------------------------------------
+    // -------------------------------------------------------------------------
+    // Static -- tween accessors
+    // -------------------------------------------------------------------------
 
-	private static final Map<Class<?>, TweenAccessor<?>> registeredAccessors = new HashMap<Class<?>, TweenAccessor<?>>();
+    private static final Map<Class<?>, TweenAccessor<?>> registeredAccessors = new HashMap<Class<?>, TweenAccessor<?>>();
 
     /**
      * Registers an accessor with the class of an object. This accessor will be used by tweens applied to every objects implementing the
      * registered class, or inheriting from it.
-	 *
-	 * @param someClass An object class.
-	 * @param defaultAccessor The accessor that will be used to tween any object of class "someClass".
-	 */
+     *
+     * @param someClass An object class.
+     * @param defaultAccessor The accessor that will be used to tween any object of class "someClass".
+     */
     public static
     void registerAccessor(final Class<?> someClass, final TweenAccessor<?> defaultAccessor) {
         if (constructorThread != Thread.currentThread()) {
@@ -205,324 +205,324 @@ class Tween extends BaseTween<Tween> {
     }
 
     /**
-	 * Gets the registered TweenAccessor associated with the given object class.
-	 *
-	 * @param someClass An object class.
-	 */
-	public static
+     * Gets the registered TweenAccessor associated with the given object class.
+     *
+     * @param someClass An object class.
+     */
+    public static
     TweenAccessor<?> getRegisteredAccessor(final Class<?> someClass) {
         if (constructorThread != Thread.currentThread()) {
             throw new RuntimeException("Tween accessors must be accessed by the same thread as engine initialization!");
         }
 
         return registeredAccessors.get(someClass);
-	}
+    }
 
-	// -------------------------------------------------------------------------
-	// Static -- factories
-	// -------------------------------------------------------------------------
+    // -------------------------------------------------------------------------
+    // Static -- factories
+    // -------------------------------------------------------------------------
 
-	/**
-	 * Factory creating a new standard interpolation. This is the most common type of interpolation. The starting values are
+    /**
+     * Factory creating a new standard interpolation. This is the most common type of interpolation. The starting values are
      * retrieved automatically after the delay (if any).
-	 * <br/><br/>
-	 *
-	 * <b>You need to set the target values of the interpolation by using one of the target() methods</b>. The interpolation will run
-     * from the starting values to these target values.
-	 * <br/><br/>
-	 *
-	 * The common use of Tweens is "fire-and-forget": you do not need to care for tweens once you added them to a TweenManager, they will
-     * be updated automatically, and cleaned once finished.
-	 * <br/><br/>
-	 *
-	 * <pre> {@code
-	 * Tween.to(myObject, POSITION, 1.0F)
-	 *      .target(50, 70)
-	 *      .ease(Quad_InOut)
-	 *      .start(myManager);
-	 * }</pre>
-	 *
-	 * Several options such as delay, repetitions and callbacks can be added to the tween.
-	 *
-	 * @param target The target object of the interpolation.
-	 * @param tweenType The desired type of interpolation, used for TweenAccessor methods.
-	 * @param duration The duration of the interpolation, in seconds.
+     * <br/><br/>
      *
-	 * @return The generated Tween.
-	 */
-	public static
+     * <b>You need to set the target values of the interpolation by using one of the target() methods</b>. The interpolation will run
+     * from the starting values to these target values.
+     * <br/><br/>
+     *
+     * The common use of Tweens is "fire-and-forget": you do not need to care for tweens once you added them to a TweenManager, they will
+     * be updated automatically, and cleaned once finished.
+     * <br/><br/>
+     *
+     * <pre> {@code
+     * Tween.to(myObject, POSITION, 1.0F)
+     *      .target(50, 70)
+     *      .ease(Quad_InOut)
+     *      .start(myManager);
+     * }</pre>
+     *
+     * Several options such as delay, repetitions and callbacks can be added to the tween.
+     *
+     * @param target The target object of the interpolation.
+     * @param tweenType The desired type of interpolation, used for TweenAccessor methods.
+     * @param duration The duration of the interpolation, in seconds.
+     *
+     * @return The generated Tween.
+     */
+    public static
     Tween to(final Object target, final int tweenType, final float duration) {
-		return to(target, tweenType, null, duration);
-	}
+        return to(target, tweenType, null, duration);
+    }
 
-	/**
-	 * Factory creating a new standard interpolation. This is the most common type of interpolation. The starting values are
+    /**
+     * Factory creating a new standard interpolation. This is the most common type of interpolation. The starting values are
      * retrieved automatically after the delay (if any).
-	 * <br/><br/>
-	 *
-	 * <b>You need to set the target values of the interpolation by using one of the target() methods</b>. The interpolation will run
+     * <br/><br/>
+     *
+     * <b>You need to set the target values of the interpolation by using one of the target() methods</b>. The interpolation will run
      * from the starting values to these target values.
-	 * <br/><br/>
-	 *
-	 * The common use of Tweens is "fire-and-forget": you do not need to care for tweens once you added them to a TweenManager, they will
+     * <br/><br/>
+     *
+     * The common use of Tweens is "fire-and-forget": you do not need to care for tweens once you added them to a TweenManager, they will
      * be updated automatically, and cleaned once finished.
-	 * <br/><br/>
-	 *
-	 * <pre> {@code
-	 * Tween.to(myObject, POSITION, accessorObject, 1.0F)
-	 *      .target(50, 70)
-	 *      .ease(Quad_InOut)
-	 *      .start(myManager);
-	 * }</pre>
-	 *
-	 * Several options such as delay, repetitions and callbacks can be added to the tween.
-	 *
-	 * @param target The target object of the interpolation.
-	 * @param tweenType The desired type of interpolation, used for TweenAccessor methods.
-	 * @param targetAccessor The accessor object (optional) that is used to modify the target values (based on the tween type).
-	 * @param duration The duration of the interpolation, in seconds.
+     * <br/><br/>
      *
-	 * @return The generated Tween.
-	 */
-	public static
-    Tween to(final Object target, final int tweenType, final TweenAccessor targetAccessor, final float duration) {
-		Tween tween = pool.take();
-		tween.setup(target, tweenType, targetAccessor, duration);
-		tween.ease(TweenEquations.Quad_InOut);
-		tween.path(TweenPaths.CatmullRom);
-		return tween;
-	}
-
-	/**
-	 * Factory creating a new reversed interpolation. The ending values are retrieved automatically after the delay (if any).
-	 * <br/><br/>
-	 *
-	 * <b>You need to set the starting values of the interpolation by using one of the target() methods</b>. The interpolation will run
-     * from the starting values to these target values.
-	 * <br/><br/>
-	 *
-	 * The common use of Tweens is "fire-and-forget": you do not need to care for tweens once you added them to a TweenManager, they will
-     * be updated automatically, and cleaned once finished. Common call:
-	 * <br/><br/>
-	 *
-	 * <pre> {@code
-	 * Tween.from(myObject, POSITION, 1.0F)
-	 *      .target(0, 0)
-	 *      .ease(Quad_InOut)
-	 *      .start(myManager);
-	 * }</pre>
-	 *
-	 * Several options such as delay, repetitions and callbacks can be added to the tween.
-	 *
-	 * @param target The target object of the interpolation.
-	 * @param tweenType The desired type of interpolation.
-	 * @param duration The duration of the interpolation, in seconds.
+     * <pre> {@code
+     * Tween.to(myObject, POSITION, accessorObject, 1.0F)
+     *      .target(50, 70)
+     *      .ease(Quad_InOut)
+     *      .start(myManager);
+     * }</pre>
      *
-	 * @return The generated Tween.
-	 */
-	public static
-    Tween from(final Object target, final int tweenType, final float duration) {
-		return from(target, tweenType, null, duration);
-	}
-
-	/**
-	 * Factory creating a new reversed interpolation. The ending values are retrieved automatically after the delay (if any).
-	 * <br/><br/>
-	 *
-	 * <b>You need to set the starting values of the interpolation by using one of the target() methods</b>. The interpolation will run
-     * from the starting values to these target values.
-	 * <br/><br/>
-	 *
-	 * The common use of Tweens is "fire-and-forget": you do not need to care for tweens once you added them to a TweenManager, they will
-     * be updated automatically, and cleaned once finished. Common call:
-	 * <br/><br/>
-	 *
-	 * <pre> {@code
-	 * Tween.from(myObject, POSITION, 1.0F)
-	 *      .target(0, 0)
-	 *      .ease(Quad_InOut)
-	 *      .start(myManager);
-	 * }</pre>
-	 *
-	 * Several options such as delay, repetitions and callbacks can be added to the tween.
-	 *
-	 * @param target The target object of the interpolation.
-	 * @param tweenType The desired type of interpolation.
+     * Several options such as delay, repetitions and callbacks can be added to the tween.
+     *
+     * @param target The target object of the interpolation.
+     * @param tweenType The desired type of interpolation, used for TweenAccessor methods.
      * @param targetAccessor The accessor object (optional) that is used to modify the target values (based on the tween type).
-	 * @param duration The duration of the interpolation, in seconds.
+     * @param duration The duration of the interpolation, in seconds.
      *
-	 * @return The generated Tween.
-	 */
-	public static
-    Tween from(final Object target, final int tweenType, final TweenAccessor targetAccessor, final float duration) {
-		Tween tween = pool.take();
-		tween.setup(target, tweenType, targetAccessor, duration);
-		tween.ease(TweenEquations.Quad_InOut);
-		tween.path(TweenPaths.CatmullRom);
-		tween.isFrom = true;
-		return tween;
-	}
+     * @return The generated Tween.
+     */
+    public static
+    <T> Tween to(final T target, final int tweenType, final TweenAccessor<T> targetAccessor, final float duration) {
+        Tween tween = pool.take();
+        tween.setup(target, tweenType, targetAccessor, duration);
+        tween.ease(TweenEquations.Quad_InOut);
+        tween.path(TweenPaths.CatmullRom);
+        return tween;
+    }
 
-	/**
-	 * Factory creating a new instantaneous interpolation (thus this is not really an interpolation).
-	 * <br/><br/>
-	 *
-	 * <b>You need to set the target values of the interpolation by using one of the target() methods</b>. The interpolation will set
-     * the target attribute to these values after the delay (if any).
-	 * <br/><br/>
-	 *
-	 * The common use of Tweens is "fire-and-forget": you do not need to care for tweens once you added them to a TweenManager, they will
-     * be updated automatically, and cleaned once finished. Common call:
-	 * <br/><br/>
-	 *
-	 * <pre> {@code
-	 * Tween.set(myObject, POSITION)
-	 *      .target(50, 70)
-	 *      .delay(1.0F)
-	 *      .start(myManager);
-	 * }</pre>
-	 *
-	 * Several options such as delay, repetitions and callbacks can be added to the tween.
-	 *
-	 * @param target The target object of the interpolation.
-	 * @param tweenType The desired type of interpolation.
+    /**
+     * Factory creating a new reversed interpolation. The ending values are retrieved automatically after the delay (if any).
+     * <br/><br/>
      *
-	 * @return The generated Tween.
-	 */
-	public static
-    Tween set(final Object target, final int tweenType) {
-		return set(target, tweenType, null);
-	}
-
-	/**
-	 * Factory creating a new instantaneous interpolation (thus this is not really an interpolation).
-	 * <br/><br/>
-	 *
-	 * <b>You need to set the target values of the interpolation by using one of the target() methods</b>. The interpolation will set
-     * the target attribute to these values after the delay (if any).
-	 * <br/><br/>
-	 *
-	 * The common use of Tweens is "fire-and-forget": you do not need to care for tweens once you added them to a TweenManager, they will
+     * <b>You need to set the starting values of the interpolation by using one of the target() methods</b>. The interpolation will run
+     * from the starting values to these target values.
+     * <br/><br/>
+     *
+     * The common use of Tweens is "fire-and-forget": you do not need to care for tweens once you added them to a TweenManager, they will
      * be updated automatically, and cleaned once finished. Common call:
-	 * <br/><br/>
-	 *
-	 * <pre> {@code
-	 * Tween.set(myObject, POSITION)
-	 *      .target(50, 70)
-	 *      .delay(1.0F)
-	 *      .start(myManager);
-	 * }</pre>
-	 *
-	 * Several options such as delay, repetitions and callbacks can be added to the tween.
-	 *
-	 * @param target The target object of the interpolation.
+     * <br/><br/>
+     *
+     * <pre> {@code
+     * Tween.from(myObject, POSITION, 1.0F)
+     *      .target(0, 0)
+     *      .ease(Quad_InOut)
+     *      .start(myManager);
+     * }</pre>
+     *
+     * Several options such as delay, repetitions and callbacks can be added to the tween.
+     *
+     * @param target The target object of the interpolation.
+     * @param tweenType The desired type of interpolation.
+     * @param duration The duration of the interpolation, in seconds.
+     *
+     * @return The generated Tween.
+     */
+    public static
+    <T> Tween from(final T target, final int tweenType, final float duration) {
+        return from(target, tweenType, null, duration);
+    }
+
+    /**
+     * Factory creating a new reversed interpolation. The ending values are retrieved automatically after the delay (if any).
+     * <br/><br/>
+     *
+     * <b>You need to set the starting values of the interpolation by using one of the target() methods</b>. The interpolation will run
+     * from the starting values to these target values.
+     * <br/><br/>
+     *
+     * The common use of Tweens is "fire-and-forget": you do not need to care for tweens once you added them to a TweenManager, they will
+     * be updated automatically, and cleaned once finished. Common call:
+     * <br/><br/>
+     *
+     * <pre> {@code
+     * Tween.from(myObject, POSITION, 1.0F)
+     *      .target(0, 0)
+     *      .ease(Quad_InOut)
+     *      .start(myManager);
+     * }</pre>
+     *
+     * Several options such as delay, repetitions and callbacks can be added to the tween.
+     *
+     * @param target The target object of the interpolation.
+     * @param tweenType The desired type of interpolation.
      * @param targetAccessor The accessor object (optional) that is used to modify the target values (based on the tween type).
-	 * @param tweenType The desired type of interpolation.
+     * @param duration The duration of the interpolation, in seconds.
      *
-	 * @return The generated Tween.
-	 */
-	public static
-    Tween set(final Object target, final int tweenType, final TweenAccessor targetAccessor) {
-		Tween tween = pool.take();
-		tween.setup(target, tweenType, targetAccessor, 0.0F);
-		tween.ease(TweenEquations.Quad_In);
-		return tween;
-	}
+     * @return The generated Tween.
+     */
+    public static
+    <T> Tween from(final T target, final int tweenType, final TweenAccessor<T> targetAccessor, final float duration) {
+        Tween tween = pool.take();
+        tween.setup(target, tweenType, targetAccessor, duration);
+        tween.ease(TweenEquations.Quad_InOut);
+        tween.path(TweenPaths.CatmullRom);
+        tween.isFrom = true;
+        return tween;
+    }
 
-	/**
-	 * Factory creating a new timer. The given callback will be triggered on each iteration start, after the delay.
-	 * <br/><br/>
-	 *
-	 * The common use of Tweens is "fire-and-forget": you do not need to care for tweens once you added them to a TweenManager, they will
-     * be updated automatically, and cleaned once finished. Common call:
-	 * <br/><br/>
-	 *
-	 * <pre> {@code
-	 * Tween.call(myCallback)
-	 *      .delay(1.0F)
-	 *      .repeat(10, 1.0F)
-	 *      .start(myManager);
-	 * }</pre>
-	 *
-	 * @param callback The callback that will be triggered on each iteration start.
+    /**
+     * Factory creating a new instantaneous interpolation (thus this is not really an interpolation).
+     * <br/><br/>
      *
-	 * @return The generated Tween.
-	 * @see TweenCallback
-	 */
-	public static
+     * <b>You need to set the target values of the interpolation by using one of the target() methods</b>. The interpolation will set
+     * the target attribute to these values after the delay (if any).
+     * <br/><br/>
+     *
+     * The common use of Tweens is "fire-and-forget": you do not need to care for tweens once you added them to a TweenManager, they will
+     * be updated automatically, and cleaned once finished. Common call:
+     * <br/><br/>
+     *
+     * <pre> {@code
+     * Tween.set(myObject, POSITION)
+     *      .target(50, 70)
+     *      .delay(1.0F)
+     *      .start(myManager);
+     * }</pre>
+     *
+     * Several options such as delay, repetitions and callbacks can be added to the tween.
+     *
+     * @param target The target object of the interpolation.
+     * @param tweenType The desired type of interpolation.
+     *
+     * @return The generated Tween.
+     */
+    public static
+    <T> Tween set(final T target, final int tweenType) {
+        return set(target, tweenType, null);
+    }
+
+    /**
+     * Factory creating a new instantaneous interpolation (thus this is not really an interpolation).
+     * <br/><br/>
+     *
+     * <b>You need to set the target values of the interpolation by using one of the target() methods</b>. The interpolation will set
+     * the target attribute to these values after the delay (if any).
+     * <br/><br/>
+     *
+     * The common use of Tweens is "fire-and-forget": you do not need to care for tweens once you added them to a TweenManager, they will
+     * be updated automatically, and cleaned once finished. Common call:
+     * <br/><br/>
+     *
+     * <pre> {@code
+     * Tween.set(myObject, POSITION)
+     *      .target(50, 70)
+     *      .delay(1.0F)
+     *      .start(myManager);
+     * }</pre>
+     *
+     * Several options such as delay, repetitions and callbacks can be added to the tween.
+     *
+     * @param target The target object of the interpolation.
+     * @param targetAccessor The accessor object (optional) that is used to modify the target values (based on the tween type).
+     * @param tweenType The desired type of interpolation.
+     *
+     * @return The generated Tween.
+     */
+    public static
+    <T> Tween set(final T target, final int tweenType, final TweenAccessor<T>  targetAccessor) {
+        Tween tween = pool.take();
+        tween.setup(target, tweenType, targetAccessor, 0.0F);
+        tween.ease(TweenEquations.Quad_In);
+        return tween;
+    }
+
+    /**
+     * Factory creating a new timer. The given callback will be triggered on each iteration start, after the delay.
+     * <br/><br/>
+     *
+     * The common use of Tweens is "fire-and-forget": you do not need to care for tweens once you added them to a TweenManager, they will
+     * be updated automatically, and cleaned once finished. Common call:
+     * <br/><br/>
+     *
+     * <pre> {@code
+     * Tween.call(myCallback)
+     *      .delay(1.0F)
+     *      .repeat(10, 1.0F)
+     *      .start(myManager);
+     * }</pre>
+     *
+     * @param callback The callback that will be triggered on each iteration start.
+     *
+     * @return The generated Tween.
+     * @see TweenCallback
+     */
+    public static
     Tween call(final TweenCallback callback) {
-		Tween tween = pool.take();
-		tween.setup(null, -1, null, 0.0F);
+        Tween tween = pool.take();
+        tween.setup(null, -1, null, 0.0F);
         callback.triggers = TweenCallback.Events.START;
-		tween.addCallback(callback);
-		return tween;
-	}
+        tween.addCallback(callback);
+        return tween;
+    }
 
-	/**
-	 * Convenience method to create an empty tween. Such object is only useful when placed inside animation sequences
+    /**
+     * Convenience method to create an empty tween. Such object is only useful when placed inside animation sequences
      * (see {@link Timeline}), in which it may act as a beacon, so you can set a callback on it in order to trigger some action at the
      * right moment.
-	 *
-	 * @return The generated Tween.
-	 * @see Timeline
-	 */
-	public static
+     *
+     * @return The generated Tween.
+     * @see Timeline
+     */
+    public static
     Tween mark() {
-		Tween tween = pool.take();
-		tween.setup(null, -1, null, 0.0F);
-		return tween;
-	}
+        Tween tween = pool.take();
+        tween.setup(null, -1, null, 0.0F);
+        return tween;
+    }
 
-	// -------------------------------------------------------------------------
-	// Attributes
-	// -------------------------------------------------------------------------
+    // -------------------------------------------------------------------------
+    // Attributes
+    // -------------------------------------------------------------------------
 
-	// Main
-	private Object target;
-	private Class<?> targetClass;
-	private TweenAccessor<Object> accessor;
+    // Main
+    private Object target;
+    private Class<?> targetClass;
+    private TweenAccessor<Object> accessor;
 
-	private int type;
-	private TweenEquation equation;
-	private TweenPath path;
+    private int type;
+    private TweenEquation equation;
+    private TweenPath path;
 
-	// General
-	private boolean isFrom;
-	private boolean isRelative;
-	private int combinedAttrsCnt;
-	private int waypointsCount;
+    // General
+    private boolean isFrom;
+    private boolean isRelative;
+    private int combinedAttrsCnt;
+    private int waypointsCount;
 
-	// Values
-	private final float[] startValues = new float[combinedAttrsLimit];
-	private final float[] targetValues = new float[combinedAttrsLimit];
-	private final float[] waypoints = new float[waypointsLimit * combinedAttrsLimit];
+    // Values
+    private final float[] startValues = new float[combinedAttrsLimit];
+    private final float[] targetValues = new float[combinedAttrsLimit];
+    private final float[] waypoints = new float[waypointsLimit * combinedAttrsLimit];
 
-	// Buffers
-	private float[] accessorBuffer = new float[combinedAttrsLimit];
-	private float[] pathBuffer = new float[(2+waypointsLimit)*combinedAttrsLimit];
+    // Buffers
+    private float[] accessorBuffer = new float[combinedAttrsLimit];
+    private float[] pathBuffer = new float[(2+waypointsLimit)*combinedAttrsLimit];
 
-	// -------------------------------------------------------------------------
-	// Setup
-	// -------------------------------------------------------------------------
+    // -------------------------------------------------------------------------
+    // Setup
+    // -------------------------------------------------------------------------
 
-	Tween() {
-		reset();
-	}
+    Tween() {
+        reset();
+    }
 
-	@SuppressWarnings("FieldRepeatedlyAccessedInMethod")
+    @SuppressWarnings("FieldRepeatedlyAccessedInMethod")
     @Override
-	protected
+    protected
     void reset() {
-		super.reset();
+        super.reset();
 
-		target = null;
-		targetClass = null;
-		accessor = null;
-		type = -1;
-		equation = null;
-		path = null;
+        target = null;
+        targetClass = null;
+        accessor = null;
+        type = -1;
+        equation = null;
+        path = null;
 
-		isFrom = isRelative = false;
+        isFrom = isRelative = false;
         combinedAttrsCnt = waypointsCount = 0;
 
         for (int i = 0, n = startValues.length; i < n; i++) {
@@ -554,25 +554,25 @@ class Tween extends BaseTween<Tween> {
     }
 
     @SuppressWarnings("unchecked")
-    private void
-    setup(final Object target, final int tweenType, final TweenAccessor targetAccessor, final float duration) {
+    private
+    void setup(final Object target, final int tweenType, final TweenAccessor targetAccessor, final float duration) {
         if (duration < 0.0F) {
             throw new RuntimeException("Duration can not be negative");
         }
 
         this.target = target;
         if (targetAccessor != null) {
-            accessor = targetAccessor;
+            this.accessor = targetAccessor;
         } else {
-            this.targetClass = target != null ? findTargetClass() : null;
+            this.targetClass = target != null ? this.findTargetClass() : null;
         }
         this.type = tweenType;
         this.duration = duration;
 
-        setup();
-	}
+        this.setup();
+    }
 
-	private
+    private
     Class<?> findTargetClass() {
         final Object target = this.target;
 
@@ -590,11 +590,11 @@ class Tween extends BaseTween<Tween> {
         }
 
         return parentClass;
-	}
+    }
 
-	// -------------------------------------------------------------------------
-	// Public API
-	// -------------------------------------------------------------------------
+    // -------------------------------------------------------------------------
+    // Public API
+    // -------------------------------------------------------------------------
 
     /**
      * Sets the easing equation of the tween. Existing equations are located in {@link TweenEquations}, but you can of course implement your
@@ -620,11 +620,11 @@ class Tween extends BaseTween<Tween> {
      * @see TweenEquation
      * @see TweenEquations
      */
-	public
+    public
     Tween ease(final TweenEquation easeEquation) {
-		this.equation = easeEquation;
-		return this;
-	}
+        this.equation = easeEquation;
+        return this;
+    }
 
     /**
      * Sets the easing equation of the tween. Existing equations are located in {@link TweenEquations}, but you can of course implement
@@ -657,100 +657,100 @@ class Tween extends BaseTween<Tween> {
     }
 
 
-	/**
-	 * Forces the tween to use the TweenAccessor registered with the given target class. Useful if you want to use a specific accessor
+    /**
+     * Forces the tween to use the TweenAccessor registered with the given target class. Useful if you want to use a specific accessor
      * associated to an interface, for instance.
-	 *
-	 * @param targetClass A class registered with an accessor.
      *
-	 * @return The current tween, for chaining instructions.
-	 */
-	public
+     * @param targetClass A class registered with an accessor.
+     *
+     * @return The current tween, for chaining instructions.
+     */
+    public
     Tween cast(final Class<?> targetClass) {
         if (isInitialized) {
             throw new RuntimeException("You can't cast the target of a tween once it has been initialized");
         }
         this.targetClass = targetClass;
         return this;
-	}
+    }
 
-	/**
-	 * Sets the target value of the interpolation. The interpolation will run from the <b>value at start time (after the delay, if any)</b>
+    /**
+     * Sets the target value of the interpolation. The interpolation will run from the <b>value at start time (after the delay, if any)</b>
      * to this target value.
-	 * <p/>
-	 *
-	 * To sum-up:<br/>
-	 * - start value: value at start time, after delay<br/>
-	 * - end value: param
-	 *
-	 * @param targetValue The target value of the interpolation.
+     * <p/>
      *
-	 * @return The current tween, for chaining instructions.
-	 */
-	public
+     * To sum-up:<br/>
+     * - start value: value at start time, after delay<br/>
+     * - end value: param
+     *
+     * @param targetValue The target value of the interpolation.
+     *
+     * @return The current tween, for chaining instructions.
+     */
+    public
     Tween target(final float targetValue) {
-		targetValues[0] = targetValue;
-		return this;
-	}
+        targetValues[0] = targetValue;
+        return this;
+    }
 
-	/**
-	 * Sets the target values of the interpolation. The interpolation will run from the <b>values at start time (after the delay, if
-     * any)</b> to these target values.
-	 * <p/>
-	 *
-	 * To sum-up:<br/>
-	 * - start values: values at start time, after delay<br/>
-	 * - end values: params
-	 *
-	 * @param targetValue1 The 1st target value of the interpolation.
-	 * @param targetValue2 The 2nd target value of the interpolation.
-     *
-	 * @return The current tween, for chaining instructions.
-	 */
-	public
-    Tween target(final float targetValue1, final float targetValue2) {
-		targetValues[0] = targetValue1;
-		targetValues[1] = targetValue2;
-		return this;
-	}
-
-	/**
-	 * Sets the target values of the interpolation. The interpolation will run from the <b>values at start time (after the delay, if
-     * any)</b> to these target values.
-	 * <p/>
-	 *
-	 * To sum-up:<br/>
-	 * - start values: values at start time, after delay<br/>
-	 * - end values: params
-	 *
-	 * @param targetValue1 The 1st target value of the interpolation.
-	 * @param targetValue2 The 2nd target value of the interpolation.
-	 * @param targetValue3 The 3rd target value of the interpolation.
-     *
-	 * @return The current tween, for chaining instructions.
-	 */
-	public
-    Tween target(final float targetValue1, final float targetValue2, final float targetValue3) {
-		targetValues[0] = targetValue1;
-		targetValues[1] = targetValue2;
-		targetValues[2] = targetValue3;
-		return this;
-	}
-
-	/**
+    /**
      * Sets the target values of the interpolation. The interpolation will run from the <b>values at start time (after the delay, if
      * any)</b> to these target values.
      * <p/>
-	 *
-	 * To sum-up:<br/>
-	 * - start values: values at start time, after delay<br/>
-	 * - end values: params
-	 *
-	 * @param targetValues The target values of the interpolation.
      *
-	 * @return The current tween, for chaining instructions.
-	 */
-	public
+     * To sum-up:<br/>
+     * - start values: values at start time, after delay<br/>
+     * - end values: params
+     *
+     * @param targetValue1 The 1st target value of the interpolation.
+     * @param targetValue2 The 2nd target value of the interpolation.
+     *
+     * @return The current tween, for chaining instructions.
+     */
+    public
+    Tween target(final float targetValue1, final float targetValue2) {
+        targetValues[0] = targetValue1;
+        targetValues[1] = targetValue2;
+        return this;
+    }
+
+    /**
+     * Sets the target values of the interpolation. The interpolation will run from the <b>values at start time (after the delay, if
+     * any)</b> to these target values.
+     * <p/>
+     *
+     * To sum-up:<br/>
+     * - start values: values at start time, after delay<br/>
+     * - end values: params
+     *
+     * @param targetValue1 The 1st target value of the interpolation.
+     * @param targetValue2 The 2nd target value of the interpolation.
+     * @param targetValue3 The 3rd target value of the interpolation.
+     *
+     * @return The current tween, for chaining instructions.
+     */
+    public
+    Tween target(final float targetValue1, final float targetValue2, final float targetValue3) {
+        targetValues[0] = targetValue1;
+        targetValues[1] = targetValue2;
+        targetValues[2] = targetValue3;
+        return this;
+    }
+
+    /**
+     * Sets the target values of the interpolation. The interpolation will run from the <b>values at start time (after the delay, if
+     * any)</b> to these target values.
+     * <p/>
+     *
+     * To sum-up:<br/>
+     * - start values: values at start time, after delay<br/>
+     * - end values: params
+     *
+     * @param targetValues The target values of the interpolation.
+     *
+     * @return The current tween, for chaining instructions.
+     */
+    public
     Tween target(final float... targetValues) {
         final int length = targetValues.length;
         if (length > combinedAttrsLimit) {
@@ -759,88 +759,88 @@ class Tween extends BaseTween<Tween> {
 
         System.arraycopy(targetValues, 0, this.targetValues, 0, length);
         return this;
-	}
+    }
 
-	/**
-	 * Sets the target value of the interpolation, relatively to the <b>value at start time (after the delay, if any)</b>.
-	 * <p/>
-	 *
-	 * To sum-up:<br/>
-	 * - start value: value at start time, after delay<br/>
-	 * - end value: param + value at start time, after delay
-	 *
-	 * @param targetValue The relative target value of the interpolation.
-     *
-	 * @return The current tween, for chaining instructions.
-	 */
-	public
-    Tween targetRelative(final float targetValue) {
-		isRelative = true;
-		targetValues[0] = isInitialized ? targetValue + startValues[0] : targetValue;
-		return this;
-	}
-
-	/**
+    /**
      * Sets the target value of the interpolation, relatively to the <b>value at start time (after the delay, if any)</b>.
      * <p/>
-	 *
-	 * To sum-up:<br/>
-	 * - start values: values at start time, after delay<br/>
-	 * - end values: params + values at start time, after delay
-	 *
-	 * @param targetValue1 The 1st relative target value of the interpolation.
-	 * @param targetValue2 The 2nd relative target value of the interpolation.
      *
-	 * @return The current tween, for chaining instructions.
-	 */
-	public
+     * To sum-up:<br/>
+     * - start value: value at start time, after delay<br/>
+     * - end value: param + value at start time, after delay
+     *
+     * @param targetValue The relative target value of the interpolation.
+     *
+     * @return The current tween, for chaining instructions.
+     */
+    public
+    Tween targetRelative(final float targetValue) {
+        isRelative = true;
+        targetValues[0] = isInitialized ? targetValue + startValues[0] : targetValue;
+        return this;
+    }
+
+    /**
+     * Sets the target value of the interpolation, relatively to the <b>value at start time (after the delay, if any)</b>.
+     * <p/>
+     *
+     * To sum-up:<br/>
+     * - start values: values at start time, after delay<br/>
+     * - end values: params + values at start time, after delay
+     *
+     * @param targetValue1 The 1st relative target value of the interpolation.
+     * @param targetValue2 The 2nd relative target value of the interpolation.
+     *
+     * @return The current tween, for chaining instructions.
+     */
+    public
     Tween targetRelative(final float targetValue1, final float targetValue2) {
-		isRelative = true;
+        isRelative = true;
         final boolean initialized = isInitialized;
         targetValues[0] = initialized ? targetValue1 + startValues[0] : targetValue1;
-		targetValues[1] = initialized ? targetValue2 + startValues[1] : targetValue2;
-		return this;
-	}
+        targetValues[1] = initialized ? targetValue2 + startValues[1] : targetValue2;
+        return this;
+    }
 
-	/**
+    /**
      * Sets the target value of the interpolation, relatively to the <b>value at start time (after the delay, if any)</b>.
      * <p/>
-	 *
-	 * To sum-up:<br/>
-	 * - start values: values at start time, after delay<br/>
-	 * - end values: params + values at start time, after delay
-	 *
-	 * @param targetValue1 The 1st relative target value of the interpolation.
-	 * @param targetValue2 The 2nd relative target value of the interpolation.
-	 * @param targetValue3 The 3rd relative target value of the interpolation.
      *
-	 * @return The current tween, for chaining instructions.
-	 */
-	public
+     * To sum-up:<br/>
+     * - start values: values at start time, after delay<br/>
+     * - end values: params + values at start time, after delay
+     *
+     * @param targetValue1 The 1st relative target value of the interpolation.
+     * @param targetValue2 The 2nd relative target value of the interpolation.
+     * @param targetValue3 The 3rd relative target value of the interpolation.
+     *
+     * @return The current tween, for chaining instructions.
+     */
+    public
     Tween targetRelative(final float targetValue1, final float targetValue2, final float targetValue3) {
-		isRelative = true;
+        isRelative = true;
         final boolean initialized = isInitialized;
 
         final float[] startValues = this.startValues;
         targetValues[0] = initialized ? targetValue1 + startValues[0] : targetValue1;
-		targetValues[1] = initialized ? targetValue2 + startValues[1] : targetValue2;
-		targetValues[2] = initialized ? targetValue3 + startValues[2] : targetValue3;
-		return this;
-	}
+        targetValues[1] = initialized ? targetValue2 + startValues[1] : targetValue2;
+        targetValues[2] = initialized ? targetValue3 + startValues[2] : targetValue3;
+        return this;
+    }
 
-	/**
+    /**
      * Sets the target value of the interpolation, relatively to the <b>value at start time (after the delay, if any)</b>.
      * <p/>
-	 *
-	 * To sum-up:<br/>
-	 * - start values: values at start time, after delay<br/>
-	 * - end values: params + values at start time, after delay
-	 *
-	 * @param targetValues The relative target values of the interpolation.
      *
-	 * @return The current tween, for chaining instructions.
-	 */
-	public
+     * To sum-up:<br/>
+     * - start values: values at start time, after delay<br/>
+     * - end values: params + values at start time, after delay
+     *
+     * @param targetValues The relative target values of the interpolation.
+     *
+     * @return The current tween, for chaining instructions.
+     */
+    public
     Tween targetRelative(final float... targetValues) {
         final int length = targetValues.length;
 
@@ -848,24 +848,24 @@ class Tween extends BaseTween<Tween> {
         final float[] startValues = this.startValues;
 
         if (length > combinedAttrsLimit) throwCombinedAttrsLimitReached();
-		for (int i = 0; i < length; i++) {
+        for (int i = 0; i < length; i++) {
             this.targetValues[i] = initialized ? targetValues[i] + startValues[i] : targetValues[i];
-		}
+        }
 
-		isRelative = true;
-		return this;
-	}
+        isRelative = true;
+        return this;
+    }
 
-	/**
-	 * Adds a waypoint to the path. The default path runs from the start values to the end values linearly. If you add waypoints, the
+    /**
+     * Adds a waypoint to the path. The default path runs from the start values to the end values linearly. If you add waypoints, the
      * default path will use a smooth catmull-rom spline to navigate between the waypoints, but you can change this behavior by using the
      * {@link #path(TweenPath)} method.
-	 *
-	 * @param targetValue The target of this waypoint.
      *
-	 * @return The current tween, for chaining instructions.
-	 */
-	@SuppressWarnings("FieldRepeatedlyAccessedInMethod")
+     * @param targetValue The target of this waypoint.
+     *
+     * @return The current tween, for chaining instructions.
+     */
+    @SuppressWarnings("FieldRepeatedlyAccessedInMethod")
     public
     Tween waypoint(final float targetValue) {
         if (waypointsCount == waypointsLimit) {
@@ -875,21 +875,21 @@ class Tween extends BaseTween<Tween> {
         waypoints[waypointsCount] = targetValue;
         waypointsCount += 1;
         return this;
-	}
+    }
 
-	/**
+    /**
      * Adds a waypoint to the path. The default path runs from the start values to the end values linearly. If you add waypoints, the
      * default path will use a smooth catmull-rom spline to navigate between the waypoints, but you can change this behavior by using the
      * {@link #path(TweenPath)} method.
-	 * <p/>
-	 * Note that if you want waypoints relative to the start values, use one of the .targetRelative() methods to define your target.
-	 *
-	 * @param targetValue1 The 1st target of this waypoint.
-	 * @param targetValue2 The 2nd target of this waypoint.
+     * <p/>
+     * Note that if you want waypoints relative to the start values, use one of the .targetRelative() methods to define your target.
      *
-	 * @return The current tween, for chaining instructions.
-	 */
-	@SuppressWarnings("FieldRepeatedlyAccessedInMethod")
+     * @param targetValue1 The 1st target of this waypoint.
+     * @param targetValue2 The 2nd target of this waypoint.
+     *
+     * @return The current tween, for chaining instructions.
+     */
+    @SuppressWarnings("FieldRepeatedlyAccessedInMethod")
     public
     Tween waypoint(final float targetValue1, final float targetValue2) {
         if (waypointsCount == waypointsLimit) {
@@ -904,22 +904,22 @@ class Tween extends BaseTween<Tween> {
         waypointsCount += 1;
 
         return this;
-	}
+    }
 
-	/**
+    /**
      * Adds a waypoint to the path. The default path runs from the start values to the end values linearly. If you add waypoints, the
      * default path will use a smooth catmull-rom spline to navigate between the waypoints, but you can change this behavior by using the
      * {@link #path(TweenPath)} method.
-	 * <p/>
-	 * Note that if you want waypoints relative to the start values, use one of the .targetRelative() methods to define your target.
-	 *
-	 * @param targetValue1 The 1st target of this waypoint.
-	 * @param targetValue2 The 2nd target of this waypoint.
-	 * @param targetValue3 The 3rd target of this waypoint.
+     * <p/>
+     * Note that if you want waypoints relative to the start values, use one of the .targetRelative() methods to define your target.
      *
-	 * @return The current tween, for chaining instructions.
-	 */
-	@SuppressWarnings("FieldRepeatedlyAccessedInMethod")
+     * @param targetValue1 The 1st target of this waypoint.
+     * @param targetValue2 The 2nd target of this waypoint.
+     * @param targetValue3 The 3rd target of this waypoint.
+     *
+     * @return The current tween, for chaining instructions.
+     */
+    @SuppressWarnings("FieldRepeatedlyAccessedInMethod")
     public
     Tween waypoint(final float targetValue1, final float targetValue2, final float targetValue3) {
         if (waypointsCount == waypointsLimit) {
@@ -935,20 +935,20 @@ class Tween extends BaseTween<Tween> {
         waypointsCount += 1;
 
         return this;
-	}
+    }
 
-	/**
+    /**
      * Adds a waypoint to the path. The default path runs from the start values to the end values linearly. If you add waypoints, the
      * default path will use a smooth catmull-rom spline to navigate between the waypoints, but you can change this behavior by using the
      * {@link #path(TweenPath)} method.
-	 * <p/>
-	 * Note that if you want waypoints relative to the start values, use one of the .targetRelative() methods to define your target.
-	 *
-	 * @param targetValues The targets of this waypoint.
+     * <p/>
+     * Note that if you want waypoints relative to the start values, use one of the .targetRelative() methods to define your target.
      *
-	 * @return The current tween, for chaining instructions.
-	 */
-	@SuppressWarnings("FieldRepeatedlyAccessedInMethod")
+     * @param targetValues The targets of this waypoint.
+     *
+     * @return The current tween, for chaining instructions.
+     */
+    @SuppressWarnings("FieldRepeatedlyAccessedInMethod")
     public
     Tween waypoint(final float... targetValues) {
         if (waypointsCount == waypointsLimit) {
@@ -958,23 +958,23 @@ class Tween extends BaseTween<Tween> {
         waypointsCount += 1;
 
         return this;
-	}
+    }
 
-	/**
-	 * Sets the algorithm that will be used to navigate through the waypoints, from the start values to the end values. Default is a
+    /**
+     * Sets the algorithm that will be used to navigate through the waypoints, from the start values to the end values. Default is a
      * catmull-rom spline, but you can find other paths in the {@link TweenPaths} class.
-	 *
-	 * @param path A TweenPath implementation.
      *
-	 * @return The current tween, for chaining instructions.
-	 * @see TweenPath
-	 * @see TweenPaths
-	 */
-	public
+     * @param path A TweenPath implementation.
+     *
+     * @return The current tween, for chaining instructions.
+     * @see TweenPath
+     * @see TweenPaths
+     */
+    public
     Tween path(final TweenPaths path) {
-		this.path = path.path();
-		return this;
-	}
+        this.path = path.path();
+        return this;
+    }
 
     /**
      * Sets the algorithm that will be used to navigate through the waypoints, from the start values to the end values. Default is a
@@ -992,74 +992,74 @@ class Tween extends BaseTween<Tween> {
         return this;
     }
 
-	// -------------------------------------------------------------------------
-	// Getters
-	// -------------------------------------------------------------------------
+    // -------------------------------------------------------------------------
+    // Getters
+    // -------------------------------------------------------------------------
 
-	/**
-	 * Gets the target object.
-	 */
-	public
+    /**
+     * Gets the target object.
+     */
+    public
     Object getTarget() {
         return target;
-	}
+    }
 
-	/**
-	 * Gets the type of the tween.
-	 */
-	public
+    /**
+     * Gets the type of the tween.
+     */
+    public
     int getType() {
         return type;
-	}
+    }
 
-	/**
-	 * Gets the easing equation.
-	 */
-	public
+    /**
+     * Gets the easing equation.
+     */
+    public
     TweenEquation getEasing() {
-		return equation;
-	}
+        return equation;
+    }
 
-	/**
-	 * Gets the target values. The returned buffer is as long as the maximum allowed combined values. Therefore, you're surely not
+    /**
+     * Gets the target values. The returned buffer is as long as the maximum allowed combined values. Therefore, you're surely not
      * interested in all its content. Use {@link Tween#getCombinedAttributesCount()} to get the number of interesting slots.
-	 */
-	public float[]
+     */
+    public float[]
     getTargetValues() {
         return targetValues;
-	}
+    }
 
-	/**
-	 * Gets the number of combined animations.
-	 */
-	public int
+    /**
+     * Gets the number of combined animations.
+     */
+    public int
     getCombinedAttributesCount() {
         return combinedAttrsCnt;
-	}
+    }
 
-	/**
-	 * Gets the TweenAccessor used with the target.
-	 */
-	public
+    /**
+     * Gets the TweenAccessor used with the target.
+     */
+    public
     TweenAccessor<?> getAccessor() {
         return accessor;
-	}
+    }
 
-	/**
-	 * Gets the class that was used to find the associated TweenAccessor.
-	 */
-	public
+    /**
+     * Gets the class that was used to find the associated TweenAccessor.
+     */
+    public
     Class<?> getTargetClass() {
         return targetClass;
-	}
+    }
 
-	// -------------------------------------------------------------------------
-	// Overrides
-	// -------------------------------------------------------------------------
+    // -------------------------------------------------------------------------
+    // Overrides
+    // -------------------------------------------------------------------------
 
-	@SuppressWarnings({"unchecked", "FieldRepeatedlyAccessedInMethod"})
+    @SuppressWarnings({"unchecked", "FieldRepeatedlyAccessedInMethod"})
     @Override
-	public
+    public
     Tween start() {
         super.start();
 
@@ -1089,7 +1089,7 @@ class Tween extends BaseTween<Tween> {
         }
 
         return this;
-	}
+    }
 
     @Override
     public
@@ -1127,8 +1127,8 @@ class Tween extends BaseTween<Tween> {
     }
 
 
-	@Override
-	protected
+    @Override
+    protected
     void initializeValues() {
         final Object target = this.target;
         if (target == null || isKilled) {
@@ -1181,7 +1181,7 @@ class Tween extends BaseTween<Tween> {
                 targetValues[i] = tmp;
             }
         }
-	}
+    }
 
     /**
      * When done with all the adjustments and notifications, update the object. Only called during State.RUN. Other state updates will
@@ -1243,27 +1243,27 @@ class Tween extends BaseTween<Tween> {
         accessor.setValues(target, type, accessorBuffer);
     }
 
-	// -------------------------------------------------------------------------
-	// BaseTween impl.
-	// -------------------------------------------------------------------------
+    // -------------------------------------------------------------------------
+    // BaseTween impl.
+    // -------------------------------------------------------------------------
 
 
     @Override
-	protected
+    protected
     boolean containsTarget(final Object target) {
-		return this.target == target;
-	}
+        return this.target == target;
+    }
 
-	@Override
-	protected
+    @Override
+    protected
     boolean containsTarget(final Object target, final int tweenType) {
-		return this.target == target && this.type == tweenType;
-	}
+        return this.target == target && this.type == tweenType;
+    }
 
 
-	// -------------------------------------------------------------------------
-	// Helpers
-	// -------------------------------------------------------------------------
+    // -------------------------------------------------------------------------
+    // Helpers
+    // -------------------------------------------------------------------------
 
     private static
     void throwCombinedAttrsLimitReached() {

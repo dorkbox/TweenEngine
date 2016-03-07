@@ -73,11 +73,11 @@ abstract class BaseTween<T> {
     // we are a simple state machine...
     protected int state = 0;
 
-	// General
-	private int repeatCountOrig;
-	private int repeatCount;
+    // General
+    private int repeatCountOrig;
+    private int repeatCount;
 
-	private boolean canAutoReverse;
+    private boolean canAutoReverse;
     private boolean isPaused;
 
     /** Used by tween */
@@ -86,9 +86,9 @@ abstract class BaseTween<T> {
     /** Used by tween */
     protected boolean isInitialized;
 
-	// Timings
+    // Timings
     private float startDelay;  // this is the initial delay at the start of a timeline/tween (only happens once). (doesn't change)
-	private float repeatDelay; // this is the delay when a timeline/tween is repeating (doesn't change)
+    private float repeatDelay; // this is the delay when a timeline/tween is repeating (doesn't change)
 
     /** Used by tween */
     protected float duration; // how long the timeline/tween runs (doesn't change)
@@ -116,8 +116,8 @@ abstract class BaseTween<T> {
     /** Used by tween manager */
     protected boolean isDuringUpdate;
 
-	// Misc
-	private Object userData;
+    // Misc
+    private Object userData;
 
     /** Used by tween manager */
     protected boolean isAutoRemoveEnabled;
@@ -156,9 +156,9 @@ abstract class BaseTween<T> {
         isAutoRemoveEnabled = isAutoStartEnabled = true;
     }
 
-	// -------------------------------------------------------------------------
-	// Public API
-	// -------------------------------------------------------------------------
+    // -------------------------------------------------------------------------
+    // Public API
+    // -------------------------------------------------------------------------
 
     /**
      * Clears all of the callback.
@@ -221,13 +221,13 @@ abstract class BaseTween<T> {
         return (T) this;
     }
 
-	/**
-	 * Adds a start delay to the tween or timeline in seconds.
-	 *
-	 * @param delay A duration in seconds
+    /**
+     * Adds a start delay to the tween or timeline in seconds.
      *
-	 * @return The current object, for chaining instructions.
-	 */
+     * @param delay A duration in seconds
+     *
+     * @return The current object, for chaining instructions.
+     */
     @SuppressWarnings("unchecked")
     public
     T delay(final float delay) {
@@ -237,48 +237,48 @@ abstract class BaseTween<T> {
     }
 
     /**
-	 * Kills the tween or timeline. If you are using a TweenManager, this object will be removed automatically.
-	 */
-	public
+     * Kills the tween or timeline. If you are using a TweenManager, this object will be removed automatically.
+     */
+    public
     void kill() {
         isKilled = true;
-	}
+    }
 
-	/**
-	 * Stops and resets the tween or timeline, and sends it to its pool, for later reuse.
+    /**
+     * Stops and resets the tween or timeline, and sends it to its pool, for later reuse.
      * <p>
      * If you use a {@link TweenManager}, this method is automatically called once the animation is complete.
-	 */
-	public
+     */
+    public
     void free() {
-	}
+    }
 
-	/**
-	 * Pauses the tween or timeline. Further update calls won't have any effect.
-	 */
-	public
+    /**
+     * Pauses the tween or timeline. Further update calls won't have any effect.
+     */
+    public
     void pause() {
         isPaused = true;
-	}
+    }
 
-	/**
-	 * Resumes the tween or timeline to it's previous state. Has no effect is it was not already paused.
-	 */
-	public
+    /**
+     * Resumes the tween or timeline to it's previous state. Has no effect is it was not already paused.
+     */
+    public
     void resume() {
         isPaused = false;
-	}
+    }
 
-	/**
-	 * Repeats the tween or timeline for a given number of times.
+    /**
+     * Repeats the tween or timeline for a given number of times.
      *
-	 * @param count The number of repetitions. For infinite repetition, use {@link Tween#INFINITY} or -1.
-	 * @param delay A delay between each iteration, in seconds.
+     * @param count The number of repetitions. For infinite repetition, use {@link Tween#INFINITY} or -1.
+     * @param delay A delay between each iteration, in seconds.
      *
-	 * @return The current tween or timeline, for chaining instructions.
-	 */
+     * @return The current tween or timeline, for chaining instructions.
+     */
     @SuppressWarnings("unchecked")
-	public
+    public
     T repeat(final int count, final float delay) {
         if (count < -1) {
             throw new RuntimeException("Count " + count + " is an invalid option. It must be -1 (Tween.INFINITY) for infinite or > 0 for " +
@@ -291,27 +291,27 @@ abstract class BaseTween<T> {
         canAutoReverse = false;
 
         return (T) this;
-	}
+    }
 
-	/**
-	 * Repeats the tween or timeline for a given number of times.
+    /**
+     * Repeats the tween or timeline for a given number of times.
      * </p>
-	 * Once an iteration is complete, it will be played in reverse.
-	 *
-	 * @param count The number of repetitions. For infinite repetition, use {@link Tween#INFINITY} or -1.
-	 * @param delay A delay before each repetition, in seconds.
+     * Once an iteration is complete, it will be played in reverse.
      *
-	 * @return The current tween or timeline, for chaining instructions.
-	 */
+     * @param count The number of repetitions. For infinite repetition, use {@link Tween#INFINITY} or -1.
+     * @param delay A delay before each repetition, in seconds.
+     *
+     * @return The current tween or timeline, for chaining instructions.
+     */
     @SuppressWarnings("unchecked")
-	public
+    public
     T repeatAutoReverse(final int count, final float delay) {
         repeat(count, delay);
 
         canAutoReverse = true;
 
         return (T) this;
-	}
+    }
 
     /**
      * Sets the "start" callback, which is called when the tween/timeline starts running.
@@ -420,9 +420,9 @@ abstract class BaseTween<T> {
         return (T) this;
     }
 
-	// -------------------------------------------------------------------------
-	// Getters
-	// -------------------------------------------------------------------------
+    // -------------------------------------------------------------------------
+    // Getters
+    // -------------------------------------------------------------------------
 
     /**
      * Gets the current time point of a Timeline/Tween in seconds
@@ -432,21 +432,21 @@ abstract class BaseTween<T> {
         return currentTime;
     }
 
-	/**
-	 * Gets the delay of the Timeline/Tween in seconds. Nothing will happen until this delay is complete.
-	 */
-	public
+    /**
+     * Gets the delay of the Timeline/Tween in seconds. Nothing will happen until this delay is complete.
+     */
+    public
     float getStartDelay() {
         return startDelay;
-	}
+    }
 
-	/**
-	 * Gets the duration of a Timeline/Tween "single iteration" (not counting repeats) in seconds
-	 */
-	public
+    /**
+     * Gets the duration of a Timeline/Tween "single iteration" (not counting repeats) in seconds
+     */
+    public
     float getDuration() {
         return duration;
-	}
+    }
 
     /**
      * Returns the complete duration, including initial delay and repetitions in seconds
@@ -464,21 +464,21 @@ abstract class BaseTween<T> {
         return startDelay + duration + ((repeatDelay + duration) * repeatCountOrig);
     }
 
-	/**
-	 * Gets the number of iterations that will be played.
-	 */
-	public
+    /**
+     * Gets the number of iterations that will be played.
+     */
+    public
     int getRepeatCount() {
         return repeatCountOrig;
-	}
+    }
 
-	/**
-	 * Gets the delay occurring between two iterations in seconds
-	 */
-	public
+    /**
+     * Gets the delay occurring between two iterations in seconds
+     */
+    public
     float getRepeatDelay() {
         return repeatDelay;
-	}
+    }
 
     /**
      * Returns the direction the tween/timeline currently is in.
@@ -515,40 +515,40 @@ abstract class BaseTween<T> {
 
 
     /**
-	 * Returns true if the Timeline/Tween has been initialized. This is the most accurate method to determine if a Timeline/Tween has
+     * Returns true if the Timeline/Tween has been initialized. This is the most accurate method to determine if a Timeline/Tween has
      * been started.
-	 */
-	public
+     */
+    public
     boolean isInitialized() {
         return isInitialized;
-	}
+    }
 
-	/**
-	 * Returns true if the Timeline/Tween is finished (i.e. if the tween has reached its end or has been killed). A tween may be restarted
+    /**
+     * Returns true if the Timeline/Tween is finished (i.e. if the tween has reached its end or has been killed). A tween may be restarted
      * by a timeline when there is a direction change in the timeline.
      * </p>
      * If you don't use a TweenManager, you may want to call {@link BaseTween#free()} to reuse the object later.
-	 */
-	public
+     */
+    public
     boolean isFinished() {
         return state == FINISHED || isKilled;
-	}
+    }
 
-	/**
-	 * Returns true if the tween automatically reverse when complete.
-	 */
-	public
+    /**
+     * Returns true if the tween automatically reverse when complete.
+     */
+    public
     boolean canAutoReverse() {
         return canAutoReverse;
-	}
+    }
 
-	/**
-	 * Returns true if the tween or timeline is currently paused.
-	 */
-	public
+    /**
+     * Returns true if the tween or timeline is currently paused.
+     */
+    public
     boolean isPaused() {
         return isPaused;
-	}
+    }
 
     // -------------------------------------------------------------------------
     // User Data
@@ -578,9 +578,9 @@ abstract class BaseTween<T> {
         return (T) userData;
     }
 
-	// -------------------------------------------------------------------------
-	// Abstract API
-	// -------------------------------------------------------------------------
+    // -------------------------------------------------------------------------
+    // Abstract API
+    // -------------------------------------------------------------------------
 
     protected abstract
     boolean containsTarget(final Object target);
@@ -604,9 +604,9 @@ abstract class BaseTween<T> {
     protected abstract
     void setValues(final boolean updateDirection, final boolean updateValue);
 
-	// -------------------------------------------------------------------------
-	// Protected API
-	// -------------------------------------------------------------------------
+    // -------------------------------------------------------------------------
+    // Protected API
+    // -------------------------------------------------------------------------
 
     protected
     void initializeValues() {
@@ -683,8 +683,8 @@ abstract class BaseTween<T> {
 
 
     // -------------------------------------------------------------------------
-	// Update engine
-	// -------------------------------------------------------------------------
+    // Update engine
+    // -------------------------------------------------------------------------
 
     /**
      * Updates the tween or timeline state and values.
