@@ -83,7 +83,6 @@ import java.util.Map;
  * @author Aurelien Ribon | http://www.aurelienribon.com/
  * @author dorkbox, llc
  */
-@SuppressWarnings({"unused", "StaticNonFinalField", "Duplicates"})
 public final
 class Tween extends BaseTween<Tween> {
     private static final Thread constructorThread = Thread.currentThread();
@@ -107,7 +106,7 @@ class Tween extends BaseTween<Tween> {
      */
     public static
     String getVersion() {
-        return "7.1";
+        return "7.7";
     }
 
     /**
@@ -509,7 +508,6 @@ class Tween extends BaseTween<Tween> {
         reset();
     }
 
-    @SuppressWarnings("FieldRepeatedlyAccessedInMethod")
     @Override
     protected
     void reset() {
@@ -553,7 +551,6 @@ class Tween extends BaseTween<Tween> {
         }
     }
 
-    @SuppressWarnings("unchecked")
     private
     void setup(final Object target, final int tweenType, final TweenAccessor targetAccessor, final float duration) {
         if (duration < 0.0F) {
@@ -865,7 +862,6 @@ class Tween extends BaseTween<Tween> {
      *
      * @return The current tween, for chaining instructions.
      */
-    @SuppressWarnings("FieldRepeatedlyAccessedInMethod")
     public
     Tween waypoint(final float targetValue) {
         if (waypointsCount == waypointsLimit) {
@@ -889,7 +885,6 @@ class Tween extends BaseTween<Tween> {
      *
      * @return The current tween, for chaining instructions.
      */
-    @SuppressWarnings("FieldRepeatedlyAccessedInMethod")
     public
     Tween waypoint(final float targetValue1, final float targetValue2) {
         if (waypointsCount == waypointsLimit) {
@@ -919,7 +914,6 @@ class Tween extends BaseTween<Tween> {
      *
      * @return The current tween, for chaining instructions.
      */
-    @SuppressWarnings("FieldRepeatedlyAccessedInMethod")
     public
     Tween waypoint(final float targetValue1, final float targetValue2, final float targetValue3) {
         if (waypointsCount == waypointsLimit) {
@@ -948,7 +942,6 @@ class Tween extends BaseTween<Tween> {
      *
      * @return The current tween, for chaining instructions.
      */
-    @SuppressWarnings("FieldRepeatedlyAccessedInMethod")
     public
     Tween waypoint(final float... targetValues) {
         if (waypointsCount == waypointsLimit) {
@@ -1057,7 +1050,6 @@ class Tween extends BaseTween<Tween> {
     // Overrides
     // -------------------------------------------------------------------------
 
-    @SuppressWarnings({"unchecked", "FieldRepeatedlyAccessedInMethod"})
     @Override
     public
     Tween start() {
@@ -1192,7 +1184,6 @@ class Tween extends BaseTween<Tween> {
      * If a timeline/tween is outside it's animation cycle time, it will "snap" to the start/end points via
      * {@link BaseTween#setValues(boolean, boolean)}
      */
-    @SuppressWarnings("Duplicates")
     protected
     void update(final boolean updateDirection, final float delta) {
         final Object target = this.target;
@@ -1279,7 +1270,4 @@ class Tween extends BaseTween<Tween> {
         throw new RuntimeException(msg);
     }
 }
-
-
-
 
