@@ -106,7 +106,7 @@ class Tween extends BaseTween<Tween> {
      */
     public static
     String getVersion() {
-        return "7.7";
+        return "7.8";
     }
 
     /**
