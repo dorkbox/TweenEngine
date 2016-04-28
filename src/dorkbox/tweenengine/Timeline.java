@@ -105,7 +105,7 @@ class Timeline extends BaseTween<Timeline> {
      */
     public static
     String getVersion() {
-        return "7.10";
+        return "7.11";
     }
 
 	// -------------------------------------------------------------------------

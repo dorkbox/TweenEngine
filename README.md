@@ -129,7 +129,7 @@ Detailed documentation with code snippets and examples is available for the foll
 <dependency>
   <groupId>com.dorkbox</groupId>
   <artifactId>TweenEngine</artifactId>
-  <version>7.10</version>
+  <version>7.11</version>
 </dependency>
 ```
 
