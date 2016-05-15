@@ -49,7 +49,7 @@ import java.util.List;
  */
 public
 class TweenManager {
-    public static final BaseTween[] BASE_TWEENS = new BaseTween[0];
+    private static final BaseTween[] BASE_TWEENS = new BaseTween[0];
     // -------------------------------------------------------------------------
     // Static API
     // -------------------------------------------------------------------------
@@ -80,7 +80,7 @@ class TweenManager {
      */
     public static
     String getVersion() {
-        return "7.0";
+        return "7.11";
     }
 
     // -------------------------------------------------------------------------
