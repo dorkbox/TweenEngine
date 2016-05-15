@@ -16,11 +16,11 @@
  */
 package dorkbox.tweenengine;
 
-import dorkbox.objectPool.ObjectPool;
-import dorkbox.objectPool.PoolableObject;
-
 import java.util.HashMap;
 import java.util.Map;
+
+import dorkbox.objectPool.ObjectPool;
+import dorkbox.objectPool.PoolableObject;
 
 /**
  * Core class of the Tween Engine. A Tween is basically an interpolation between two values of an object attribute. However, the main
@@ -106,7 +106,7 @@ class Tween extends BaseTween<Tween> {
      */
     public static
     String getVersion() {
-        return "7.11";
+        return "7.12";
     }
 
     /**

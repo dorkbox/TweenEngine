@@ -16,12 +16,12 @@
  */
 package dorkbox.tweenengine;
 
-import dorkbox.objectPool.ObjectPool;
-import dorkbox.objectPool.PoolableObject;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+
+import dorkbox.objectPool.ObjectPool;
+import dorkbox.objectPool.PoolableObject;
 
 /**
  * A Timeline can be used to create complex animations made of sequences and parallel sets of Tweens.
@@ -105,7 +105,7 @@ class Timeline extends BaseTween<Timeline> {
      */
     public static
     String getVersion() {
-        return "7.11";
+        return "7.12";
     }
 
 	// -------------------------------------------------------------------------

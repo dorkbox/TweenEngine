@@ -80,7 +80,7 @@ class TweenManager {
      */
     public static
     String getVersion() {
-        return "7.11";
+        return "7.12";
     }
 
     // -------------------------------------------------------------------------
@@ -485,3 +485,4 @@ class TweenManager {
         return count;
     }
 }
+
