@@ -638,6 +638,46 @@ enum TweenEquations {
     }),
     ;
 
+    /* sigmoid
+     *
+     * https://medium.com/analytic-animations/ease-in-out-the-sigmoid-factory-c5116d8abce9#.adihg58e9
+     * Generate an ease-in-out function with desired steepness.
+     *
+     * Required:
+     *   k: (float != 0), sharpness of ease
+     *
+     * Return: f(t), t in 0..1
+     */
+    public static
+    /**
+     * @param k sharpness of ease, 0..1 where k != 0.
+     */
+    TweenEquation Sigmoid_INOUT(final float k) {
+        if (k <= 0.0F) {
+            throw new IllegalArgumentException("k cannot be less than or equal to 0");
+        }
+
+        return new TweenEquation() {
+            float base (final float time) {
+                return (float) ((1.0F / (1.0F + Math.exp(-k * time))) - 0.5F);
+            }
+
+            final float correction = 0.5F / base(1.0F);
+
+            @Override
+            public
+            float compute(final float time) {
+                return correction * base(2 * time - 1) + 0.5F;
+            }
+
+            @Override
+            public
+            String toString() {
+                return "Sigmoid." + k + ".INOUT";
+            }
+        };
+    }
+
     private transient final TweenEquation equation;
 
     TweenEquations(final TweenEquation equation) {
