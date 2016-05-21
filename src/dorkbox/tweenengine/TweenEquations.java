@@ -49,7 +49,7 @@ package dorkbox.tweenengine;
  * Easing equation based on Robert Penner's work: http://robertpenner.com/easing/
  *
  * @author Aurelien Ribon | http://www.aurelienribon.com/
- * @author Various optimizations by James Taylor https://github.com/jbt
+ * @author Various optimizations by Michael "Code Poet" Pohoreski | https://github.com/Michaelangel007/
  * @author dorkbox, llc
  */
 @SuppressWarnings({"NumericCastThatLosesPrecision", "FloatingPointEquality"})
