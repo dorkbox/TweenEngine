@@ -80,7 +80,7 @@ interface TweenAccessor<T> {
      * values.
      *
      * @param target The target object of the tween.
-     * @param tweenType An integer representing the tween type.
+     * @param tweenType An arbitrary number used to associate an interpolation type for a tween in the TweenAccessor get/setValues() methods
      * @param returnValues An array which should be modified by this method.
      *
      * @return The count of modified slots from the returnValues array.
@@ -92,7 +92,7 @@ interface TweenAccessor<T> {
      * associated with the current target object has been updated.
      *
      * @param target The target object of the tween.
-     * @param tweenType An integer representing the tween type.
+     * @param tweenType An arbitrary number used to associate an interpolation type for a tween in the TweenAccessor get/setValues() methods
      * @param newValues The new values determined by the Tween Engine.
      */
     void setValues(T target, int tweenType, float[] newValues);

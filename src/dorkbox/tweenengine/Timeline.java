@@ -42,7 +42,7 @@ import dorkbox.objectPool.PoolableObject;
  * <br/><br/>
  *
  * <pre> {@code
- * Timeline.createSequence()
+ * Timeline.createSequential()
  *     .push(Tween.set(myObject, OPACITY).target(0))
  *     .push(Tween.set(myObject, SCALE).target(0, 0))
  *     .beginParallel()
@@ -62,6 +62,7 @@ import dorkbox.objectPool.PoolableObject;
  * @author Aurelien Ribon | http://www.aurelienribon.com/
  * @author dorkbox, llc
  */
+@SuppressWarnings("ForLoopReplaceableByForEach")
 public final
 class Timeline extends BaseTween<Timeline> {
     // -------------------------------------------------------------------------
@@ -69,12 +70,11 @@ class Timeline extends BaseTween<Timeline> {
 	// -------------------------------------------------------------------------
 
     @SuppressWarnings("StaticNonFinalField")
-    private static final Thread constructorThread = Thread.currentThread();
     private static final PoolableObject<Timeline> poolableObject = new PoolableObject<Timeline>() {
         @Override
         public
         void onReturn(final Timeline object) {
-            object.reset();
+            object.destroy();
         }
 
         @Override
@@ -84,21 +84,7 @@ class Timeline extends BaseTween<Timeline> {
         }
     };
 
-    static ObjectPool<Timeline> pool = ObjectPool.Blocking(poolableObject, 256);
-
-
-    /**
-     * Increases the minimum capacity of the pool. Capacity defaults to 256.
-     * <p>
-     * Needs to be set before any threads access or use the timeline. This is not thread safe!
-     */
-    public static
-    void setPoolSize(final int poolSize) {
-        if (constructorThread != Thread.currentThread()) {
-            throw new RuntimeException("Timeline pool capacity must be changed during engine initialization!");
-        }
-        pool = ObjectPool.Blocking(poolableObject, poolSize);
-	}
+    private static final ObjectPool<Timeline> pool = ObjectPool.NonBlockingSoftReference(poolableObject);
 
     /**
      * Gets the version number.
@@ -113,22 +99,22 @@ class Timeline extends BaseTween<Timeline> {
 	// -------------------------------------------------------------------------
 
 	/**
-	 * Creates a new timeline with a 'sequence' behavior. Its children will be updated one after the other in a sequence.
+	 * Creates a new timeline with a 'sequential' (A then B) behavior. Its children will be updated one after the other in a sequence.
 	 */
 	public static
-    Timeline createSequence() {
+    Timeline createSequential() {
 		Timeline timeline = pool.take();
-		timeline.setup(Modes.SEQUENCE);
+		timeline.setup(Mode.SEQUENTIAL);
 		return timeline;
 	}
 
 	/**
-	 * Creates a new timeline with a 'parallel' behavior. Its children will be updated all at once.
+	 * Creates a new timeline with a 'parallel' (A + B at the same time) behavior. Its children will be updated all at once.
 	 */
 	public static
     Timeline createParallel() {
 		Timeline timeline = pool.take();
-		timeline.setup(Modes.PARALLEL);
+		timeline.setup(Mode.PARALLEL);
 		return timeline;
 	}
 
@@ -137,7 +123,7 @@ class Timeline extends BaseTween<Timeline> {
 	// Attributes
 	// -------------------------------------------------------------------------
 
-	private enum Modes {SEQUENCE, PARALLEL}
+	private enum Mode {SEQUENTIAL, PARALLEL}
 
 
 	private final List<BaseTween<?>> children = new ArrayList<BaseTween<?>>(10);
@@ -145,7 +131,7 @@ class Timeline extends BaseTween<Timeline> {
     private int childrenSize;
     private int childrenSizeMinusOne;
 
-    private Modes mode;
+    private Mode mode;
 
     protected Timeline parent;
 
@@ -160,13 +146,33 @@ class Timeline extends BaseTween<Timeline> {
 	// -------------------------------------------------------------------------
 
 	Timeline() {
-		reset();
+		destroy();
 	}
+
+    /**
+     * Reset the tween/timeline to it's initial state. It will be as if the tween/timeline has never run before. If it was already
+     * initialized, it will *not* redo the initialization.
+     * <p>
+     * The paused state is preserved.
+     */
+    protected
+    void reset() {
+        super.reset();
+
+        currentIndex = 0;
+        current = childrenArray[0];
+
+        for (int i = 0, n = childrenArray.length; i < n; i++) {
+            final BaseTween<?> tween = childrenArray[i];
+            // this can be a tween or a timeline.
+            tween.reset();
+        }
+    }
 
 	@Override
 	protected
-    void reset() {
-		super.reset();
+    void destroy() {
+		super.destroy();
 
 		children.clear();
         childrenArray = null;
@@ -175,7 +181,7 @@ class Timeline extends BaseTween<Timeline> {
 	}
 
 	private
-    void setup(final Modes mode) {
+    void setup(final Mode mode) {
 		this.mode = mode;
 		this.current = this;
 	}
@@ -236,17 +242,17 @@ class Timeline extends BaseTween<Timeline> {
 	}
 
 	/**
-	 * Starts a nested timeline with a 'sequence' behavior. Don't forget to call {@link Timeline#end()} to close this nested timeline.
+	 * Starts a nested timeline with a 'sequential' behavior. Don't forget to call {@link Timeline#end()} to close this nested timeline.
 	 *
 	 * @return The new sequential timeline, for chaining instructions.
 	 */
     public
-    Timeline beginSequence() {
+    Timeline beginSequential() {
         Timeline timeline = pool.take();
         children.add(timeline);
 
         timeline.parent = this;
-        timeline.mode = Modes.SEQUENCE;
+        timeline.mode = Mode.SEQUENTIAL;
 
         // keep track of which timeline we are on
         current = timeline;
@@ -266,7 +272,7 @@ class Timeline extends BaseTween<Timeline> {
         children.add(timeline);
 
         timeline.parent = this;
-        timeline.mode = Modes.PARALLEL;
+        timeline.mode = Mode.PARALLEL;
 
         // keep track of which timeline we are on
         current = timeline;
@@ -307,12 +313,12 @@ class Timeline extends BaseTween<Timeline> {
     private
     void setupTimeline(BaseTween<?> tweenOrTimeline) {
         switch (mode) {
-            case SEQUENCE:
-                duration += tweenOrTimeline.getFullDuration();
+            case SEQUENTIAL:
+                duration += tweenOrTimeline.getFullDuration__();
                 break;
 
             case PARALLEL:
-                duration = Math.max(duration, tweenOrTimeline.getFullDuration());
+                duration = Math.max(duration, tweenOrTimeline.getFullDuration__());
                 break;
         }
 
@@ -350,7 +356,7 @@ class Timeline extends BaseTween<Timeline> {
         for (int i = 0; i < childrenSize; i++) {
             final BaseTween<?> obj = childrenArray[i];
 
-            if (obj.getRepeatCount() < 0) {
+            if (obj.repeatCountOrig < 0) {
                 throw new RuntimeException("You can't push an object with infinite repetitions in a timeline");
             }
 
@@ -380,16 +386,16 @@ class Timeline extends BaseTween<Timeline> {
     /**
      * Recursively adjust the tweens for when repeat + auto-reverse is used
      *
-     * @param updateDirection the future direction for all children
+     * @param newDirection the new direction for all children
      */
     @Override
     protected
-    void adjustForRepeat_AutoReverse(final boolean updateDirection) {
-        super.adjustForRepeat_AutoReverse(updateDirection);
+    void adjustForRepeat_AutoReverse(final boolean newDirection) {
+        super.adjustForRepeat_AutoReverse(newDirection);
 
         for (int i = 0, n = childrenArray.length; i < n; i++) {
             final BaseTween<?> tween = childrenArray[i];
-            tween.adjustForRepeat_AutoReverse(updateDirection);
+            tween.adjustForRepeat_AutoReverse(newDirection);
         }
     }
 
@@ -398,20 +404,20 @@ class Timeline extends BaseTween<Timeline> {
      * </p>
      * For timelines, this also changes what the current tween is (for when iterating over tweens)
      *
-     * @param updateDirection the future direction for all children
+     * @param newDirection the new direction for all children
      */
     protected
-    void adjustForRepeat_Linear(final boolean updateDirection) {
-        super.adjustForRepeat_Linear(updateDirection);
+    void adjustForRepeat_Linear(final boolean newDirection) {
+        super.adjustForRepeat_Linear(newDirection);
 
         for (int i = 0, n = childrenArray.length; i < n; i++) {
             final BaseTween<?> tween = childrenArray[i];
-            tween.adjustForRepeat_Linear(updateDirection);
+            tween.adjustForRepeat_Linear(newDirection);
         }
 
         // this only matters if we are a sequence, because PARALLEL operates on all of them at the same time
-        if (mode == Modes.SEQUENCE) {
-            if (updateDirection) {
+        if (mode == Mode.SEQUENTIAL) {
+            if (newDirection) {
                 currentIndex = 0;
             }
             else {
@@ -424,15 +430,19 @@ class Timeline extends BaseTween<Timeline> {
 
     /**
      * Updates a timeline's children, in different orders.
+     *
+     * @param updateDirection what is the current direction of the update. This is used to determine what order to update the
+     *                        timeline children (tweens)
+     * @param delta the time in SECONDS that has elapsed since the last update
      */
     protected
     void update(final boolean updateDirection, float delta) {
-        if (mode == Modes.SEQUENCE) {
+        if (mode == Mode.SEQUENTIAL) {
             // update children one at a time.
 
             if (updateDirection) {
                 while (delta != 0.0F) {
-                    delta = current.update(delta);
+                    delta = current.update__(delta);
 
                     if (current.state == FINISHED) {
                         // iterate to the next one when it's finished, but don't go beyond the last child
@@ -449,7 +459,7 @@ class Timeline extends BaseTween<Timeline> {
             }
             else {
                 while (delta != 0.0F) {
-                    delta = current.update(delta);
+                    delta = current.update__(delta);
 
                     if (current.state == FINISHED) {
                         // iterate to the previous one (because we are in reverse) when it's finished, but don't go beyond the first child
@@ -471,7 +481,7 @@ class Timeline extends BaseTween<Timeline> {
             if (updateDirection) {
                 for (int i = 0, n = childrenArray.length; i < n; i++) {
                     final BaseTween<?> tween = childrenArray[i];
-                    final float returned = tween.update(delta);
+                    final float returned = tween.update__(delta);
 
                     if (tween.state == FINISHED) {
                         // each child has to track "overflow" info to set delay's correctly when the timeline reverses
@@ -482,7 +492,7 @@ class Timeline extends BaseTween<Timeline> {
             else {
                 for (int i = childrenArray.length - 1; i >= 0; i--) {
                     final BaseTween<?> tween = childrenArray[i];
-                    final float returned = tween.update(delta);
+                    final float returned = tween.update__(delta);
 
                     if (tween.state == FINISHED) {
                         // each child has to track "overflow" info to set delay's correctly when the timeline reverses

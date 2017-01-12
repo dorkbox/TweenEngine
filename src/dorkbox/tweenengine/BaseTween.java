@@ -27,24 +27,43 @@ import java.util.concurrent.CopyOnWriteArrayList;
  * It is responsible for calling the different callbacks at the right moments, and for making sure that every callbacks are triggered,
  * even if the update engine gets a big delta time at once.
  * <p/>
- * <p/>
- * WARNING: <p/>
- * Individual tweens and timelines are NOT THREAD SAFE. Do not access any part of them outside of the render (or animation) thread.
- * <p/>
- * For object visibility in different threads, use {@link Tween#flushWrite()} inside an endCallback (so the objects are flushed), and
- * then before you access those objects, call {@link Tween#flushRead()} which will then correctly make those objects (which were
- * changed by the tween engine), visible to your thread.
- * <p/>
- * A "heavyweight" synchronization technique is not required in a modern JVM, flushWrite/Read is sufficient
  *
  * @see Tween
  * @see Timeline
  * @author Aurelien Ribon | http://www.aurelienribon.com/
  * @author dorkbox, llc
  */
+@SuppressWarnings({"ForLoopReplaceableByForEach", "WeakerAccess", "unused"})
 public
 abstract class BaseTween<T> {
+    private static volatile long lightSyncObject = System.nanoTime();
+
+    /**
+     * Only on public methods.
+     * <p>
+     * Flushes the visibility of all tween fields from the cache for access/use from different threads.
+     * <p>
+     * This does not block and does not prevent race conditions.
+     *
+     * @return the last time (in nanos) that the field modifications were flushed
+     */
+    static long flushRead() {
+        return lightSyncObject;
+    }
+
+    /**
+     * Only on public methods.
+     * <p>
+     * Flushes the visibility of all tween field modifications from the cache for access/use from different threads.
+     * <p>
+     * This does not block and does not prevent race conditions.
+     */
+    static void flushWrite() {
+        lightSyncObject = System.nanoTime();
+    }
+
     // if there is a DELAY, the tween will remain inside "START" until it's finished with the delay
+    protected static final int INVALID = 0;
     protected static final int START = 1;
     protected static final int RUN = 2;
     protected static final int FINISHED = 3;
@@ -55,29 +74,15 @@ abstract class BaseTween<T> {
         void onEvent(final Object tween) {
         }
     };
-    protected static final UpdateAction<?> FLUSH_READ_ACTION = new UpdateAction<Object>() {
-        @Override
-        public
-        void onEvent(final Object tween) {
-            Tween.flushRead();
-        }
-    };
-    protected static final UpdateAction<?> FLUSH_WRITE_ACTION = new UpdateAction<Object>() {
-        @Override
-        public
-        void onEvent(final Object tween) {
-            Tween.flushWrite();
-        }
-    };
 
     // we are a simple state machine...
     protected int state = 0;
 
     // General
-    private int repeatCountOrig;
+    protected int repeatCountOrig;
     private int repeatCount;
 
-    private boolean canAutoReverse;
+    protected boolean canAutoReverse;
     private boolean isPaused;
 
     /** Used by tween */
@@ -111,7 +116,7 @@ abstract class BaseTween<T> {
 
     /** Depending on the state, sometimes we trigger begin events */
     private boolean canTriggerBeginEvent;
-    private boolean isInAutoReverse;
+    protected boolean isInAutoReverse;
 
     /** Used by tween manager */
     protected boolean isDuringUpdate;
@@ -140,10 +145,27 @@ abstract class BaseTween<T> {
 
     // -------------------------------------------------------------------------
 
+    /**
+     * Reset the tween/timeline to it's initial state. It will be as if the tween/timeline has never run before. If it was already
+     * initialized, it will *not* redo the initialization.
+     * <p>
+     * The paused state is preserved.
+     */
     protected
     void reset() {
+        state = START;
+        direction = FORWARDS;
+        canTriggerBeginEvent = true; // this is so init can happen if necessary
+        currentTime = -startDelay;
+        isInAutoReverse = false;
+        repeatCount = repeatCountOrig;
+    }
+
+    // destroys all information about the object
+    protected
+    void destroy() {
         repeatCount = repeatCountOrig = 0;
-        state = 0;
+        state = INVALID;
 
         duration = startDelay = repeatDelay = currentTime = 0.0F;
         isPaused = isKilled = isInAutoReverse = isDuringUpdate = isInitialized = false;
@@ -162,6 +184,8 @@ abstract class BaseTween<T> {
 
     /**
      * Clears all of the callback.
+     *
+     * Thread Safe
      */
     @SuppressWarnings("unchecked")
     public
@@ -184,12 +208,13 @@ abstract class BaseTween<T> {
      * Adds a callback. By default, it will be fired at the completion of the tween or timeline (event COMPLETE). If you want to change
      * this behavior use the {@link TweenCallback#TweenCallback(int)} constructor.
      *
+     * Thread Safe
+     *
      * @see TweenCallback
      */
     @SuppressWarnings("unchecked")
     public final
     T addCallback(final TweenCallback callback) {
-        // thread safe
         int triggers = callback.triggers;
 
         if ((triggers & TweenCallback.Events.BEGIN) == TweenCallback.Events.BEGIN) {
@@ -231,8 +256,12 @@ abstract class BaseTween<T> {
     @SuppressWarnings("unchecked")
     public
     T delay(final float delay) {
+        flushRead();
+
         this.startDelay += delay;
         this.currentTime -= delay;
+
+        flushWrite();
         return (T) this;
     }
 
@@ -242,6 +271,7 @@ abstract class BaseTween<T> {
     public
     void kill() {
         isKilled = true;
+        flushWrite();
     }
 
     /**
@@ -259,6 +289,7 @@ abstract class BaseTween<T> {
     public
     void pause() {
         isPaused = true;
+        flushWrite();
     }
 
     /**
@@ -267,6 +298,7 @@ abstract class BaseTween<T> {
     public
     void resume() {
         isPaused = false;
+        flushWrite();
     }
 
     /**
@@ -286,10 +318,11 @@ abstract class BaseTween<T> {
         }
 
         repeatCountOrig = count;
-        repeatCount = repeatCountOrig;
+        repeatCount = count;
         repeatDelay = delay;
         canAutoReverse = false;
 
+        flushWrite();
         return (T) this;
     }
 
@@ -310,6 +343,7 @@ abstract class BaseTween<T> {
 
         canAutoReverse = true;
 
+        flushWrite();
         return (T) this;
     }
 
@@ -328,6 +362,8 @@ abstract class BaseTween<T> {
         }
 
         this.startEventCallback = startCallback;
+
+        flushWrite();
         return (T) this;
     }
 
@@ -346,6 +382,8 @@ abstract class BaseTween<T> {
         }
 
         this.endEventCallback = endCallback;
+
+        flushWrite();
         return (T) this;
     }
 
@@ -369,6 +407,8 @@ abstract class BaseTween<T> {
     public
     T start() {
         setup();
+
+        flushWrite();
         return (T) this;
     }
 
@@ -381,42 +421,8 @@ abstract class BaseTween<T> {
     public
     T start(final TweenManager manager) {
         manager.add(this);
-        return (T) this;
-    }
 
-    /**
-     * Necessary only if another thread can modify your tweens/timelines. You must call {@link Tween#flushWrite()} in the other thread,
-     * so the tween/timelines can be aware of the changes.
-     * </p>
-     * This sets the {@link BaseTween#setEndCallback(UpdateAction)}, so if you implement your own, you should call
-     * {@link Tween#flushRead()} in your callback implementation.
-     * </p>
-     * <b>This is only necessary to set on ONE tween/timeline/manager, as all threads and tween objects will be correct after this call
-     *    is complete.</b>
-     *
-     * @return The manager, for instruction chaining.
-     */
-    @SuppressWarnings("unchecked")
-    public T syncOnStart() {
-        startEventCallback = FLUSH_READ_ACTION;
-        return (T) this;
-    }
-
-    /**
-     * Necessary if another thread will be reading the values set by these tweens/timelines. You must call {@link Tween#flushRead()}
-     * in the other thread, before accessing the target object's values.
-     * </p>
-     * This sets the {@link BaseTween#setEndCallback(UpdateAction)}, so if you implement your own, you should call
-     * {@link Tween#flushWrite()} in your callback implementation.
-     * </p>
-     * <b>This is only necessary to set on ONE tween/timeline/manager, as all threads and tween objects will be correct after this call
-     *    is complete.</b>
-     *
-     * @return The manager, for instruction chaining.
-     */
-    @SuppressWarnings("unchecked")
-    public T syncOnEnd() {
-        endEventCallback = FLUSH_WRITE_ACTION;
+        flushWrite();
         return (T) this;
     }
 
@@ -427,16 +433,18 @@ abstract class BaseTween<T> {
     /**
      * Gets the current time point of a Timeline/Tween in seconds
      */
-    public
+    public final
     float getCurrentTime() {
+        flushRead();
         return currentTime;
     }
 
     /**
      * Gets the delay of the Timeline/Tween in seconds. Nothing will happen until this delay is complete.
      */
-    public
+    public final
     float getStartDelay() {
+        flushRead();
         return startDelay;
     }
 
@@ -445,6 +453,7 @@ abstract class BaseTween<T> {
      */
     public
     float getDuration() {
+        flushRead();
         return duration;
     }
 
@@ -458,6 +467,22 @@ abstract class BaseTween<T> {
      */
     public
     float getFullDuration() {
+        flushRead();
+        return getFullDuration__();
+    }
+
+    /**
+     * doesn't sync on anything.
+     * <p>
+     * Returns the complete duration, including initial delay and repetitions in seconds
+     * <p>
+     * The formula is as follows:
+     * <pre>
+     * fullDuration = delay + duration + ((repeatDelay + duration) * repeatCount)
+     * </pre>
+     */
+    final
+    float getFullDuration__() {
         if (repeatCountOrig < 0) {
             return -1;
         }
@@ -467,16 +492,18 @@ abstract class BaseTween<T> {
     /**
      * Gets the number of iterations that will be played.
      */
-    public
+    public final
     int getRepeatCount() {
+        flushRead();
         return repeatCountOrig;
     }
 
     /**
      * Gets the delay occurring between two iterations in seconds
      */
-    public
+    public final
     float getRepeatDelay() {
+        flushRead();
         return repeatDelay;
     }
 
@@ -490,6 +517,7 @@ abstract class BaseTween<T> {
      */
     public final
     boolean getDirection() {
+        flushRead();
         return direction;
     }
 
@@ -502,6 +530,7 @@ abstract class BaseTween<T> {
      */
     public final
     boolean isInDelay() {
+        flushRead();
         return state == START;
     }
 
@@ -510,6 +539,7 @@ abstract class BaseTween<T> {
      */
     public final
     boolean isInAutoReverse() {
+        flushRead();
         return isInAutoReverse;
     }
 
@@ -520,6 +550,7 @@ abstract class BaseTween<T> {
      */
     public
     boolean isInitialized() {
+        flushRead();
         return isInitialized;
     }
 
@@ -531,6 +562,20 @@ abstract class BaseTween<T> {
      */
     public
     boolean isFinished() {
+        flushRead();
+        return isFinished__();
+    }
+
+    /**
+     * doesn't sync on anything.
+     * <p>
+     * Returns true if the Timeline/Tween is finished (i.e. if the tween has reached its end or has been killed). A tween may be restarted
+     * by a timeline when there is a direction change in the timeline.
+     * </p>
+     * If you don't use a TweenManager, you may want to call {@link BaseTween#free()} to reuse the object later.
+     */
+    final
+    boolean isFinished__() {
         return state == FINISHED || isKilled;
     }
 
@@ -539,6 +584,7 @@ abstract class BaseTween<T> {
      */
     public
     boolean canAutoReverse() {
+        flushRead();
         return canAutoReverse;
     }
 
@@ -547,6 +593,7 @@ abstract class BaseTween<T> {
      */
     public
     boolean isPaused() {
+        flushRead();
         return isPaused;
     }
 
@@ -566,6 +613,7 @@ abstract class BaseTween<T> {
     public
     T setUserData(final Object data) {
         userData = data;
+        flushWrite();
         return (T) this;
     }
 
@@ -575,6 +623,7 @@ abstract class BaseTween<T> {
     @SuppressWarnings("unchecked")
     public
     T getUserData() {
+        flushRead();
         return (T) userData;
     }
 
@@ -599,10 +648,72 @@ abstract class BaseTween<T> {
      *
      * @param updateDirection direction in which the force is happening. Affects children iteration order (timelines) and start/target
      *                        values (tweens)
-     * @param updateValue this is the start (true) or target (false) to set the tween to.
+     * @param updateValue this is the start (true) or end/target (false) to set the tween to.
      */
     protected abstract
     void setValues(final boolean updateDirection, final boolean updateValue);
+
+
+    /**
+     * Sets the tween or timeline to a specific point in time based on it's duration + delays. Callbacks are not notified and the change is
+     * immediate.
+     * For example:
+     * <ul>
+     *     <li> setProgress(0F, true) : set it to the starting position just after the start delay in the forward direction</li>
+     *     <li> setProgress(.5F, true) : set it to the middle position in the forward direction</li>
+     *     <li> setProgress(.5F, false) : set it to the middle position in the reverse direction</li>
+     *     <li> setProgress(1F, false) : set it to the end position in the reverse direction</li>
+     * </ul>
+     * <p>
+     * Caveat: If the timeline/tween is set to end in reverse, and it CANNOT go in reverse, then it will end up in the finished state
+     *          (end position). If the timeline/tween is in repeat mode then it will end up in the same position if it was going forwards.
+     *
+     * @param percentage the percentage (of it's duration) from 0-1, that the tween/timeline be set to
+     * @param direction sets the direction of the timeline when it updates next: forwards (true) or reverse (false).
+     */
+    public
+    void setProgress(final float percentage, final boolean direction) {
+        if (percentage < -0.0F || percentage > 1.0F) {
+            throw new RuntimeException("Cannot set the progress <0 or >1");
+        }
+
+        flushRead();
+
+        // always have to reset, because of issues with delays and repetitions. (also sets the direction to "forwards")
+        reset();
+
+        // how much time is represented by the delta in percentage of time?
+        final float duration = this.duration;
+        final float percentageValue = duration * percentage;
+        final float adjustmentTime;
+
+        // Caveat: If the timeline/tween is set to end in reverse, and it CANNOT go in reverse, then it will end up in the finished/end position
+        // if we specify to "go in reverse" and we are in a "repeat" mode (instead of a "flip-to-reverse" mode), then just pretend we
+        // specified to "go forwards".
+        boolean goesReverse = !direction && canAutoReverse;
+        if (goesReverse) {
+            // we want the tween/timeline in the REVERSE state when finished, so the next delta update will move it in that direction
+            // to do this, we "wrap around" the timeline/tween times to the correct time, in a single update.
+
+            float fullDuration__ = getFullDuration__();
+
+            final float timeSpentToGetToEnd = duration + startDelay;
+            final float timeSpentInReverseFromEnd = repeatDelay + (duration - percentageValue);
+
+            adjustmentTime = timeSpentToGetToEnd + timeSpentInReverseFromEnd;
+        } else {
+            // we just go from the absolute start (including the delay) to where we should end up
+            adjustmentTime = percentageValue + startDelay;
+        }
+
+        // have to SAVE all of the callbacks (then stop all from executing)
+        // have to RESTORE all of the callbacks
+
+        // update by the timeline/tween this amount (always starting from "scratch"). It will automatically end up in the correct direction.
+        update__(adjustmentTime);
+
+        flushWrite();
+    }
 
     // -------------------------------------------------------------------------
     // Protected API
@@ -646,14 +757,13 @@ abstract class BaseTween<T> {
     /**
      * Adjust the tween for when repeat + auto-reverse is used
      *
-     * @param updateDirection the future direction for all children
+     * @param newDirection the new direction for all children
      */
     protected
-    void adjustForRepeat_AutoReverse(final boolean updateDirection) {
-        direction = updateDirection;
+    void adjustForRepeat_AutoReverse(final boolean newDirection) {
         state = START;
 
-        if (updateDirection) {
+        if (newDirection) {
             currentTime = 0;
         }
         else {
@@ -666,14 +776,13 @@ abstract class BaseTween<T> {
      * </p>
      * For timelines, this also changes what the current tween is (for when iterating over tweens)
      *
-     * @param updateDirection the future direction for all children
+     * @param newDirection the new direction for all children
      */
     protected
-    void adjustForRepeat_Linear(final boolean updateDirection) {
-        direction = updateDirection;
+    void adjustForRepeat_Linear(final boolean newDirection) {
         state = START;
 
-        if (direction) {
+        if (newDirection) {
             currentTime = 0;
         }
         else {
@@ -697,7 +806,7 @@ abstract class BaseTween<T> {
      * <p>
      * <p>
      * The tween manager doesn't call this method, it correctly calls updateState + updateValues on timeline/tweens
-     * </p>
+     * <p>
      * Copyright dorkbox, llc
      *
      * @param delta the time in SECONDS that has elapsed since the last update
@@ -708,6 +817,36 @@ abstract class BaseTween<T> {
     @SuppressWarnings({"unchecked", "Duplicates", "ConstantConditions"})
     public
     float update(float delta) {
+        flushRead();
+        float v = update__(delta);
+        flushWrite();
+
+        return v;
+    }
+    /**
+     * doesn't sync on anything.
+     * <p>
+     * Updates the tween or timeline state and values.
+     * <p>
+     * <b>You may want to use a TweenManager to update objects for you.</b>
+     * <p>
+     * Slow motion, fast motion and backward play can be easily achieved by tweaking this delta time.
+     * <p>
+     * Multiply it by -1 to play the animation backward, or by 0.5 to play it twice-as-slow than its normal speed.
+     * <p>
+     * <p>
+     * The tween manager doesn't call this method, it correctly calls updateState + updateValues on timeline/tweens
+     * <p>
+     * Copyright dorkbox, llc
+     *
+     * @param delta the time in SECONDS that has elapsed since the last update
+     *
+     * @return true if this tween/timeline is finished (STATE = FINISHED)
+     */
+    // this method was completely rewritten.
+    @SuppressWarnings({"unchecked", "Duplicates", "ConstantConditions"})
+    protected
+    float update__(float delta) {
         isDuringUpdate = true;
 
         if (isPaused || isKilled) {
@@ -719,7 +858,8 @@ abstract class BaseTween<T> {
         }
 
         // the INITIAL, incoming delta from the app, will be positive or negative.
-        boolean direction = delta >= -0.0F;
+        // Specifically check for +0.0F so that -0.0F will let us go in reverse
+        boolean direction = delta >= +0.0F;
         this.direction = direction;
 
         final float duration = this.duration;
@@ -773,7 +913,7 @@ abstract class BaseTween<T> {
                 switch (state) {
                     case START: {
                         if (newTime <= 0.0F) {
-                            // still in delay
+                            // still in start delay
                             currentTime = newTime;
 
                             isDuringUpdate = false;
