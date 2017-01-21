@@ -695,10 +695,8 @@ abstract class BaseTween<T> {
             // we want the tween/timeline in the REVERSE state when finished, so the next delta update will move it in that direction
             // to do this, we "wrap around" the timeline/tween times to the correct time, in a single update.
 
-            float fullDuration__ = getFullDuration__();
-
             final float timeSpentToGetToEnd = duration + startDelay;
-            final float timeSpentInReverseFromEnd = repeatDelay + (duration - percentageValue);
+            final float timeSpentInReverseFromEnd = (duration - percentageValue);
 
             adjustmentTime = timeSpentToGetToEnd + timeSpentInReverseFromEnd;
         } else {
@@ -815,7 +813,7 @@ abstract class BaseTween<T> {
      */
     // this method was completely rewritten.
     @SuppressWarnings({"unchecked", "Duplicates", "ConstantConditions"})
-    public
+    public final
     float update(float delta) {
         flushRead();
         float v = update__(delta);
@@ -845,7 +843,7 @@ abstract class BaseTween<T> {
      */
     // this method was completely rewritten.
     @SuppressWarnings({"unchecked", "Duplicates", "ConstantConditions"})
-    protected
+    protected final
     float update__(float delta) {
         isDuringUpdate = true;
 
@@ -967,11 +965,9 @@ abstract class BaseTween<T> {
                             return 0.0F;
                         }
 
+
                         state = FINISHED;
                         currentTime = duration;
-
-                        // adjust the delta so that it is shifted based on the length of (previous) iteration
-                        delta = newTime - duration;
 
                         final int repeatCountStack = repeatCount;
                         ////////////////////////////////////////////
@@ -1014,42 +1010,14 @@ abstract class BaseTween<T> {
 
                             isDuringUpdate = false;
                             endEventCallback.onEvent(this);
-                            return delta;
-                        }
-                        else if (canAutoReverse) {
-                            // {FORWARDS}{AUTO_REVERSE}
-                            if (repeatCountStack > 0) {
-                                // -1 means repeat forever
-                                repeatCount--;
-                            }
 
-                            final List<TweenCallback> callbacks = this.forwards_End;
-                            for (int i = 0, n = callbacks.size(); i < n; i++) {
-                                callbacks.get(i).onEvent(TweenCallback.Events.END, this);
-                            }
-
-                            final List<TweenCallback> callbacks2 = this.forwards_Complete;
-                            for (int i = 0, n = callbacks2.size(); i < n; i++) {
-                                callbacks2.get(i).onEvent(TweenCallback.Events.COMPLETE, this);
-                            }
-
-                            // we're done going forwards
-                            canTriggerBeginEvent = true;
-                            isInAutoReverse = !isInAutoReverse; // if we are NOT in autoReverse, then "isInAutoReverse" is true if we reverse
-
-                            // make sure any checks after this returns accurately reflect the correct REVERSE direction
-                            direction = REVERSE;
-
-                            // any extra time (what's left in delta) will be applied/calculated on the next loop around
-                            adjustForRepeat_AutoReverse(REVERSE);
-                            currentTime += repeatDelay;
-                            delta = -delta;
-
-                            // loop to new state
-                            continue;
+                            // return the time that is remaining (the remaining amount of delta that wasn't processed)
+                            return newTime - duration;
                         }
                         else {
-                            // {FORWARDS}{LINEAR}
+                            // must always update all of the children
+                            update(FORWARDS, delta);
+
                             if (repeatCountStack > 0) {
                                 // -1 means repeat forever
                                 repeatCount--;
@@ -1060,14 +1028,49 @@ abstract class BaseTween<T> {
                                 callbacks.get(i).onEvent(TweenCallback.Events.END, this);
                             }
 
-                            isInAutoReverse = false;
+                            if (canAutoReverse) {
+                                // {FORWARDS}{AUTO_REVERSE}
 
-                            // any extra time (what's left in delta) will be applied/calculated on the next loop around
-                            adjustForRepeat_Linear(FORWARDS);
-                            currentTime = -repeatDelay + delta;
+                                final List<TweenCallback> callbacks2 = this.forwards_Complete;
+                                for (int i = 0, n = callbacks2.size(); i < n; i++) {
+                                    callbacks2.get(i).onEvent(TweenCallback.Events.COMPLETE, this);
+                                }
 
-                            // loop to new state
-                            continue;
+                                // we're done going forwards
+                                canTriggerBeginEvent = true;
+                                isInAutoReverse = !isInAutoReverse; // if we are NOT in autoReverse, then "isInAutoReverse" is true if we reverse
+
+                                // make sure any checks after this returns accurately reflect the correct REVERSE direction
+                                direction = REVERSE;
+
+                                // any extra time (what's left in delta) will be applied/calculated on the next loop around
+                                adjustForRepeat_AutoReverse(REVERSE);
+                                currentTime += repeatDelay;
+
+                                // because we always continue the loop, we must adjust the delta so that it is shifted (in REVERSE)
+                                // delta = newTime - duration;
+                                // delta = -delta
+                                delta = -newTime + duration;
+
+                                // loop to new state
+                                continue;
+                            }
+                            else {
+                                // {FORWARDS}{LINEAR}
+
+                                isInAutoReverse = false;
+
+                                // any extra time (what's left in delta) will be applied/calculated on the next loop around
+                                adjustForRepeat_Linear(FORWARDS);
+
+                                // because we always continue the loop, we must adjust the delta so that it is shifted
+                                delta = newTime - duration;
+
+                                currentTime = -repeatDelay + delta;
+
+                                // loop to new state
+                                continue;
+                            }
                         }
                     }
                     case FINISHED: {
@@ -1150,7 +1153,6 @@ abstract class BaseTween<T> {
                         // FALLTHROUGH
                     }
                     case RUN: {
-                        // stay in running reverse
                         if (newTime >= 0.0F) {
                             // still in running reverse
                             currentTime = newTime;
@@ -1164,9 +1166,6 @@ abstract class BaseTween<T> {
 
                         state = FINISHED;
                         currentTime = 0.0F;
-
-                        // adjust the delta so that it is shifted based on the length of (previous) iteration
-                        delta = newTime;
 
                         final int repeatCountStack = repeatCount;
                         ////////////////////////////////////////////
@@ -1215,10 +1214,14 @@ abstract class BaseTween<T> {
 
                             isDuringUpdate = false;
                             endEventCallback.onEvent(this);
-                            return delta;
+
+                            // return the time that is remaining (the remaining amount of delta that wasn't processed)
+                            return newTime;
                         }
-                        else if (canAutoReverse) {
-                            // {REVERSE}{AUTO_REVERSE}
+                        else {
+                            // must always update all of the children
+                            update(REVERSE, delta);
+
                             if (repeatCountStack > 0) {
                                 // -1 means repeat forever
                                 repeatCount--;
@@ -1229,46 +1232,49 @@ abstract class BaseTween<T> {
                                 callbacks.get(i).onEvent(TweenCallback.Events.BACK_END, this);
                             }
 
-                            final List<TweenCallback> callbacks2 = this.reverse_Complete;
-                            for (int i = 0, n = callbacks2.size(); i < n; i++) {
-                                callbacks2.get(i).onEvent(TweenCallback.Events.BACK_COMPLETE, this);
+                            if (canAutoReverse) {
+                                // {REVERSE}{AUTO_REVERSE}
+
+                                final List<TweenCallback> callbacks2 = this.reverse_Complete;
+                                for (int i = 0, n = callbacks2.size(); i < n; i++) {
+                                    callbacks2.get(i).onEvent(TweenCallback.Events.BACK_COMPLETE, this);
+                                }
+
+                                // we're done going forwards
+                                canTriggerBeginEvent = true;
+                                isInAutoReverse = !isInAutoReverse; // if we are NOT in autoReverse, then "isInAutoReverse" is true if we reverse
+
+                                // make sure any checks after this returns accurately reflect the correct FORWARDS direction
+                                direction = FORWARDS;
+
+                                // any extra time (what's left in delta) will be applied/calculated on the next loop around
+                                adjustForRepeat_AutoReverse(FORWARDS);
+                                currentTime -= repeatDelay;
+
+                                // because we always continue the loop, we must adjust the delta so that it is shifted (in FORWARDS)
+                                // delta = newTime;
+                                // delta = -delta
+                                delta = -newTime;
+
+                                // loop to new state
+                                continue;
                             }
+                            else {
+                                // {REVERSE}{LINEAR}
 
-                            // we're done going forwards
-                            canTriggerBeginEvent = true;
-                            isInAutoReverse = !isInAutoReverse; // if we are NOT in autoReverse, then "isInAutoReverse" is true if we reverse
+                                isInAutoReverse = false;
 
-                            // make sure any checks after this returns accurately reflect the correct FORWARDS direction
-                            direction = FORWARDS;
+                                // any extra time (what's left in delta) will be applied/calculated on the next loop around
+                                adjustForRepeat_Linear(REVERSE);
 
-                            // any extra time (what's left in delta) will be applied/calculated on the next loop around
-                            adjustForRepeat_AutoReverse(FORWARDS);
-                            currentTime -= repeatDelay;
-                            delta = -delta;
+                                // because we always continue the loop, we must adjust the delta so that it is shifted
+                                // delta = newTime;
 
-                            // loop to new state
-                            continue;
-                        }
-                        else {
-                            // {REVERSE}{LINEAR}
-                            if (repeatCountStack > 0) {
-                                // -1 means repeat forever
-                                repeatCount--;
+                                currentTime = repeatDelay + newTime;
+
+                                // loop to new state
+                                continue;
                             }
-
-                            final List<TweenCallback> callbacks = this.forwards_End;
-                            for (int i = 0, n = callbacks.size(); i < n; i++) {
-                                callbacks.get(i).onEvent(TweenCallback.Events.END, this);
-                            }
-
-                            isInAutoReverse = false;
-
-                            // any extra time (what's left in delta) will be applied/calculated on the next loop around
-                            adjustForRepeat_Linear(REVERSE);
-                            currentTime = newTime + repeatDelay;
-
-                            // loop to new state
-                            continue;
                         }
                     }
                     case FINISHED: {
