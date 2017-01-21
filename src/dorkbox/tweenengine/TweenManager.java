@@ -373,7 +373,7 @@ class TweenManager {
      * @param delta A delta time in SECONDS between now and the previous call.
      */
     @SuppressWarnings("unchecked")
-    public
+    public final
     void update(final float delta) {
         BaseTween.flushRead();
         update__(delta);
