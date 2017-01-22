@@ -1,4 +1,4 @@
-![logo](https://raw.githubusercontent.com/dorkbox/TweenEngine/master/examples/tween-engine-big-logo.jpg)
+![logo](https://raw.githubusercontent.com/dorkbox/TweenEngine/master/demos/tween-engine-big-logo.jpg)
 
 Forked from [JavaUniversalTweenEngine](http://www.aurelienribon.com/blog/projects/universal-tween-engine), by Aurelien Ribon
 
