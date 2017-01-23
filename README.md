@@ -102,11 +102,11 @@ Main features are:
   * Tweens can be sequenced when used in Timelines.
   * Tweens can be run in parallel when used in Timelines.
   * Tweens can act on more than one value at a time, so a single tween can change the whole position (X and Y) of a sprite for instance!
+  * Tweens and Timelines can have their "current" position (as a percentage) specified.
   * Tweens and Timelines can be repeated, and can automatically auto-reverse for a smooth "back-and-forth" animation.
   * Simple timers can be built with Tween.call().
-  * **Source code extensively documented!**
-
-A test executable can be found in the download section. Its source code, in the source repository, will help you to get started.
+  * Source code extensively documented!
+  * All Tweens and Timelines are ThreadSafe.
 
 # Get started and documentation index #
 
