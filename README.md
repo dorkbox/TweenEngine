@@ -121,10 +121,11 @@ Detailed documentation with code snippets and examples is available for the foll
 
 **Use github issues**
 
+&nbsp; 
+&nbsp; 
 
-
-<h4>We now release to maven!</h4> 
-
+Maven Info
+---------
 ```
 <dependency>
   <groupId>com.dorkbox</groupId>
@@ -140,7 +141,7 @@ https://oss.sonatype.org/content/repositories/releases/com/dorkbox/ObjectPool/
 https://repo1.maven.org/maven2/org/slf4j/slf4j-api/    
 
 
-<h2>License</h2>
-
+License
+---------
 This project is © 2015 dorkbox llc, and is distributed under the terms of the Apache v2.0 License. See file "LICENSE" for further references.
 
