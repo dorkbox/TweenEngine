@@ -74,7 +74,7 @@ class TweenManager {
      */
     public static
     String getVersion() {
-        return "7.14";
+        return "7.15";
     }
 
     // -------------------------------------------------------------------------
