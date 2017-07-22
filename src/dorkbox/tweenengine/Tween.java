@@ -21,6 +21,7 @@ import java.util.Map;
 
 import dorkbox.objectPool.ObjectPool;
 import dorkbox.objectPool.PoolableObject;
+import dorkbox.util.Version;
 
 /**
  * Core class of the Tween Engine. A Tween is basically an interpolation between two values of an object attribute. However, the main
@@ -102,8 +103,8 @@ class Tween extends BaseTween<Tween> {
      * Gets the version number.
      */
     public static
-    String getVersion() {
-        return "7.15";
+    Version getVersion() {
+        return new Version("7.15");
     }
 
     /**
@@ -1130,6 +1131,7 @@ class Tween extends BaseTween<Tween> {
      * @param updateDirection direction in which the update is happening. Affects children iteration order (timelines)
      * @param updateValue this is the start (true) or target (false) to set the tween to.
      */
+    @Override
     @SuppressWarnings("unchecked")
     protected
     void setValues(final boolean updateDirection, final boolean updateValue) {
@@ -1224,6 +1226,7 @@ class Tween extends BaseTween<Tween> {
      * @param updateDirection not used (only used by the timeline). It is necessary here because of how the methods are overloaded.
      * @param delta the time in SECONDS that has elapsed since the last update
      */
+    @Override
     protected
     void update(final boolean updateDirection, final float delta) {
         final Object target = this.target;

@@ -21,6 +21,8 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
+import dorkbox.util.Version;
+
 /**
  * A TweenManager updates all your tweens and timelines at once. Its main interest is that it handles the tween/timeline life-cycles
  * for you, as well as releasing pooled objects.
@@ -73,8 +75,8 @@ class TweenManager {
      * Gets the version number.
      */
     public static
-    String getVersion() {
-        return "7.15";
+    Version getVersion() {
+        return new Version("7.15");
     }
 
     // -------------------------------------------------------------------------

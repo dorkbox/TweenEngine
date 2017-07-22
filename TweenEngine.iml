@@ -31,5 +31,6 @@
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="module" module-name="ObjectPool" />
     <orderEntry type="library" name="lib-GDX (for tweenengine demo)" level="project" />
+    <orderEntry type="module" module-name="Utilities" />
   </component>
 </module>

@@ -22,6 +22,7 @@ import java.util.List;
 
 import dorkbox.objectPool.ObjectPool;
 import dorkbox.objectPool.PoolableObject;
+import dorkbox.util.Version;
 
 /**
  * A Timeline can be used to create complex animations made of sequences and parallel sets of Tweens.
@@ -90,8 +91,8 @@ class Timeline extends BaseTween<Timeline> {
      * Gets the version number.
      */
     public static
-    String getVersion() {
-        return "7.15";
+    Version getVersion() {
+        return new Version("7.15");
     }
 
 	// -------------------------------------------------------------------------
@@ -155,6 +156,7 @@ class Timeline extends BaseTween<Timeline> {
      * <p>
      * The paused state is preserved.
      */
+    @Override
     protected
     void reset() {
         super.reset();
@@ -406,6 +408,7 @@ class Timeline extends BaseTween<Timeline> {
      *
      * @param newDirection the new direction for all children
      */
+    @Override
     protected
     void adjustForRepeat_Linear(final boolean newDirection) {
         super.adjustForRepeat_Linear(newDirection);
@@ -435,6 +438,7 @@ class Timeline extends BaseTween<Timeline> {
      *                        timeline children (tweens)
      * @param delta the time in SECONDS that has elapsed since the last update
      */
+    @Override
     protected
     void update(final boolean updateDirection, float delta) {
         if (mode == Mode.SEQUENTIAL) {
@@ -510,6 +514,7 @@ class Timeline extends BaseTween<Timeline> {
      *                        values (tweens)
      * @param updateValue this is the start (true) or target (false) to set the tween to.
      */
+    @Override
     protected
     void setValues(final boolean updateDirection, final boolean updateValue) {
         if (updateDirection) {
