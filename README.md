@@ -127,11 +127,14 @@ Detailed documentation with code snippets and examples is available for the foll
 Maven Info
 ---------
 ```
-<dependency>
-  <groupId>com.dorkbox</groupId>
-  <artifactId>TweenEngine</artifactId>
-  <version>7.15</version>
-</dependency>
+<dependencies>
+    ...
+    <dependency>
+      <groupId>com.dorkbox</groupId>
+      <artifactId>TweenEngine</artifactId>
+      <version>7.15</version>
+    </dependency>
+</dependencies>
 ```
 
 Or if you don't want to use Maven, you can access the files directly here:  
