@@ -84,7 +84,7 @@ import dorkbox.util.Version;
  * @author Aurelien Ribon | http://www.aurelienribon.com/
  * @author dorkbox, llc
  */
-@SuppressWarnings({"unused", "WeakerAccess"})
+@SuppressWarnings({"unused", "WeakerAccess", "ResultOfMethodCallIgnored"})
 public final
 class Tween extends BaseTween<Tween> {
     // -------------------------------------------------------------------------

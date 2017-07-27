@@ -32,7 +32,7 @@ import java.util.Arrays;
  * @author Aurelien Ribon | http://www.aurelienribon.com/
  * @author dorkbox, llc
  */
-@SuppressWarnings({"ForLoopReplaceableByForEach", "WeakerAccess", "unused"})
+@SuppressWarnings({"ForLoopReplaceableByForEach", "WeakerAccess", "unused", "ResultOfMethodCallIgnored"})
 public
 abstract class BaseTween<T> {
     private static volatile long lightSyncObject = System.nanoTime();
@@ -918,7 +918,7 @@ abstract class BaseTween<T> {
      *
      * @param delta the time in SECONDS that has elapsed since the last update
      *
-     * @return true if this tween/timeline is finished (STATE = FINISHED)
+     * @return the amount of time remaining (this is the amount of delta that wasn't processed)
      */
     // this method was completely rewritten.
     @SuppressWarnings({"unchecked", "Duplicates", "ConstantConditions"})

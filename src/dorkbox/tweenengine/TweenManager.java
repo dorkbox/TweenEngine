@@ -40,7 +40,7 @@ import dorkbox.util.Version;
  * @author Aurelien Ribon | http://www.aurelienribon.com/
  * @author dorkbox, llc
  */
-@SuppressWarnings("unused")
+@SuppressWarnings({"unused", "ResultOfMethodCallIgnored"})
 public
 class TweenManager {
     private static final BaseTween[] BASE_TWEENS = new BaseTween[0];
@@ -141,7 +141,7 @@ class TweenManager {
         }
 
         // setup our children array, so update iterations are faster  (marginal improvement)
-        childrenArray =  tweenArrayList.toArray(BASE_TWEENS);
+        childrenArray = tweenArrayList.toArray(BASE_TWEENS);
 
         if (tween.isAutoStartEnabled) {
             tween.start();
@@ -218,7 +218,7 @@ class TweenManager {
      *
      * @return true if the target was killed, false if we do not contain the target, and it was not killed
      */
-    @SuppressWarnings("Duplicates")
+    @SuppressWarnings({"Duplicates", "UnusedReturnValue"})
     public
     boolean killTarget(final Object target) {
         BaseTween.flushRead();
@@ -395,8 +395,6 @@ class TweenManager {
      * <p/>
      * Slow motion, fast motion and backward play can be easily achieved by tweaking this delta time. Multiply it by -1 to play the
      * animation backward, or by 0.5 to play it twice slower than its normal speed.
-     *
-     * @param delta A delta time in SECONDS between now and the previous call.
      */
     @SuppressWarnings("unchecked")
     private
