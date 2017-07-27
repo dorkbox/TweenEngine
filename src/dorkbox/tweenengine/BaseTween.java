@@ -85,7 +85,7 @@ abstract class BaseTween<T> {
     private boolean isPaused;
 
     /** Used by tween */
-    protected boolean isKilled;
+    protected boolean isCanceled;
 
     /** Used by tween */
     protected boolean isInitialized;
@@ -168,7 +168,7 @@ abstract class BaseTween<T> {
         state = INVALID;
 
         duration = startDelay = repeatDelay = currentTime = 0.0F;
-        isPaused = isKilled = isInAutoReverse = isDuringUpdate = isInitialized = false;
+        isPaused = isCanceled = isInAutoReverse = isDuringUpdate = isInitialized = false;
         canTriggerBeginEvent = true;
 
         clearCallbacks_();
@@ -314,11 +314,11 @@ abstract class BaseTween<T> {
     }
 
     /**
-     * Kills the tween or timeline. If you are using a TweenManager, this object will be removed automatically.
+     * Cancels the tween or timeline. If you are using a TweenManager, this object will be removed automatically.
      */
     public
-    void kill() {
-        isKilled = true;
+    void cancel() {
+        isCanceled = true;
         flushWrite();
     }
 
@@ -624,7 +624,7 @@ abstract class BaseTween<T> {
      */
     final
     boolean isFinished__() {
-        return state == FINISHED || isKilled;
+        return state == FINISHED || isCanceled;
     }
 
     /**
@@ -808,7 +808,7 @@ abstract class BaseTween<T> {
     protected
     boolean killTarget(final Object target) {
         if (containsTarget(target)) {
-            kill();
+            cancel();
             return true;
         }
 
@@ -824,7 +824,7 @@ abstract class BaseTween<T> {
     protected
     boolean killTarget(final Object target, final int tweenType) {
         if (containsTarget(target, tweenType)) {
-            kill();
+            cancel();
             return true;
         }
 
@@ -926,7 +926,7 @@ abstract class BaseTween<T> {
     float update__(float delta) {
         isDuringUpdate = true;
 
-        if (isPaused || isKilled) {
+        if (isPaused || isCanceled) {
             return delta;
         }
 

@@ -195,7 +195,7 @@ class TweenManager {
         final Iterator<BaseTween<?>> iterator = tweenArrayList.iterator();
         while (iterator.hasNext()) {
             final BaseTween<?> tween = iterator.next();
-            tween.kill();
+            tween.cancel();
 
             // always kill (if not during an update)
             if (!tween.isDuringUpdate) {

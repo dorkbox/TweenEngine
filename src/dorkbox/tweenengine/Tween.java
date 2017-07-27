@@ -136,7 +136,7 @@ class Tween extends BaseTween<Tween> {
     private static final PoolableObject<Tween> poolableObject = new PoolableObject<Tween>() {
         @Override
         public
-        void onReturn(final Tween object) {
+        void onTake(final Tween object) {
             object.destroy();
         }
 
@@ -1135,7 +1135,7 @@ class Tween extends BaseTween<Tween> {
     @SuppressWarnings("unchecked")
     protected
     void setValues(final boolean updateDirection, final boolean updateValue) {
-        if (target == null || !this.isInitialized || this.isKilled) {
+        if (target == null || !this.isInitialized || this.isCanceled) {
             return;
         }
 
@@ -1159,7 +1159,7 @@ class Tween extends BaseTween<Tween> {
     protected
     void initializeValues() {
         final Object target = this.target;
-        if (target == null || this.isKilled) {
+        if (target == null || this.isCanceled) {
             return;
         }
 
@@ -1233,7 +1233,7 @@ class Tween extends BaseTween<Tween> {
         final TweenEquation equation = this.equation;
 
         // be aware that a tween can ONLY have it's values updated IFF it has been initialized (reached START state at least once)
-        if (target == null || equation == null || !this.isInitialized || this.isKilled) {
+        if (target == null || equation == null || !this.isInitialized || this.isCanceled) {
             return;
         }
 
