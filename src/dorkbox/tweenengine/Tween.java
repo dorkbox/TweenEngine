@@ -104,7 +104,7 @@ class Tween extends BaseTween<Tween> {
      */
     public static
     Version getVersion() {
-        return new Version("8.0");
+        return new Version("8.1");
     }
 
     /**
