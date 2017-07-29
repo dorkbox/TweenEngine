@@ -76,7 +76,7 @@ class TweenManager {
      */
     public static
     Version getVersion() {
-        return new Version("7.15");
+        return new Version("8.0");
     }
 
     // -------------------------------------------------------------------------

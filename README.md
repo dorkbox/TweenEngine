@@ -132,7 +132,7 @@ Maven Info
     <dependency>
       <groupId>com.dorkbox</groupId>
       <artifactId>TweenEngine</artifactId>
-      <version>7.15</version>
+      <version>8.0</version>
     </dependency>
 </dependencies>
 ```
