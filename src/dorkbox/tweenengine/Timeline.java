@@ -63,7 +63,7 @@ import dorkbox.util.Version;
  * @author Aurelien Ribon | http://www.aurelienribon.com/
  * @author dorkbox, llc
  */
-@SuppressWarnings("ForLoopReplaceableByForEach")
+@SuppressWarnings({"ForLoopReplaceableByForEach", "ResultOfMethodCallIgnored", "unused"})
 public final
 class Timeline extends BaseTween<Timeline> {
     // -------------------------------------------------------------------------
@@ -101,21 +101,31 @@ class Timeline extends BaseTween<Timeline> {
 
 	/**
 	 * Creates a new timeline with a 'sequential' (A then B) behavior. Its children will be updated one after the other in a sequence.
+     * <p>
+     * It is not necessary to call {@link Timeline#end()} to close this timeline.
 	 */
 	public static
     Timeline createSequential() {
 		Timeline timeline = pool.take();
-		timeline.setup(Mode.SEQUENTIAL);
+        flushRead();
+		timeline.setup__(Mode.SEQUENTIAL);
+
+        flushWrite();
 		return timeline;
 	}
 
 	/**
 	 * Creates a new timeline with a 'parallel' (A + B at the same time) behavior. Its children will be updated all at once.
+     * <p>
+     * It is not necessary to call {@link Timeline#end()} to close this timeline.
 	 */
 	public static
     Timeline createParallel() {
 		Timeline timeline = pool.take();
-		timeline.setup(Mode.PARALLEL);
+        flushRead();
+		timeline.setup__(Mode.PARALLEL);
+
+        flushWrite();
 		return timeline;
 	}
 
@@ -182,8 +192,11 @@ class Timeline extends BaseTween<Timeline> {
         currentIndex = 0;
 	}
 
+    /**
+     * doesn't sync on anything.
+     */
 	private
-    void setup(final Mode mode) {
+    void setup__(final Mode mode) {
 		this.mode = mode;
 		this.current = this;
 	}
@@ -199,10 +212,11 @@ class Timeline extends BaseTween<Timeline> {
 	 */
 	public
     Timeline push(final Tween tween) {
-        tween.start();
+        tween.start(); // calls flushRead()
         children.add(tween);
 
-        setupTimeline(tween);
+        setupTimeline__(tween);
+        flushWrite();
         return this;
 	}
 
@@ -213,10 +227,12 @@ class Timeline extends BaseTween<Timeline> {
 	 */
 	public
     Timeline push(final Timeline timeline) {
+        flushRead();
         timeline.parent = this;
         children.add(timeline);
 
-        setupTimeline(timeline);
+        setupTimeline__(timeline);
+        flushWrite();
         return this;
     }
 
@@ -235,11 +251,12 @@ class Timeline extends BaseTween<Timeline> {
         }
 
         final Tween tween = Tween.mark()
-                                 .delay(time);
+                                 .delay(time);  // calls flushRead()
         tween.start();
         children.add(tween);
 
-        setupTimeline(tween);
+        setupTimeline__(tween);
+        flushWrite();
         return this;
 	}
 
@@ -251,6 +268,8 @@ class Timeline extends BaseTween<Timeline> {
     public
     Timeline beginSequential() {
         Timeline timeline = pool.take();
+        flushRead();
+
         children.add(timeline);
 
         timeline.parent = this;
@@ -258,6 +277,8 @@ class Timeline extends BaseTween<Timeline> {
 
         // keep track of which timeline we are on
         current = timeline;
+
+        // flushWrite(); // called on end
 
         // our timeline info is setup when the sequenced timeline is "ended", so we can retrieve it's children
         return timeline;
@@ -271,6 +292,8 @@ class Timeline extends BaseTween<Timeline> {
     public
     Timeline beginParallel() {
         Timeline timeline = pool.take();
+        flushRead();
+
         children.add(timeline);
 
         timeline.parent = this;
@@ -278,6 +301,8 @@ class Timeline extends BaseTween<Timeline> {
 
         // keep track of which timeline we are on
         current = timeline;
+
+        // flushWrite(); called on end()
 
         // our timeline info is setup when the sequenced timeline is "ended", so we can retrieve it's children
         return timeline;
@@ -294,8 +319,10 @@ class Timeline extends BaseTween<Timeline> {
             throw new RuntimeException("Nothing to end, calling end before begin!");
         }
 
+        // flushRead();  called on begin...()
+
         // now prep everything (from the parent perspective), since we are now considered "done"
-        parent.setupTimeline(this);
+        parent.setupTimeline__(this);
 
         current = parent;
 
@@ -306,14 +333,17 @@ class Timeline extends BaseTween<Timeline> {
             throw new RuntimeException("You cannot end something other than a Timeline!");
         }
 
+        flushWrite();
         return (Timeline) current;
 	}
 
     /**
+     * doesn't sync on anything.
+     * <p>
      * Creates/prepares array for children. This array is used for iteration during update
      */
     private
-    void setupTimeline(BaseTween<?> tweenOrTimeline) {
+    void setupTimeline__(BaseTween<?> tweenOrTimeline) {
         switch (mode) {
             case SEQUENTIAL:
                 duration += tweenOrTimeline.getFullDuration__();

@@ -251,9 +251,9 @@ class Tween extends BaseTween<Tween> {
         Tween tween = pool.take();
         flushRead();
 
-        tween.setup(target, tweenType, targetAccessor, duration);
-        tween.ease(TweenEquations.Quad_InOut);
-        tween.path(TweenPaths.CatmullRom);
+        tween.setup__(target, tweenType, targetAccessor, duration);
+        tween.ease__(TweenEquations.Quad_InOut);
+        tween.path__(TweenPaths.CatmullRom);
 
         flushWrite();
         return tween;
@@ -324,9 +324,9 @@ class Tween extends BaseTween<Tween> {
         Tween tween = pool.take();
         flushRead();
 
-        tween.setup(target, tweenType, targetAccessor, duration);
-        tween.ease(TweenEquations.Quad_InOut);
-        tween.path(TweenPaths.CatmullRom);
+        tween.setup__(target, tweenType, targetAccessor, duration);
+        tween.ease__(TweenEquations.Quad_InOut);
+        tween.path__(TweenPaths.CatmullRom);
         tween.isFrom = true;
 
         flushWrite();
@@ -396,8 +396,8 @@ class Tween extends BaseTween<Tween> {
         Tween tween = pool.take();
         flushRead();
 
-        tween.setup(target, tweenType, targetAccessor, 0.0F);
-        tween.ease(TweenEquations.Quad_In);
+        tween.setup__(target, tweenType, targetAccessor, 0.0F);
+        tween.ease__(TweenEquations.Quad_In);
 
         flushWrite();
         return tween;
@@ -428,9 +428,9 @@ class Tween extends BaseTween<Tween> {
         Tween tween = pool.take();
         flushRead();
 
-        tween.setup(null, -1, null, 0.0F);
+        tween.setup__(null, -1, null, 0.0F);
         callback.triggers = TweenCallback.Events.START;
-        tween.addCallback(callback);
+        tween.addCallback(callback); // Thread/Concurrent use Safe
 
         flushWrite();
         return tween;
@@ -449,7 +449,7 @@ class Tween extends BaseTween<Tween> {
         Tween tween = pool.take();
         flushRead();
 
-        tween.setup(null, -1, null, 0.0F);
+        tween.setup__(null, -1, null, 0.0F);
 
         flushWrite();
         return tween;
@@ -531,8 +531,11 @@ class Tween extends BaseTween<Tween> {
         }
     }
 
+    /**
+     * doesn't sync on anything.
+     */
     private
-    void setup(final Object target, final int tweenType, final TweenAccessor targetAccessor, final float duration) {
+    void setup__(final Object target, final int tweenType, final TweenAccessor targetAccessor, final float duration) {
         if (duration < 0.0F) {
             throw new RuntimeException("Duration can not be negative");
         }
@@ -541,16 +544,19 @@ class Tween extends BaseTween<Tween> {
         if (targetAccessor != null) {
             this.accessor = targetAccessor;
         } else {
-            this.targetClass = target != null ? this.findTargetClass() : null;
+            this.targetClass = target != null ? this.findTargetClass__() : null;
         }
         this.type = tweenType;
         this.duration = duration;
 
-        this.setup();
+        this.setup__();
     }
 
+    /**
+     * doesn't sync on anything.
+     */
     private
-    Class<?> findTargetClass() {
+    Class<?> findTargetClass__() {
         final Object target = this.target;
 
         if (target instanceof TweenAccessor) {
@@ -632,9 +638,42 @@ class Tween extends BaseTween<Tween> {
      */
     public
     Tween ease(final TweenEquations easeEquation) {
-        this.equation = easeEquation.getEquation();
+        ease__(easeEquation);
 
         flushWrite();
+        return this;
+    }
+
+    /**
+     * doesn't sync on anything.
+     * <p>
+     * Sets the easing equation of the tween. Existing equations are located in {@link TweenEquations}, but you can of course implement
+     * your own, see {@link TweenEquation}.
+     * <p/>
+     * Default equation is Quad_InOut.
+     * <p/>
+     *
+     * <b>Provided Equations are:</b><br/>
+     * - Linear,<br/>
+     * - Quad.In | Out | InOut,<br/>
+     * - Cubic.In | Out | InOut,<br/>
+     * - Quart.In | Out | InOut,<br/>
+     * - QuInt.In | Out | InOut,<br/>
+     * - Circle.In | Out | InOut,<br/>
+     * - SIne.In | Out | InOut,<br/>
+     * - Expo.In | Out | InOut,<br/>
+     * - Back.In | Out | InOut,<br/>
+     * - Bounce.In | Out | InOut,<br/>
+     * - Elastic.In | Out | InOut
+     *
+     * @return The current tween, for chaining instructions.
+     * @see TweenEquation
+     * @see TweenEquations
+     */
+    protected
+    Tween ease__(final TweenEquations easeEquation) {
+        this.equation = easeEquation.getEquation();
+
         return this;
     }
 
@@ -988,9 +1027,28 @@ class Tween extends BaseTween<Tween> {
      */
     public
     Tween path(final TweenPaths path) {
-        this.path = path.path();
+        path__(path);
 
         flushWrite();
+        return this;
+    }
+
+    /**
+     * doesn't sync on anything.
+     * <p>
+     * Sets the algorithm that will be used to navigate through the waypoints, from the start values to the end values. Default is a
+     * catmull-rom spline, but you can find other paths in the {@link TweenPaths} class.
+     *
+     * @param path A TweenPath implementation.
+     *
+     * @return The current tween, for chaining instructions.
+     * @see TweenPath
+     * @see TweenPaths
+     */
+    protected
+    Tween path__(final TweenPaths path) {
+        this.path = path.path();
+
         return this;
     }
 
@@ -1006,9 +1064,28 @@ class Tween extends BaseTween<Tween> {
      */
     public
     Tween path(final TweenPath path) {
-        this.path = path;
+        path__(path);
 
         flushWrite();
+        return this;
+    }
+
+    /**
+     * doesn't sync on anything.
+     * <p>
+     * Sets the algorithm that will be used to navigate through the waypoints, from the start values to the end values. Default is a
+     * catmull-rom spline, but you can find other paths in the {@link TweenPaths} class.
+     *
+     * @param path A TweenPath implementation.
+     *
+     * @return The current tween, for chaining instructions.
+     * @see TweenPath
+     * @see TweenPaths
+     */
+    protected
+    Tween path__(final TweenPath path) {
+        this.path = path;
+
         return this;
     }
 

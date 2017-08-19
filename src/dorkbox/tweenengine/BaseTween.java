@@ -46,6 +46,7 @@ abstract class BaseTween<T> {
      *
      * @return the last time (in nanos) that the field modifications were flushed
      */
+    @SuppressWarnings("UnusedReturnValue")
     static long flushRead() {
         return lightSyncObject;
     }
@@ -185,7 +186,7 @@ abstract class BaseTween<T> {
     /**
      * Clears all of the callback.
      *
-     * Thread Safe
+     * Thread/Concurrent use Safe
      */
     @SuppressWarnings("unchecked")
     public
@@ -218,7 +219,7 @@ abstract class BaseTween<T> {
      * Adds a callback. By default, it will be fired at the completion of the tween or timeline (event COMPLETE). If you want to change
      * this behavior use the {@link TweenCallback#TweenCallback(int)} constructor.
      *
-     * Thread Safe
+     * Thread/Concurrent use Safe
      *
      * @see TweenCallback
      */
@@ -228,6 +229,7 @@ abstract class BaseTween<T> {
         int triggers = callback.triggers;
 
         // ALSO have to prevent anyone from updating/changing callbacks while this is occurring.
+        // not necessary to call flushRead/Write
         synchronized (TEMP_EMPTY) {
             if ((triggers & TweenCallback.Events.BEGIN) == TweenCallback.Events.BEGIN) {
                 int currentLength = forwards_Begin.length;
@@ -290,14 +292,13 @@ abstract class BaseTween<T> {
             }
         }
 
-        // flushWrite();  // synchronize takes care of this
         return (T) this;
     }
 
     /**
      * Adds a start delay to the tween or timeline in seconds.
      *
-     * @param delay A duration in seconds
+     * @param delay A duration in seconds for the delay
      *
      * @return The current object, for chaining instructions.
      */
@@ -360,6 +361,25 @@ abstract class BaseTween<T> {
     @SuppressWarnings("unchecked")
     public
     T repeat(final int count, final float delay) {
+        repeat__(count, delay);
+
+        flushWrite();
+        return (T) this;
+    }
+
+    /**
+     * doesn't sync on anything.
+     * <p>
+     * Repeats the tween or timeline for a given number of times.
+     *
+     * @param count The number of repetitions. For infinite repetition, use {@link Tween#INFINITY} or -1.
+     * @param delay A delay between each iteration, in seconds.
+     *
+     * @return The current tween or timeline, for chaining instructions.
+     */
+    @SuppressWarnings("unchecked")
+    private
+    T repeat__(final int count, final float delay) {
         if (count < -1) {
             throw new RuntimeException("Count " + count + " is an invalid option. It must be -1 (Tween.INFINITY) for infinite or > 0 for " +
                                        "finite.");
@@ -370,7 +390,6 @@ abstract class BaseTween<T> {
         repeatDelay = delay;
         canAutoReverse = false;
 
-        flushWrite();
         return (T) this;
     }
 
@@ -387,7 +406,7 @@ abstract class BaseTween<T> {
     @SuppressWarnings("unchecked")
     public
     T repeatAutoReverse(final int count, final float delay) {
-        repeat(count, delay);
+        repeat__(count, delay);
 
         canAutoReverse = true;
 
@@ -436,10 +455,12 @@ abstract class BaseTween<T> {
     }
 
     /**
+     * doesn't sync on anything.
+     * <p>
      * Prepares the state of the tween before running (or initializing)
      */
     protected
-    void setup() {
+    void setup__() {
         canTriggerBeginEvent = true;
         state = START;
     }
@@ -454,7 +475,7 @@ abstract class BaseTween<T> {
     @SuppressWarnings("unchecked")
     public
     T start() {
-        setup();
+        setup__();
 
         flushWrite();
         return (T) this;
