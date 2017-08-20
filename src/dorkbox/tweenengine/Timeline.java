@@ -20,10 +20,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import dorkbox.objectPool.ObjectPool;
-import dorkbox.objectPool.PoolableObject;
-import dorkbox.util.Version;
-
 /**
  * A Timeline can be used to create complex animations made of sequences and parallel sets of Tweens.
  * <p/>
@@ -58,7 +54,6 @@ import dorkbox.util.Version;
  * }</pre>
  *
  * @see Tween
- * @see TweenManager
  * @see TweenCallback
  * @author Aurelien Ribon | http://www.aurelienribon.com/
  * @author dorkbox, llc
@@ -67,74 +62,10 @@ import dorkbox.util.Version;
 public final
 class Timeline extends BaseTween<Timeline> {
     // -------------------------------------------------------------------------
-	// Static -- pool
-	// -------------------------------------------------------------------------
-
-    @SuppressWarnings("StaticNonFinalField")
-    private static final PoolableObject<Timeline> poolableObject = new PoolableObject<Timeline>() {
-        @Override
-        public
-        void onReturn(final Timeline object) {
-            object.destroy();
-        }
-
-        @Override
-        public
-        Timeline create() {
-            return new Timeline();
-        }
-    };
-
-    private static final ObjectPool<Timeline> pool = ObjectPool.NonBlockingSoftReference(poolableObject);
-
-    /**
-     * Gets the version number.
-     */
-    public static
-    Version getVersion() {
-        return new Version("8.1");
-    }
-
-	// -------------------------------------------------------------------------
-	// Static -- factories
-	// -------------------------------------------------------------------------
-
-	/**
-	 * Creates a new timeline with a 'sequential' (A then B) behavior. Its children will be updated one after the other in a sequence.
-     * <p>
-     * It is not necessary to call {@link Timeline#end()} to close this timeline.
-	 */
-	public static
-    Timeline createSequential() {
-		Timeline timeline = pool.take();
-        flushRead();
-		timeline.setup__(Mode.SEQUENTIAL);
-
-        flushWrite();
-		return timeline;
-	}
-
-	/**
-	 * Creates a new timeline with a 'parallel' (A + B at the same time) behavior. Its children will be updated all at once.
-     * <p>
-     * It is not necessary to call {@link Timeline#end()} to close this timeline.
-	 */
-	public static
-    Timeline createParallel() {
-		Timeline timeline = pool.take();
-        flushRead();
-		timeline.setup__(Mode.PARALLEL);
-
-        flushWrite();
-		return timeline;
-	}
-
-
-    // -------------------------------------------------------------------------
 	// Attributes
 	// -------------------------------------------------------------------------
 
-	private enum Mode {SEQUENTIAL, PARALLEL}
+	enum Mode {SEQUENTIAL, PARALLEL}
 
 
 	private final List<BaseTween<?>> children = new ArrayList<BaseTween<?>>(10);
@@ -156,8 +87,9 @@ class Timeline extends BaseTween<Timeline> {
 	// Setup
 	// -------------------------------------------------------------------------
 
-	Timeline() {
-		destroy();
+	Timeline(final Animator animator) {
+	    super(animator);
+        destroy();
 	}
 
     /**
@@ -195,7 +127,6 @@ class Timeline extends BaseTween<Timeline> {
     /**
      * doesn't sync on anything.
      */
-	private
     void setup__(final Mode mode) {
 		this.mode = mode;
 		this.current = this;
@@ -212,11 +143,13 @@ class Timeline extends BaseTween<Timeline> {
 	 */
 	public
     Timeline push(final Tween tween) {
-        tween.start(); // calls flushRead()
+        tween.startUnmanaged(); // calls flushRead()
+
         children.add(tween);
 
         setupTimeline__(tween);
-        flushWrite();
+
+        animator.flushWrite();
         return this;
 	}
 
@@ -227,12 +160,14 @@ class Timeline extends BaseTween<Timeline> {
 	 */
 	public
     Timeline push(final Timeline timeline) {
-        flushRead();
+        animator.flushRead();
+
         timeline.parent = this;
         children.add(timeline);
 
         setupTimeline__(timeline);
-        flushWrite();
+
+        animator.flushWrite();
         return this;
     }
 
@@ -250,13 +185,17 @@ class Timeline extends BaseTween<Timeline> {
                                        " with a parallel timeline and appropriate delays in place.");
         }
 
-        final Tween tween = Tween.mark()
-                                 .delay(time);  // calls flushRead()
-        tween.start();
+        final Tween tween = animator.mark__();
+        animator.flushRead();
+
+        tween.delay__(time);
+        tween.startUnmanaged__();
+
         children.add(tween);
 
         setupTimeline__(tween);
-        flushWrite();
+
+        animator.flushWrite();
         return this;
 	}
 
@@ -267,8 +206,7 @@ class Timeline extends BaseTween<Timeline> {
 	 */
     public
     Timeline beginSequential() {
-        Timeline timeline = pool.take();
-        flushRead();
+        Timeline timeline = animator.takeTimeline(); // calls flushRead()
 
         children.add(timeline);
 
@@ -291,8 +229,8 @@ class Timeline extends BaseTween<Timeline> {
 	 */
     public
     Timeline beginParallel() {
-        Timeline timeline = pool.take();
-        flushRead();
+        Timeline timeline = animator.takeTimeline();
+        animator.flushRead();
 
         children.add(timeline);
 
@@ -333,7 +271,7 @@ class Timeline extends BaseTween<Timeline> {
             throw new RuntimeException("You cannot end something other than a Timeline!");
         }
 
-        flushWrite();
+        animator.flushWrite();
         return (Timeline) current;
 	}
 
@@ -382,8 +320,8 @@ class Timeline extends BaseTween<Timeline> {
 
     @Override
 	public
-    Timeline start() {
-        super.start();
+    Timeline startUnmanaged() {
+        super.startUnmanaged();
 
         for (int i = 0; i < childrenSize; i++) {
             final BaseTween<?> obj = childrenArray[i];
@@ -392,12 +330,28 @@ class Timeline extends BaseTween<Timeline> {
                 throw new RuntimeException("You can't push an object with infinite repetitions in a timeline");
             }
 
-            obj.start();
+            obj.startUnmanaged();
         }
 
         return this;
     }
 
+    @Override
+    Timeline startUnmanaged__() {
+        super.startUnmanaged__();
+
+        for (int i = 0; i < childrenSize; i++) {
+            final BaseTween<?> obj = childrenArray[i];
+
+            if (obj.repeatCountOrig < 0) {
+                throw new RuntimeException("You can't push an object with infinite repetitions in a timeline");
+            }
+
+            obj.startUnmanaged__();
+        }
+
+        return this;
+    }
 
 	@Override
 	public
@@ -407,7 +361,7 @@ class Timeline extends BaseTween<Timeline> {
             tween.free();
         }
 
-        pool.put(this);
+        animator.free(this);
     }
 
 	// -------------------------------------------------------------------------

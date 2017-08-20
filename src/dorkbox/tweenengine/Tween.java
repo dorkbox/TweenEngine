@@ -16,13 +16,6 @@
  */
 package dorkbox.tweenengine;
 
-import java.util.HashMap;
-import java.util.Map;
-
-import dorkbox.objectPool.ObjectPool;
-import dorkbox.objectPool.PoolableObject;
-import dorkbox.util.Version;
-
 /**
  * Core class of the Tween Engine. A Tween is basically an interpolation between two values of an object attribute. However, the main
  * interest of a Tween is that you can apply an easing formula on this interpolation, in order to smooth the transitions or to achieve
@@ -87,373 +80,14 @@ import dorkbox.util.Version;
 @SuppressWarnings({"unused", "WeakerAccess", "ResultOfMethodCallIgnored"})
 public final
 class Tween extends BaseTween<Tween> {
-    // -------------------------------------------------------------------------
-    // Static -- misc
-    // -------------------------------------------------------------------------
-
     /**
      * Used as parameter in {@link #repeat(int, float)} and {@link #repeatAutoReverse(int, float)} methods.
      */
     public static final int INFINITY = -1;
 
-    private static int combinedAttrsLimit = 3;
-    private static int waypointsLimit = 0;
+    private final int combinedAttrsLimit;
+    private final int waypointsLimit;
 
-    /**
-     * Gets the version number.
-     */
-    public static
-    Version getVersion() {
-        return new Version("8.1");
-    }
-
-    /**
-     * <b>Must be called **before** Tweens are created</b>
-     * <p>
-     * Changes the limit for combined attributes. Defaults to 3 to reduce memory footprint.
-     */
-    public static
-    void setCombinedAttributesLimit(final int limit) {
-        Tween.combinedAttrsLimit = limit;
-        flushWrite();
-    }
-
-    /**
-     * <b>Must be called **before** Tweens are created</b>
-     * <p>
-     * Changes the limit of allowed waypoints for each tween. Defaults to 0 to reduce memory footprint.
-     */
-    public static
-    void setWaypointsLimit(final int limit) {
-        Tween.waypointsLimit = limit;
-        flushWrite();
-    }
-
-    // -------------------------------------------------------------------------
-    // Static -- pool
-    // -------------------------------------------------------------------------
-
-    private static final PoolableObject<Tween> poolableObject = new PoolableObject<Tween>() {
-        @Override
-        public
-        void onTake(final Tween object) {
-            object.destroy();
-        }
-
-        @Override
-        public
-        Tween create() {
-            return new Tween();
-        }
-    };
-
-    private static final ObjectPool<Tween> pool = ObjectPool.NonBlockingSoftReference(poolableObject);
-
-
-    // -------------------------------------------------------------------------
-    // Static -- tween accessors
-    // -------------------------------------------------------------------------
-
-    private static final Map<Class<?>, TweenAccessor<?>> registeredAccessors = new HashMap<Class<?>, TweenAccessor<?>>();
-
-    /**
-     * Registers an accessor with the class of an object. This accessor will be used by tweens applied to every objects implementing the
-     * registered class, or inheriting from it.
-     *
-     * @param someClass An object class.
-     * @param defaultAccessor The accessor that will be used to tween any object of class "someClass".
-     */
-    public static
-    void registerAccessor(final Class<?> someClass, final TweenAccessor<?> defaultAccessor) {
-        registeredAccessors.put(someClass, defaultAccessor);
-        flushWrite();
-    }
-
-    /**
-     * Gets the registered TweenAccessor associated with the given object class.
-     *
-     * @param someClass An object class.
-     */
-    public static
-    TweenAccessor<?> getRegisteredAccessor(final Class<?> someClass) {
-        flushRead();
-        return registeredAccessors.get(someClass);
-    }
-
-    // -------------------------------------------------------------------------
-    // Static -- factories
-    // -------------------------------------------------------------------------
-
-    /**
-     * Factory creating a new standard interpolation. This is the most common type of interpolation. The starting values are
-     * retrieved automatically after the delay (if any).
-     * <br/><br/>
-     *
-     * <b>You need to set the target values of the interpolation by using one of the target() methods</b>. The interpolation will run
-     * from the starting values to these target values.
-     * <br/><br/>
-     *
-     * The common use of Tweens is "fire-and-forget": you do not need to care for tweens once you added them to a TweenManager, they will
-     * be updated automatically, and cleaned once finished.
-     * <br/><br/>
-     *
-     * <pre> {@code
-     * Tween.to(myObject, POSITION, 1.0F)
-     *      .target(50, 70)
-     *      .ease(Quad_InOut)
-     *      .start(myManager);
-     * }</pre>
-     *
-     * Several options such as delay, repetitions and callbacks can be added to the tween.
-     *
-     * @param target The target object of the interpolation.
-     * @param tweenType An arbitrary number used to associate an interpolation type for a tween in the TweenAccessor get/setValues() methods
-     * @param duration The duration of the interpolation, in seconds.
-     *
-     * @return The generated Tween.
-     */
-    public static
-    Tween to(final Object target, final int tweenType, final float duration) {
-        return to(target, tweenType, null, duration);
-    }
-
-    /**
-     * Factory creating a new standard interpolation. This is the most common type of interpolation. The starting values are
-     * retrieved automatically after the delay (if any).
-     * <br/><br/>
-     *
-     * <b>You need to set the target values of the interpolation by using one of the target() methods</b>. The interpolation will run
-     * from the starting values to these target values.
-     * <br/><br/>
-     *
-     * The common use of Tweens is "fire-and-forget": you do not need to care for tweens once you added them to a TweenManager, they will
-     * be updated automatically, and cleaned once finished.
-     * <br/><br/>
-     *
-     * <pre> {@code
-     * Tween.to(myObject, POSITION, accessorObject, 1.0F)
-     *      .target(50, 70)
-     *      .ease(Quad_InOut)
-     *      .start(myManager);
-     * }</pre>
-     *
-     * Several options such as delay, repetitions and callbacks can be added to the tween.
-     *
-     * @param target The target object of the interpolation.
-     * @param tweenType An arbitrary number used to associate an interpolation type for a tween in the TweenAccessor get/setValues() methods
-     * @param targetAccessor The accessor object (optional) that is used to modify the target values (based on the tween type).
-     * @param duration The duration of the interpolation, in seconds.
-     *
-     * @return The generated Tween.
-     */
-    public static
-    <T> Tween to(final T target, final int tweenType, final TweenAccessor<T> targetAccessor, final float duration) {
-        Tween tween = pool.take();
-        flushRead();
-
-        tween.setup__(target, tweenType, targetAccessor, duration);
-        tween.ease__(TweenEquations.Quad_InOut);
-        tween.path__(TweenPaths.CatmullRom);
-
-        flushWrite();
-        return tween;
-    }
-
-    /**
-     * Factory creating a new reversed interpolation. The ending values are retrieved automatically after the delay (if any).
-     * <br/><br/>
-     *
-     * <b>You need to set the starting values of the interpolation by using one of the target() methods</b>. The interpolation will run
-     * from the starting values to these target values.
-     * <br/><br/>
-     *
-     * The common use of Tweens is "fire-and-forget": you do not need to care for tweens once you added them to a TweenManager, they will
-     * be updated automatically, and cleaned once finished. Common call:
-     * <br/><br/>
-     *
-     * <pre> {@code
-     * Tween.from(myObject, POSITION, 1.0F)
-     *      .target(0, 0)
-     *      .ease(Quad_InOut)
-     *      .start(myManager);
-     * }</pre>
-     *
-     * Several options such as delay, repetitions and callbacks can be added to the tween.
-     *
-     * @param target The target object of the interpolation.
-     * @param tweenType An arbitrary number used to associate an interpolation type for a tween in the TweenAccessor get/setValues() methods
-     * @param duration The duration of the interpolation, in seconds.
-     *
-     * @return The generated Tween.
-     */
-    public static
-    <T> Tween from(final T target, final int tweenType, final float duration) {
-        return from(target, tweenType, null, duration);
-    }
-
-    /**
-     * Factory creating a new reversed interpolation. The ending values are retrieved automatically after the delay (if any).
-     * <br/><br/>
-     *
-     * <b>You need to set the starting values of the interpolation by using one of the target() methods</b>. The interpolation will run
-     * from the starting values to these target values.
-     * <br/><br/>
-     *
-     * The common use of Tweens is "fire-and-forget": you do not need to care for tweens once you added them to a TweenManager, they will
-     * be updated automatically, and cleaned once finished. Common call:
-     * <br/><br/>
-     *
-     * <pre> {@code
-     * Tween.from(myObject, POSITION, 1.0F)
-     *      .target(0, 0)
-     *      .ease(Quad_InOut)
-     *      .start(myManager);
-     * }</pre>
-     *
-     * Several options such as delay, repetitions and callbacks can be added to the tween.
-     *
-     * @param target The target object of the interpolation.
-     * @param tweenType An arbitrary number used to associate an interpolation type for a tween in the TweenAccessor get/setValues() methods
-     * @param targetAccessor The accessor object (optional) that is used to modify the target values (based on the tween type).
-     * @param duration The duration of the interpolation, in seconds.
-     *
-     * @return The generated Tween.
-     */
-    public static
-    <T> Tween from(final T target, final int tweenType, final TweenAccessor<T> targetAccessor, final float duration) {
-        Tween tween = pool.take();
-        flushRead();
-
-        tween.setup__(target, tweenType, targetAccessor, duration);
-        tween.ease__(TweenEquations.Quad_InOut);
-        tween.path__(TweenPaths.CatmullRom);
-        tween.isFrom = true;
-
-        flushWrite();
-        return tween;
-    }
-
-    /**
-     * Factory creating a new instantaneous interpolation (thus this is not really an interpolation).
-     * <br/><br/>
-     *
-     * <b>You need to set the target values of the interpolation by using one of the target() methods</b>. The interpolation will set
-     * the target attribute to these values after the delay (if any).
-     * <br/><br/>
-     *
-     * The common use of Tweens is "fire-and-forget": you do not need to care for tweens once you added them to a TweenManager, they will
-     * be updated automatically, and cleaned once finished. Common call:
-     * <br/><br/>
-     *
-     * <pre> {@code
-     * Tween.set(myObject, POSITION)
-     *      .target(50, 70)
-     *      .delay(1.0F)
-     *      .start(myManager);
-     * }</pre>
-     *
-     * Several options such as delay, repetitions and callbacks can be added to the tween.
-     *
-     * @param target The target object of the interpolation.
-     * @param tweenType An arbitrary number used to associate an interpolation type for a tween in the TweenAccessor get/setValues() methods
-     *
-     * @return The generated Tween.
-     */
-    public static
-    <T> Tween set(final T target, final int tweenType) {
-        return set(target, tweenType, null);
-    }
-
-    /**
-     * Factory creating a new instantaneous interpolation (thus this is not really an interpolation).
-     * <br/><br/>
-     *
-     * <b>You need to set the target values of the interpolation by using one of the target() methods</b>. The interpolation will set
-     * the target attribute to these values after the delay (if any).
-     * <br/><br/>
-     *
-     * The common use of Tweens is "fire-and-forget": you do not need to care for tweens once you added them to a TweenManager, they will
-     * be updated automatically, and cleaned once finished. Common call:
-     * <br/><br/>
-     *
-     * <pre> {@code
-     * Tween.set(myObject, POSITION)
-     *      .target(50, 70)
-     *      .delay(1.0F)
-     *      .start(myManager);
-     * }</pre>
-     *
-     * Several options such as delay, repetitions and callbacks can be added to the tween.
-     *
-     * @param target The target object of the interpolation.
-     * @param targetAccessor The accessor object (optional) that is used to modify the target values (based on the tween type).
-     * @param tweenType An arbitrary number used to associate an interpolation type for a tween in the TweenAccessor get/setValues() methods
-     *
-     * @return The generated Tween.
-     */
-    public static
-    <T> Tween set(final T target, final int tweenType, final TweenAccessor<T>  targetAccessor) {
-        Tween tween = pool.take();
-        flushRead();
-
-        tween.setup__(target, tweenType, targetAccessor, 0.0F);
-        tween.ease__(TweenEquations.Quad_In);
-
-        flushWrite();
-        return tween;
-    }
-
-    /**
-     * Factory creating a new timer. The given callback will be triggered on each iteration start, after the delay.
-     * <br/><br/>
-     *
-     * The common use of Tweens is "fire-and-forget": you do not need to care for tweens once you added them to a TweenManager, they will
-     * be updated automatically, and cleaned once finished. Common call:
-     * <br/><br/>
-     *
-     * <pre> {@code
-     * Tween.call(myCallback)
-     *      .delay(1.0F)
-     *      .repeat(10, 1.0F)
-     *      .start(myManager);
-     * }</pre>
-     *
-     * @param callback The callback that will be triggered on each iteration start.
-     *
-     * @return The generated Tween.
-     * @see TweenCallback
-     */
-    public static
-    Tween call(final TweenCallback callback) {
-        Tween tween = pool.take();
-        flushRead();
-
-        tween.setup__(null, -1, null, 0.0F);
-        callback.triggers = TweenCallback.Events.START;
-        tween.addCallback(callback); // Thread/Concurrent use Safe
-
-        flushWrite();
-        return tween;
-    }
-
-    /**
-     * Convenience method to create an empty tween. Such object is only useful when placed inside animation sequences
-     * (see {@link Timeline}), in which it may act as a beacon, so you can set a callback on it in order to trigger some action at the
-     * right moment.
-     *
-     * @return The generated Tween.
-     * @see Timeline
-     */
-    public static
-    Tween mark() {
-        Tween tween = pool.take();
-        flushRead();
-
-        tween.setup__(null, -1, null, 0.0F);
-
-        flushWrite();
-        return tween;
-    }
 
     // -------------------------------------------------------------------------
     // Attributes
@@ -469,7 +103,7 @@ class Tween extends BaseTween<Tween> {
     private TweenPath path;
 
     // General
-    private boolean isFrom;
+    boolean isFrom;
     private boolean isRelative;
     private int combinedAttrsCnt;
     private int waypointsCount;
@@ -487,7 +121,11 @@ class Tween extends BaseTween<Tween> {
     // Setup
     // -------------------------------------------------------------------------
 
-    Tween() {
+    Tween(final Animator animator, final int combinedAttrsLimit, final int waypointsLimit) {
+        super(animator);
+        this.combinedAttrsLimit = combinedAttrsLimit;
+        this.waypointsLimit = waypointsLimit;
+
         startValues = new float[combinedAttrsLimit];
         targetValues = new float[combinedAttrsLimit];
         waypoints = new float[waypointsLimit * combinedAttrsLimit];
@@ -534,7 +172,6 @@ class Tween extends BaseTween<Tween> {
     /**
      * doesn't sync on anything.
      */
-    private
     void setup__(final Object target, final int tweenType, final TweenAccessor targetAccessor, final float duration) {
         if (duration < 0.0F) {
             throw new RuntimeException("Duration can not be negative");
@@ -563,13 +200,13 @@ class Tween extends BaseTween<Tween> {
             return target.getClass();
         }
 
-        if (registeredAccessors.containsKey(target.getClass())) {
+        if (animator.containsAccessor(target.getClass())) {
             return target.getClass();
         }
 
-        Class<?> parentClass = target.getClass()
-                                     .getSuperclass();
-        while (parentClass != null && !registeredAccessors.containsKey(parentClass)) {
+        Class<?> parentClass = target.getClass().getSuperclass();
+
+        while (parentClass != null && !animator.containsAccessor(parentClass)) {
             parentClass = parentClass.getSuperclass();
         }
 
@@ -608,7 +245,7 @@ class Tween extends BaseTween<Tween> {
     Tween ease(final TweenEquation easeEquation) {
         this.equation = easeEquation;
 
-        flushWrite();
+        animator.flushWrite();
         return this;
     }
 
@@ -640,7 +277,7 @@ class Tween extends BaseTween<Tween> {
     Tween ease(final TweenEquations easeEquation) {
         ease__(easeEquation);
 
-        flushWrite();
+        animator.flushWrite();
         return this;
     }
 
@@ -673,7 +310,6 @@ class Tween extends BaseTween<Tween> {
     protected
     Tween ease__(final TweenEquations easeEquation) {
         this.equation = easeEquation.getEquation();
-
         return this;
     }
 
@@ -688,14 +324,14 @@ class Tween extends BaseTween<Tween> {
      */
     public
     Tween cast(final Class<?> targetClass) {
-        flushRead();
+        animator.flushRead();
 
         if (isInitialized) {
             throw new RuntimeException("You can't cast the target of a tween once it has been initialized");
         }
         this.targetClass = targetClass;
 
-        flushWrite();
+        animator.flushWrite();
         return this;
     }
 
@@ -716,7 +352,7 @@ class Tween extends BaseTween<Tween> {
     Tween target(final float targetValue) {
         targetValues[0] = targetValue;
 
-        flushWrite();
+        animator.flushWrite();
         return this;
     }
 
@@ -739,7 +375,7 @@ class Tween extends BaseTween<Tween> {
         targetValues[0] = targetValue1;
         targetValues[1] = targetValue2;
 
-        flushWrite();
+        animator.flushWrite();
         return this;
     }
 
@@ -764,7 +400,7 @@ class Tween extends BaseTween<Tween> {
         targetValues[1] = targetValue2;
         targetValues[2] = targetValue3;
 
-        flushWrite();
+        animator.flushWrite();
         return this;
     }
 
@@ -783,14 +419,14 @@ class Tween extends BaseTween<Tween> {
      */
     public
     Tween target(final float... targetValues) {
-        flushRead();
+        animator.flushRead();
 
         final int length = targetValues.length;
         verifyCombinedAttrs(length);
 
         System.arraycopy(targetValues, 0, this.targetValues, 0, length);
 
-        flushWrite();
+        animator.flushWrite();
         return this;
     }
 
@@ -808,12 +444,12 @@ class Tween extends BaseTween<Tween> {
      */
     public
     Tween targetRelative(final float targetValue) {
-        flushRead();
+        animator.flushRead();
 
         isRelative = true;
         targetValues[0] = isInitialized ? targetValue + startValues[0] : targetValue;
 
-        flushWrite();
+        animator.flushWrite();
         return this;
     }
 
@@ -832,14 +468,14 @@ class Tween extends BaseTween<Tween> {
      */
     public
     Tween targetRelative(final float targetValue1, final float targetValue2) {
-        flushRead();
+        animator.flushRead();
 
         isRelative = true;
         final boolean initialized = isInitialized;
         targetValues[0] = initialized ? targetValue1 + startValues[0] : targetValue1;
         targetValues[1] = initialized ? targetValue2 + startValues[1] : targetValue2;
 
-        flushWrite();
+        animator.flushWrite();
         return this;
     }
 
@@ -859,7 +495,7 @@ class Tween extends BaseTween<Tween> {
      */
     public
     Tween targetRelative(final float targetValue1, final float targetValue2, final float targetValue3) {
-        flushRead();
+        animator.flushRead();
 
         this.isRelative = true;
         final boolean initialized = this.isInitialized;
@@ -869,7 +505,7 @@ class Tween extends BaseTween<Tween> {
         targetValues[1] = initialized ? targetValue2 + startValues[1] : targetValue2;
         targetValues[2] = initialized ? targetValue3 + startValues[2] : targetValue3;
 
-        flushWrite();
+        animator.flushWrite();
         return this;
     }
 
@@ -887,7 +523,7 @@ class Tween extends BaseTween<Tween> {
      */
     public
     Tween targetRelative(final float... targetValues) {
-        flushRead();
+        animator.flushRead();
 
         final int length = targetValues.length;
         verifyCombinedAttrs(length);
@@ -901,7 +537,7 @@ class Tween extends BaseTween<Tween> {
 
         this.isRelative = true;
 
-        flushWrite();
+        animator.flushWrite();
         return this;
     }
 
@@ -916,7 +552,7 @@ class Tween extends BaseTween<Tween> {
      */
     public
     Tween waypoint(final float targetValue) {
-        flushRead();
+        animator.flushRead();
 
         final int waypointsCount = this.waypointsCount;
         verifyWaypoints(waypointsCount);
@@ -924,7 +560,7 @@ class Tween extends BaseTween<Tween> {
         waypoints[waypointsCount] = targetValue;
         this.waypointsCount += 1;
 
-        flushWrite();
+        animator.flushWrite();
         return this;
     }
 
@@ -942,7 +578,7 @@ class Tween extends BaseTween<Tween> {
      */
     public
     Tween waypoint(final float targetValue1, final float targetValue2) {
-        flushRead();
+        animator.flushRead();
 
         final int waypointsCount = this.waypointsCount;
         verifyWaypoints(waypointsCount);
@@ -954,7 +590,7 @@ class Tween extends BaseTween<Tween> {
         waypoints[count + 1] = targetValue2;
         this.waypointsCount += 1;
 
-        flushWrite();
+        animator.flushWrite();
         return this;
     }
 
@@ -973,7 +609,7 @@ class Tween extends BaseTween<Tween> {
      */
     public
     Tween waypoint(final float targetValue1, final float targetValue2, final float targetValue3) {
-        flushRead();
+        animator.flushRead();
 
         final int waypointsCount = this.waypointsCount;
         verifyWaypoints(waypointsCount);
@@ -986,7 +622,7 @@ class Tween extends BaseTween<Tween> {
         waypoints[count + 2] = targetValue3;
         this.waypointsCount += 1;
 
-        flushWrite();
+        animator.flushWrite();
         return this;
     }
 
@@ -1003,7 +639,7 @@ class Tween extends BaseTween<Tween> {
      */
     public
     Tween waypoint(final float... targetValues) {
-        flushRead();
+        animator.flushRead();
 
         final int waypointsCount = this.waypointsCount;
         verifyWaypoints(waypointsCount);
@@ -1011,7 +647,7 @@ class Tween extends BaseTween<Tween> {
         System.arraycopy(targetValues, 0, waypoints, waypointsCount * targetValues.length, targetValues.length);
         this.waypointsCount += 1;
 
-        flushWrite();
+        animator.flushWrite();
         return this;
     }
 
@@ -1029,7 +665,7 @@ class Tween extends BaseTween<Tween> {
     Tween path(final TweenPaths path) {
         path__(path);
 
-        flushWrite();
+        animator.flushWrite();
         return this;
     }
 
@@ -1048,7 +684,6 @@ class Tween extends BaseTween<Tween> {
     protected
     Tween path__(final TweenPaths path) {
         this.path = path.path();
-
         return this;
     }
 
@@ -1066,7 +701,7 @@ class Tween extends BaseTween<Tween> {
     Tween path(final TweenPath path) {
         path__(path);
 
-        flushWrite();
+        animator.flushWrite();
         return this;
     }
 
@@ -1085,7 +720,6 @@ class Tween extends BaseTween<Tween> {
     protected
     Tween path__(final TweenPath path) {
         this.path = path;
-
         return this;
     }
 
@@ -1098,7 +732,7 @@ class Tween extends BaseTween<Tween> {
      */
     public
     Object getTarget() {
-        flushRead();
+        animator.flushRead();
         return target;
     }
 
@@ -1107,7 +741,7 @@ class Tween extends BaseTween<Tween> {
      */
     public
     int getType() {
-        flushRead();
+        animator.flushRead();
         return type;
     }
 
@@ -1116,7 +750,7 @@ class Tween extends BaseTween<Tween> {
      */
     public
     TweenEquation getEasing() {
-        flushRead();
+        animator.flushRead();
         return equation;
     }
 
@@ -1126,7 +760,7 @@ class Tween extends BaseTween<Tween> {
      */
     public float[]
     getTargetValues() {
-        flushRead();
+        animator.flushRead();
         return targetValues;
     }
 
@@ -1135,7 +769,7 @@ class Tween extends BaseTween<Tween> {
      */
     public int
     getCombinedAttributesCount() {
-        flushRead();
+        animator.flushRead();
         return combinedAttrsCnt;
     }
 
@@ -1144,7 +778,7 @@ class Tween extends BaseTween<Tween> {
      */
     public
     TweenAccessor<?> getAccessor() {
-        flushRead();
+        animator.flushRead();
         return accessor;
     }
 
@@ -1153,7 +787,7 @@ class Tween extends BaseTween<Tween> {
      */
     public
     Class<?> getTargetClass() {
-        flushRead();
+        animator.flushRead();
         return targetClass;
     }
 
@@ -1164,10 +798,10 @@ class Tween extends BaseTween<Tween> {
     @SuppressWarnings("unchecked")
     @Override
     public
-    Tween start() {
-        flushRead();
+    Tween startUnmanaged() {
+        animator.flushRead();
 
-        super.start();
+        super.startUnmanaged__();
 
         final Object target = this.target;
         if (target == null) {
@@ -1179,7 +813,7 @@ class Tween extends BaseTween<Tween> {
                 accessor = (TweenAccessor<Object>) target;
             }
             else {
-                accessor = registeredAccessors.get(targetClass);
+                accessor = animator.getAccessor(targetClass);
             }
         }
 
@@ -1192,14 +826,14 @@ class Tween extends BaseTween<Tween> {
 
         verifyCombinedAttrs(combinedAttrsCnt);
 
-        flushWrite();
+        animator.flushWrite();
         return this;
     }
 
     @Override
     public
     void free() {
-        pool.put(this);
+        animator.free(this);
     }
 
     /**
@@ -1376,17 +1010,16 @@ class Tween extends BaseTween<Tween> {
     // -------------------------------------------------------------------------
 
     // has the combined attributes limit been reached?
-    private static
     void verifyCombinedAttrs(final int length) {
         if (length > combinedAttrsLimit) {
-            String msg = "You cannot combine more than " + combinedAttrsLimit + " " + "attributes in a tween. You can raise this limit with " +
-                         "Tween.setCombinedAttributesLimit(), which should be called once in application initialization code.";
+            String msg =
+                    "You cannot combine more than " + combinedAttrsLimit + " " + "attributes in a tween. You can raise this limit with " +
+                    "Tween.setCombinedAttributesLimit(), which should be called once in application initialization code.";
             throw new RuntimeException(msg);
         }
     }
 
     // has the waypoints limit been reached?
-    private static
     void verifyWaypoints(final int waypointsCount) {
         if (waypointsCount == waypointsLimit) {
             String msg = "You cannot add more than " + waypointsLimit + " " + "waypoints to a tween. You can raise this limit with " +

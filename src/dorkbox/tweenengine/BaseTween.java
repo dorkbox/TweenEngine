@@ -32,48 +32,18 @@ import java.util.Arrays;
  * @author Aurelien Ribon | http://www.aurelienribon.com/
  * @author dorkbox, llc
  */
-@SuppressWarnings({"ForLoopReplaceableByForEach", "WeakerAccess", "unused", "ResultOfMethodCallIgnored"})
+@SuppressWarnings({"ForLoopReplaceableByForEach", "WeakerAccess", "unused", "ResultOfMethodCallIgnored", "UnusedReturnValue"})
 public
 abstract class BaseTween<T> {
-    private static volatile long lightSyncObject = System.nanoTime();
-
-    /**
-     * Only on public methods.
-     * <p>
-     * Flushes the visibility of all tween fields from the cache for access/use from different threads.
-     * <p>
-     * This does not block and does not prevent race conditions.
-     *
-     * @return the last time (in nanos) that the field modifications were flushed
-     */
-    @SuppressWarnings("UnusedReturnValue")
-    static long flushRead() {
-        return lightSyncObject;
-    }
-
-    /**
-     * Only on public methods.
-     * <p>
-     * Flushes the visibility of all tween field modifications from the cache for access/use from different threads.
-     * <p>
-     * This does not block and does not prevent race conditions.
-     */
-    static void flushWrite() {
-        lightSyncObject = System.nanoTime();
-    }
-
     // if there is a DELAY, the tween will remain inside "START" until it's finished with the delay
     protected static final int INVALID = 0;
     protected static final int START = 1;
     protected static final int RUN = 2;
     protected static final int FINISHED = 3;
 
-    public static final UpdateAction<?> NULL_ACTION = new UpdateAction<Object>() {
-        @Override
-        public
-        void onEvent(final Object tween) {
-        }
-    };
+
+    // manages the pool and other (previously) static fields
+    protected final Animator animator;
 
     // we are a simple state machine...
     protected int state = 0;
@@ -128,8 +98,8 @@ abstract class BaseTween<T> {
     protected boolean isAutoRemoveEnabled;
     protected boolean isAutoStartEnabled;
 
-    private UpdateAction startEventCallback = NULL_ACTION;
-    private UpdateAction endEventCallback = NULL_ACTION;
+    private UpdateAction startEventCallback = Animator.NULL_ACTION;
+    private UpdateAction endEventCallback = Animator.NULL_ACTION;
 
     // callbacks (optimized for fast call w/ many callbacks). Verification for multiple triggers is on add.
     private static final TweenCallback[] TEMP_EMPTY = new TweenCallback[0];
@@ -142,6 +112,11 @@ abstract class BaseTween<T> {
     private TweenCallback[] reverse_Start = new TweenCallback[0];
     private TweenCallback[] reverse_End = new TweenCallback[0];
     private TweenCallback[] reverse_Complete = new TweenCallback[0];
+
+    public
+    BaseTween(final Animator animator) {
+        this.animator = animator;
+    }
 
 
     // -------------------------------------------------------------------------
@@ -174,7 +149,7 @@ abstract class BaseTween<T> {
 
         clearCallbacks_();
         userData = null;
-        endEventCallback = startEventCallback = NULL_ACTION;
+        endEventCallback = startEventCallback = Animator.NULL_ACTION;
 
         isAutoRemoveEnabled = isAutoStartEnabled = true;
     }
@@ -305,12 +280,29 @@ abstract class BaseTween<T> {
     @SuppressWarnings("unchecked")
     public
     T delay(final float delay) {
-        flushRead();
+        animator.flushRead();
 
+        delay__(delay);
+
+        animator.flushWrite();
+        return (T) this;
+    }
+
+    /**
+     * doesn't sync on anything.
+     * <p>
+     * Adds a start delay to the tween or timeline in seconds.
+     *
+     * @param delay A duration in seconds for the delay
+     *
+     * @return The current object, for chaining instructions.
+     */
+    @SuppressWarnings("unchecked")
+    protected
+    T delay__(final float delay) {
         this.startDelay += delay;
         this.currentTime -= delay;
 
-        flushWrite();
         return (T) this;
     }
 
@@ -320,13 +312,13 @@ abstract class BaseTween<T> {
     public
     void cancel() {
         isCanceled = true;
-        flushWrite();
+        animator.flushWrite();
     }
 
     /**
      * Stops and resets the tween or timeline, and sends it to its pool, for later reuse.
      * <p>
-     * If you use a {@link TweenManager}, this method is automatically called once the animation is complete.
+     * If started normally (instead of un-managed), the {@link Animator} will automatically call this method once the animation is complete.
      */
     public
     void free() {
@@ -338,7 +330,7 @@ abstract class BaseTween<T> {
     public
     void pause() {
         isPaused = true;
-        flushWrite();
+        animator.flushWrite();
     }
 
     /**
@@ -347,7 +339,7 @@ abstract class BaseTween<T> {
     public
     void resume() {
         isPaused = false;
-        flushWrite();
+        animator.flushWrite();
     }
 
     /**
@@ -363,7 +355,7 @@ abstract class BaseTween<T> {
     T repeat(final int count, final float delay) {
         repeat__(count, delay);
 
-        flushWrite();
+        animator.flushWrite();
         return (T) this;
     }
 
@@ -410,7 +402,7 @@ abstract class BaseTween<T> {
 
         canAutoReverse = true;
 
-        flushWrite();
+        animator.flushWrite();
         return (T) this;
     }
 
@@ -430,7 +422,7 @@ abstract class BaseTween<T> {
 
         this.startEventCallback = startCallback;
 
-        flushWrite();
+        animator.flushWrite();
         return (T) this;
     }
 
@@ -450,7 +442,7 @@ abstract class BaseTween<T> {
 
         this.endEventCallback = endCallback;
 
-        flushWrite();
+        animator.flushWrite();
         return (T) this;
     }
 
@@ -467,31 +459,42 @@ abstract class BaseTween<T> {
 
 
     /**
-     * Starts or restarts the object unmanaged. You will need to take care of its life-cycle. If you want the tween to be managed for you,
-     * use a {@link TweenManager}.
+     * Starts or restarts the object unmanaged. You will need to take care of its life-cycle.
+     *
+     * @return The current object, for chaining instructions.
+     */
+    @SuppressWarnings("unchecked")
+    public
+    T startUnmanaged() {
+        startUnmanaged__();
+
+        animator.flushWrite();
+        return (T) this;
+    }
+
+    /**
+     * Starts or restarts the object unmanaged. You will need to take care of its life-cycle.
+     *
+     * @return The current object, for chaining instructions.
+     */
+    @SuppressWarnings("unchecked")
+    T startUnmanaged__() {
+        setup__();
+
+        return (T) this;
+    }
+
+    /**
+     * Convenience method to add an object to a manager where it's life-cycle will be automatically handled .
      *
      * @return The current object, for chaining instructions.
      */
     @SuppressWarnings("unchecked")
     public
     T start() {
-        setup__();
+        animator.add(this);
 
-        flushWrite();
-        return (T) this;
-    }
-
-    /**
-     * Convenience method to add an object to a manager. Its life-cycle will be handled for you. Relax and enjoy the animation.
-     *
-     * @return The current object, for chaining instructions.
-     */
-    @SuppressWarnings("unchecked")
-    public
-    T start(final TweenManager manager) {
-        manager.add(this);
-
-        flushWrite();
+        animator.flushWrite();
         return (T) this;
     }
 
@@ -504,7 +507,7 @@ abstract class BaseTween<T> {
      */
     public final
     float getCurrentTime() {
-        flushRead();
+        animator.flushRead();
         return currentTime;
     }
 
@@ -513,7 +516,7 @@ abstract class BaseTween<T> {
      */
     public final
     float getStartDelay() {
-        flushRead();
+        animator.flushRead();
         return startDelay;
     }
 
@@ -522,7 +525,7 @@ abstract class BaseTween<T> {
      */
     public
     float getDuration() {
-        flushRead();
+        animator.flushRead();
         return duration;
     }
 
@@ -536,7 +539,7 @@ abstract class BaseTween<T> {
      */
     public
     float getFullDuration() {
-        flushRead();
+        animator.flushRead();
         return getFullDuration__();
     }
 
@@ -563,7 +566,7 @@ abstract class BaseTween<T> {
      */
     public final
     int getRepeatCount() {
-        flushRead();
+        animator.flushRead();
         return repeatCountOrig;
     }
 
@@ -572,7 +575,7 @@ abstract class BaseTween<T> {
      */
     public final
     float getRepeatDelay() {
-        flushRead();
+        animator.flushRead();
         return repeatDelay;
     }
 
@@ -586,7 +589,7 @@ abstract class BaseTween<T> {
      */
     public final
     boolean getDirection() {
-        flushRead();
+        animator.flushRead();
         return direction;
     }
 
@@ -599,7 +602,7 @@ abstract class BaseTween<T> {
      */
     public final
     boolean isInDelay() {
-        flushRead();
+        animator.flushRead();
         return state == START;
     }
 
@@ -608,7 +611,7 @@ abstract class BaseTween<T> {
      */
     public final
     boolean isInAutoReverse() {
-        flushRead();
+        animator.flushRead();
         return isInAutoReverse;
     }
 
@@ -619,7 +622,7 @@ abstract class BaseTween<T> {
      */
     public
     boolean isInitialized() {
-        flushRead();
+        animator.flushRead();
         return isInitialized;
     }
 
@@ -631,7 +634,7 @@ abstract class BaseTween<T> {
      */
     public
     boolean isFinished() {
-        flushRead();
+        animator.flushRead();
         return isFinished__();
     }
 
@@ -653,7 +656,7 @@ abstract class BaseTween<T> {
      */
     public
     boolean canAutoReverse() {
-        flushRead();
+        animator.flushRead();
         return canAutoReverse;
     }
 
@@ -662,8 +665,35 @@ abstract class BaseTween<T> {
      */
     public
     boolean isPaused() {
-        flushRead();
+        animator.flushRead();
         return isPaused;
+    }
+
+    // -------------------------------------------------------------------------
+    // TweenManager behavior
+    // -------------------------------------------------------------------------
+
+    /**
+     * Disables the "auto remove" mode of the tween manager for a particular tween or timeline. Tweens/Timelines are auto-removed by
+     * default. The interest of deactivating it is to prevent some tweens or timelines from being automatically removed from a manager
+     * once they are finished. Therefore, if you update a manager backwards, the tweens or timelines will be played again, even if they
+     * were finished.
+     */
+    public
+    void disableAutoRemove() {
+        this.isAutoRemoveEnabled = false;
+        animator.flushWrite();
+    }
+
+    /**
+     * Disables the "auto start" mode of any tween manager for a particular tween or timeline. Tweens/Timelines are auto-started by
+     * default. If it is not enabled, add a tween or timeline to any manager won't start it automatically, and you'll need to
+     * call .start() manually on your object.
+     */
+    public
+    void disableAutoStart() {
+        this.isAutoStartEnabled = false;
+        animator.flushWrite();
     }
 
     // -------------------------------------------------------------------------
@@ -682,7 +712,7 @@ abstract class BaseTween<T> {
     public
     T setUserData(final Object data) {
         userData = data;
-        flushWrite();
+        animator.flushWrite();
         return (T) this;
     }
 
@@ -692,7 +722,7 @@ abstract class BaseTween<T> {
     @SuppressWarnings("unchecked")
     public
     T getUserData() {
-        flushRead();
+        animator.flushRead();
         return (T) userData;
     }
 
@@ -725,6 +755,28 @@ abstract class BaseTween<T> {
 
     /**
      * Sets the tween or timeline to a specific point in time based on it's duration + delays. Callbacks are not notified and the change is
+     * immediate. The tween/timeline will continue in it's original direction
+     * For example:
+     * <ul>
+     * <li> setProgress(0F, true) : set it to the starting position just after the start delay in the forward direction</li>
+     * <li> setProgress(.5F, true) : set it to the middle position in the forward direction</li>
+     * <li> setProgress(.5F, false) : set it to the middle position in the reverse direction</li>
+     * <li> setProgress(1F, false) : set it to the end position in the reverse direction</li>
+     * </ul>
+     * <p>
+     * Caveat: If the timeline/tween is set to end in reverse, and it CANNOT go in reverse, then it will end up in the finished state
+     * (end position). If the timeline/tween is in repeat mode then it will end up in the same position if it was going forwards.
+     *
+     * @param percentage the percentage (of it's duration) from 0-1, that the tween/timeline be set to
+     */
+    public
+    T setProgress(final float percentage) {
+        animator.flushRead();
+        return setProgress(percentage, this.direction);
+    }
+
+    /**
+     * Sets the tween or timeline to a specific point in time based on it's duration + delays. Callbacks are not notified and the change is
      * immediate.
      * For example:
      * <ul>
@@ -740,8 +792,9 @@ abstract class BaseTween<T> {
      * @param percentage the percentage (of it's duration) from 0-1, that the tween/timeline be set to
      * @param direction sets the direction of the timeline when it updates next: forwards (true) or reverse (false).
      */
+    @SuppressWarnings("unchecked")
     public
-    void setProgress(final float percentage, final boolean direction) {
+    T setProgress(final float percentage, final boolean direction) {
         if (percentage < -0.0F || percentage > 1.0F) {
             throw new RuntimeException("Cannot set the progress <0 or >1");
         }
@@ -811,6 +864,7 @@ abstract class BaseTween<T> {
         }
 
         // flushWrite();   // synchronize takes care of this
+        return (T) this;
     }
 
     // -------------------------------------------------------------------------
@@ -822,7 +876,7 @@ abstract class BaseTween<T> {
     }
 
     /**
-     * Kills every tweens associated to the given target. Will also kill every timelines containing a tween associated to the given target.
+     * Kills every tweens associated to the given target. Will also kill every timeline containing a tween associated to the given target.
      *
      * @return true if the target was killed, false if we do not contain the target, and it was not killed
      */
@@ -915,9 +969,9 @@ abstract class BaseTween<T> {
     @SuppressWarnings({"unchecked", "Duplicates", "ConstantConditions"})
     public final
     float update(float delta) {
-        flushRead();
+        animator.flushRead();
         float v = update__(delta);
-        flushWrite();
+        animator.flushWrite();
 
         return v;
     }
