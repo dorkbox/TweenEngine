@@ -30,13 +30,15 @@ import dorkbox.objectPool.PoolableObject;
 import dorkbox.util.Version;
 
 /**
- * A TweenManager updates all your tweens and timelines at once. Its main interest is that it handles the tween/timeline life-cycles
- * for you, as well as releasing pooled objects.
- * <p/>
- * If you don't use a TweenManager, you must make sure to release the tween objects back to the pool manually via {@link BaseTween#free()}
- * <p/>
+ * The TweenEngine is responsible for creating Tweens and Timelines, and can be either managed, or un-managed.
+ * <p>
+ * If managed, {@link TweenEngine#update(float)} will update all your tweens and timelines at once, as well as managing the tween/timeline
+ * life-cycles for you and releasing pooled objects.
+ * <p>
+ * If un-managed, then you must update the tween/timeline manually, and make sure to release the tween objects back to the pool manually via
+ * {@link BaseTween#free()}
+ * <p>
  * Just give it a bunch of tweens or timelines and call {@link #update()} periodically, you don't need to do anything else!
- * Relax and enjoy your animations.
  * <p/>
  * More fine-grained control is available as well via {@link #update(float)} to update via seconds (1.0F == 1.0 seconds), or
  * {@link #update(long)} to update via nano-seconds.
@@ -49,7 +51,30 @@ import dorkbox.util.Version;
  */
 @SuppressWarnings({"unused", "ForLoopReplaceableByForEach", "WeakerAccess"})
 public
-class Animator {
+class TweenEngine {
+
+    /**
+     * Creates a builder for the TweenEngine.
+     * @return
+     */
+    public static
+    EngineBuilder create() {
+        return new EngineBuilder();
+    }
+
+    /**
+     * Builds a new, thread-safe TweenEngine using the default parameters.
+     *  - NOTE: Threadsafe in this instance means that objects are visible between threads. There are no protections against race conditions.
+     *  - Combined Attribute Limits = 3
+     *  - Waypoint limit = 0
+     */
+    public static
+    TweenEngine build() {
+        // defaults
+        return new TweenEngine(true, 3, 0, new HashMap<Class<?>, TweenAccessor<?>>());
+    }
+
+
     // for creating arrays slightly faster...
     private static final BaseTween[] BASE_TWEENS = new BaseTween[0];
 
@@ -92,10 +117,10 @@ class Animator {
     private long lastTime = 0L;
 
 
-    Animator(final boolean threadSafe,
-             final int combinedAttrsLimit,
-             final int waypointsLimit,
-             final Map<Class<?>, TweenAccessor<?>> registeredAccessors) {
+    TweenEngine(final boolean threadSafe,
+                final int combinedAttrsLimit,
+                final int waypointsLimit,
+                final Map<Class<?>, TweenAccessor<?>> registeredAccessors) {
 
         this.combinedAttrsLimit = combinedAttrsLimit;
         this.waypointsLimit = waypointsLimit;
@@ -108,7 +133,7 @@ class Animator {
                 }
 
                 @Override public Timeline create() {
-                    return new Timeline(Animator.this);
+                    return new Timeline(TweenEngine.this);
                 }
             });
 
@@ -118,7 +143,7 @@ class Animator {
                 }
 
                 @Override public Tween create() {
-                    return new Tween(Animator.this, Animator.this.combinedAttrsLimit, Animator.this.waypointsLimit);
+                    return new Tween(TweenEngine.this, TweenEngine.this.combinedAttrsLimit, TweenEngine.this.waypointsLimit);
                 }
             });
         } else {
@@ -132,7 +157,7 @@ class Animator {
                 @Override
                 public
                 Timeline create() {
-                    return new Timeline(Animator.this);
+                    return new Timeline(TweenEngine.this);
                 }
             }, new ArrayDeque<SoftReference<Timeline>>());
 
@@ -146,7 +171,7 @@ class Animator {
                 @Override
                 public
                 Tween create() {
-                    return new Tween(Animator.this, Animator.this.combinedAttrsLimit, Animator.this.waypointsLimit);
+                    return new Tween(TweenEngine.this, TweenEngine.this.combinedAttrsLimit, TweenEngine.this.waypointsLimit);
                 }
             }, new ArrayDeque<SoftReference<Tween>>());
         }
@@ -185,11 +210,9 @@ class Animator {
     }
 
 
-
-
-
-
-
+    // -------------------------------------------------------------------------
+    // MANAGER actions
+    // -------------------------------------------------------------------------
 
     /**
      * Gets the registered TweenAccessor associated with the given object class.
@@ -202,28 +225,6 @@ class Animator {
         return registeredAccessors.get(someClass);
     }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    // -------------------------------------------------------------------------
-    // MANAGER actions
-    // -------------------------------------------------------------------------
-
     /**
      * Sets an event handler so that a notification is broadcast when the manager starts updating the current frame of animation.
      *
@@ -231,9 +232,9 @@ class Animator {
      * @return The manager, for instruction chaining.
      */
     public
-    Animator setStartCallback(final UpdateAction<Animator> startCallback) {
+    TweenEngine setStartCallback(final UpdateAction<TweenEngine> startCallback) {
         if (startCallback == null) {
-            this.startEventCallback = Animator.NULL_ACTION;
+            this.startEventCallback = TweenEngine.NULL_ACTION;
         } else {
             this.startEventCallback = startCallback;
 
@@ -250,9 +251,9 @@ class Animator {
      * @return The manager, for instruction chaining.
      */
     public
-    Animator setEndCallback(final UpdateAction<Animator> endCallback) {
+    TweenEngine setEndCallback(final UpdateAction<TweenEngine> endCallback) {
         if (endCallback == null) {
-            this.endEventCallback = Animator.NULL_ACTION;
+            this.endEventCallback = TweenEngine.NULL_ACTION;
         } else {
             this.endEventCallback = endCallback;
         }
@@ -261,16 +262,29 @@ class Animator {
         return this;
     }
 
-
-
     /**
      * Adds a tween or timeline to the manager and starts or restarts it.
      *
      * @return The manager, for instruction chaining.
      */
     public
-    Animator add(final BaseTween<?> tween) {
+    TweenEngine add(final BaseTween<?> tween) {
         flushRead();
+
+        add__(tween);
+
+        flushWrite();
+        return this;
+    }
+
+    /**
+     * doesn't sync on anything.
+     * <p>
+     * Adds a tween or timeline to the manager and starts or restarts it.
+     *
+     * @return The manager, for instruction chaining.
+     */
+    void add__(final BaseTween<?> tween) {
 
         if (!tweenArrayList.contains(tween)) {
             tweenArrayList.add(tween);
@@ -282,9 +296,6 @@ class Animator {
         if (tween.isAutoStartEnabled) {
             tween.startUnmanaged__();
         }
-
-        flushWrite();
-        return this;
     }
 
     /**
@@ -318,7 +329,6 @@ class Animator {
         }
         return false;
     }
-
 
     /**
      * Cancels all managed tweens and timelines.
@@ -429,8 +439,6 @@ class Animator {
         tweenArrayList.ensureCapacity(minCapacity);
         flushWrite();
     }
-
-
 
     /**
      * Pauses the manager. Further update calls won't have any effect.
@@ -650,6 +658,10 @@ class Animator {
         return timeline;
     }
 
+
+
+
+
     // -------------------------------------------------------------------------
     // TWEEN actions
     // -------------------------------------------------------------------------
@@ -657,21 +669,19 @@ class Animator {
     /**
      * Factory creating a new standard interpolation. This is the most common type of interpolation. The starting values are
      * retrieved automatically after the delay (if any).
-     * <br/><br/>
      * <p>
      * <b>You need to set the target values of the interpolation by using one of the target() methods</b>. The interpolation will run
      * from the starting values to these target values.
-     * <br/><br/>
      * <p>
-     * The common use of Tweens is "fire-and-forget": you do not need to care for tweens once you added them to a TweenManager, they will
-     * be updated automatically, and cleaned once finished.
-     * <br/><br/>
+     * The common use of Tweens is "fire-and-forget": you do not need to care for tweens if they are started normally via
+     * {@link Tween#start()}, as they will be be updated and cleaned/etc automatically once finished. If started unmanaged via
+     * ({@link Tween#startUnmanaged()} then you will have to manage it's lifecycle manually.
      * <p>
      * <pre> {@code
-     * Tween.to(myObject, POSITION, 1.0F)
-     *      .target(50, 70)
-     *      .ease(Quad_InOut)
-     *      .start(myManager);
+     * TweenEngine.build().to(myObject, POSITION, 1.0F)
+     *                    .target(50, 70)
+     *                    .ease(Quad_InOut)
+     *                    .start();
      * }</pre>
      * <p>
      * Several options such as delay, repetitions and callbacks can be added to the tween.
@@ -690,21 +700,20 @@ class Animator {
     /**
      * Factory creating a new standard interpolation. This is the most common type of interpolation. The starting values are
      * retrieved automatically after the delay (if any).
-     * <br/><br/>
      * <p>
      * <b>You need to set the target values of the interpolation by using one of the target() methods</b>. The interpolation will run
      * from the starting values to these target values.
-     * <br/><br/>
      * <p>
-     * The common use of Tweens is "fire-and-forget": you do not need to care for tweens once you added them to a TweenManager, they will
-     * be updated automatically, and cleaned once finished.
-     * <br/><br/>
+     * The common use of Tweens is "fire-and-forget": you do not need to care for tweens if they are started normally via
+     * {@link Tween#start()}, as they will be be updated and cleaned/etc automatically once finished. If started unmanaged via
+     * ({@link Tween#startUnmanaged()} then you will have to manage it's lifecycle manually.
      * <p>
      * <pre> {@code
-     * Tween.to(myObject, POSITION, accessorObject, 1.0F)
-     *      .target(50, 70)
-     *      .ease(Quad_InOut)
-     *      .start(myManager);
+     * TweenEngine engine = TweenEngine.build();
+     * engine.to(myObject, POSITION, accessorObject, 1.0F)
+     *       .target(50, 70)
+     *       .ease(Quad_InOut)
+     *       .start();
      * }</pre>
      * <p>
      * Several options such as delay, repetitions and callbacks can be added to the tween.
@@ -731,21 +740,20 @@ class Animator {
 
     /**
      * Factory creating a new reversed interpolation. The ending values are retrieved automatically after the delay (if any).
-     * <br/><br/>
      * <p>
      * <b>You need to set the starting values of the interpolation by using one of the target() methods</b>. The interpolation will run
      * from the starting values to these target values.
-     * <br/><br/>
      * <p>
-     * The common use of Tweens is "fire-and-forget": you do not need to care for tweens once you added them to a TweenManager, they will
-     * be updated automatically, and cleaned once finished. Common call:
-     * <br/><br/>
+     * The common use of Tweens is "fire-and-forget": you do not need to care for tweens if they are started normally via
+     * {@link Tween#start()}, as they will be be updated and cleaned/etc automatically once finished. If started unmanaged via
+     * ({@link Tween#startUnmanaged()} then you will have to manage it's lifecycle manually.
      * <p>
      * <pre> {@code
-     * Tween.from(myObject, POSITION, 1.0F)
-     *      .target(0, 0)
-     *      .ease(Quad_InOut)
-     *      .start(myManager);
+     * TweenEngine engine = TweenEngine.build();
+     * engine.from(myObject, POSITION, 1.0F)
+     *       .target(0, 0)
+     *       .ease(Quad_InOut)
+     *       .start();
      * }</pre>
      * <p>
      * Several options such as delay, repetitions and callbacks can be added to the tween.
@@ -763,21 +771,20 @@ class Animator {
 
     /**
      * Factory creating a new reversed interpolation. The ending values are retrieved automatically after the delay (if any).
-     * <br/><br/>
      * <p>
      * <b>You need to set the starting values of the interpolation by using one of the target() methods</b>. The interpolation will run
      * from the starting values to these target values.
-     * <br/><br/>
      * <p>
-     * The common use of Tweens is "fire-and-forget": you do not need to care for tweens once you added them to a TweenManager, they will
-     * be updated automatically, and cleaned once finished. Common call:
-     * <br/><br/>
+     * The common use of Tweens is "fire-and-forget": you do not need to care for tweens if they are started normally via
+     * {@link Tween#start()}, as they will be be updated and cleaned/etc automatically once finished. If started unmanaged via
+     * ({@link Tween#startUnmanaged()} then you will have to manage it's lifecycle manually.
      * <p>
      * <pre> {@code
-     * Tween.from(myObject, POSITION, 1.0F)
-     *      .target(0, 0)
-     *      .ease(Quad_InOut)
-     *      .start(myManager);
+     * TweenEngine engine = TweenEngine.build();
+     * engine.from(myObject, POSITION, 1.0F)
+     *       .target(0, 0)
+     *       .ease(Quad_InOut)
+     *       .start();
      * }</pre>
      * <p>
      * Several options such as delay, repetitions and callbacks can be added to the tween.
@@ -805,21 +812,20 @@ class Animator {
 
     /**
      * Factory creating a new instantaneous interpolation (thus this is not really an interpolation).
-     * <br/><br/>
      * <p>
      * <b>You need to set the target values of the interpolation by using one of the target() methods</b>. The interpolation will set
      * the target attribute to these values after the delay (if any).
-     * <br/><br/>
      * <p>
-     * The common use of Tweens is "fire-and-forget": you do not need to care for tweens once you added them to a TweenManager, they will
-     * be updated automatically, and cleaned once finished. Common call:
-     * <br/><br/>
+     * The common use of Tweens is "fire-and-forget": you do not need to care for tweens if they are started normally via
+     * {@link Tween#start()}, as they will be be updated and cleaned/etc automatically once finished. If started unmanaged via
+     * ({@link Tween#startUnmanaged()} then you will have to manage it's lifecycle manually.
      * <p>
      * <pre> {@code
-     * Tween.set(myObject, POSITION)
-     *      .target(50, 70)
-     *      .delay(1.0F)
-     *      .start(myManager);
+     * TweenEngine engine = TweenEngine.build();
+     * engine.set(myObject, POSITION)
+     *       .target(50, 70)
+     *       .delay(1.0F)
+     *       .start();
      * }</pre>
      * <p>
      * Several options such as delay, repetitions and callbacks can be added to the tween.
@@ -836,21 +842,20 @@ class Animator {
 
     /**
      * Factory creating a new instantaneous interpolation (thus this is not really an interpolation).
-     * <br/><br/>
      * <p>
      * <b>You need to set the target values of the interpolation by using one of the target() methods</b>. The interpolation will set
      * the target attribute to these values after the delay (if any).
-     * <br/><br/>
      * <p>
-     * The common use of Tweens is "fire-and-forget": you do not need to care for tweens once you added them to a TweenManager, they will
-     * be updated automatically, and cleaned once finished. Common call:
-     * <br/><br/>
+     * The common use of Tweens is "fire-and-forget": you do not need to care for tweens if they are started normally via
+     * {@link Tween#start()}, as they will be be updated and cleaned/etc automatically once finished. If started unmanaged via
+     * ({@link Tween#startUnmanaged()} then you will have to manage it's lifecycle manually.
      * <p>
      * <pre> {@code
-     * Tween.set(myObject, POSITION)
-     *      .target(50, 70)
-     *      .delay(1.0F)
-     *      .start(myManager);
+     * TweenEngine engine = TweenEngine.build();
+     * engine.set(myObject, POSITION)
+     *       .target(50, 70)
+     *       .delay(1.0F)
+     *       .start();
      * }</pre>
      * <p>
      * Several options such as delay, repetitions and callbacks can be added to the tween.
@@ -875,17 +880,17 @@ class Animator {
 
     /**
      * Factory creating a new timer. The given callback will be triggered on each iteration start, after the delay.
-     * <br/><br/>
      * <p>
-     * The common use of Tweens is "fire-and-forget": you do not need to care for tweens once you added them to a TweenManager, they will
-     * be updated automatically, and cleaned once finished. Common call:
-     * <br/><br/>
+     * The common use of Tweens is "fire-and-forget": you do not need to care for tweens if they are started normally via
+     * {@link Tween#start()}, as they will be be updated and cleaned/etc automatically once finished. If started unmanaged via
+     * ({@link Tween#startUnmanaged()} then you will have to manage it's lifecycle manually.
      * <p>
      * <pre> {@code
-     * Tween.call(myCallback)
-     *      .delay(1.0F)
-     *      .repeat(10, 1.0F)
-     *      .start(myManager);
+     * TweenEngine engine = TweenEngine.build();
+     * engine.call(myCallback)
+     *       .delay(1.0F)
+     *       .repeat(10, 1.0F)
+     *       .start();
      * }</pre>
      *
      * @param callback The callback that will be triggered on each iteration start.
@@ -949,18 +954,9 @@ class Animator {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
+    // -------------------------------------------------------------------------
+    // Helpers
+    // -------------------------------------------------------------------------
 
     /**
      * Also flushRead();
@@ -995,7 +991,6 @@ class Animator {
         poolTween.put(tween);
     }
 
-
     boolean containsAccessor(final Class<?> accessorClass) {
         return registeredAccessors.containsKey(accessorClass);
     }
@@ -1003,13 +998,6 @@ class Animator {
     TweenAccessor getAccessor(final Class<?> accessorClass) {
         return registeredAccessors.get(accessorClass);
     }
-
-
-
-
-    // -------------------------------------------------------------------------
-    // Helpers
-    // -------------------------------------------------------------------------
 
     private static
     int getTweensCount(final List<BaseTween<?>> objs) {

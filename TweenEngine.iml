@@ -5,7 +5,7 @@
       <configuration>
         <setting name="compilerMaxHeapSize" value="1024" />
         <setting name="gwtScriptOutputStyle" value="DETAILED" />
-        <setting name="gwtSdkUrl" value="file://" />
+        <setting name="gwtSdkUrl" value="file://$MODULE_DIR$/../../resources/Dependencies/gwt" />
         <packaging>
           <module name="dorkbox.tweenengine" enabled="false" />
           <module name="dorkbox.util.tweenengine" enabled="false" />
@@ -32,5 +32,6 @@
     <orderEntry type="module" module-name="ObjectPool" />
     <orderEntry type="library" name="lib-GDX (for tweenengine demo)" level="project" />
     <orderEntry type="module" module-name="Utilities" />
+    <orderEntry type="library" name="gwt-user" level="project" />
   </component>
 </module>

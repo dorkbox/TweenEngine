@@ -87,7 +87,7 @@ class Timeline extends BaseTween<Timeline> {
 	// Setup
 	// -------------------------------------------------------------------------
 
-	Timeline(final Animator animator) {
+	Timeline(final TweenEngine animator) {
 	    super(animator);
         destroy();
 	}
@@ -337,7 +337,7 @@ class Timeline extends BaseTween<Timeline> {
     }
 
     @Override
-    Timeline startUnmanaged__() {
+    void startUnmanaged__() {
         super.startUnmanaged__();
 
         for (int i = 0; i < childrenSize; i++) {
@@ -349,8 +349,6 @@ class Timeline extends BaseTween<Timeline> {
 
             obj.startUnmanaged__();
         }
-
-        return this;
     }
 
 	@Override

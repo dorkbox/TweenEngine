@@ -53,7 +53,7 @@ package dorkbox.tweenengine;
  *      .start(myManager);
  * }</pre>
  *
- * Tween life-cycles can be automatically managed for you, thanks to the {@link TweenManager} class. If you choose to manage your tween
+ * Tween life-cycles can be automatically managed for you, thanks to the {@link TweenEngine} class. If you choose to manage your tween
  * when you start it, then you don't need to care about it anymore. <b>Tweens are <i>fire-and-forget</i>: don't think about them anymore
  * once you started them (if they are managed of course).</b>
  * <p/>
@@ -67,10 +67,10 @@ package dorkbox.tweenengine;
  * The engine cannot directly change your objects attributes, since it doesn't know them. Therefore, you need to tell him how to get and
  * set the different attributes of your objects: <b>you need to implement the {@link TweenAccessor} interface for each object class you
  * will animate</b>. Once done, don't forget to register these implementations, using the static method
- * {@link Tween#registerAccessor(Class, TweenAccessor)}, when you start your application.
+ * {@link EngineBuilder#registerAccessor(Class, TweenAccessor)}, when you start your application.
  *
  * @see TweenAccessor
- * @see TweenManager
+ * @see TweenEngine
  * @see TweenEquation
  * @see Timeline
  *
@@ -121,7 +121,7 @@ class Tween extends BaseTween<Tween> {
     // Setup
     // -------------------------------------------------------------------------
 
-    Tween(final Animator animator, final int combinedAttrsLimit, final int waypointsLimit) {
+    Tween(final TweenEngine animator, final int combinedAttrsLimit, final int waypointsLimit) {
         super(animator);
         this.combinedAttrsLimit = combinedAttrsLimit;
         this.waypointsLimit = waypointsLimit;
@@ -801,11 +801,21 @@ class Tween extends BaseTween<Tween> {
     Tween startUnmanaged() {
         animator.flushRead();
 
+        startUnmanaged__();
+
+        animator.flushWrite();
+        return this;
+    }
+
+    @SuppressWarnings("unchecked")
+    @Override
+    public
+    void startUnmanaged__() {
         super.startUnmanaged__();
 
         final Object target = this.target;
         if (target == null) {
-            return this;
+            return;
         }
 
         if (accessor == null) {
@@ -821,13 +831,10 @@ class Tween extends BaseTween<Tween> {
             combinedAttrsCnt = accessor.getValues(target, type, accessorBuffer);
         }
         else {
-            throw new RuntimeException("No TweenAccessor was found for the target");
+            throw new NullPointerException("No TweenAccessor was found for the target");
         }
 
         verifyCombinedAttrs(combinedAttrsCnt);
-
-        animator.flushWrite();
-        return this;
     }
 
     @Override

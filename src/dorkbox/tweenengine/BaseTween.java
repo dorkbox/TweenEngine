@@ -43,7 +43,7 @@ abstract class BaseTween<T> {
 
 
     // manages the pool and other (previously) static fields
-    protected final Animator animator;
+    protected final TweenEngine animator;
 
     // we are a simple state machine...
     protected int state = 0;
@@ -98,8 +98,8 @@ abstract class BaseTween<T> {
     protected boolean isAutoRemoveEnabled;
     protected boolean isAutoStartEnabled;
 
-    private UpdateAction startEventCallback = Animator.NULL_ACTION;
-    private UpdateAction endEventCallback = Animator.NULL_ACTION;
+    private UpdateAction startEventCallback = TweenEngine.NULL_ACTION;
+    private UpdateAction endEventCallback = TweenEngine.NULL_ACTION;
 
     // callbacks (optimized for fast call w/ many callbacks). Verification for multiple triggers is on add.
     private static final TweenCallback[] TEMP_EMPTY = new TweenCallback[0];
@@ -114,7 +114,7 @@ abstract class BaseTween<T> {
     private TweenCallback[] reverse_Complete = new TweenCallback[0];
 
     public
-    BaseTween(final Animator animator) {
+    BaseTween(final TweenEngine animator) {
         this.animator = animator;
     }
 
@@ -149,7 +149,7 @@ abstract class BaseTween<T> {
 
         clearCallbacks_();
         userData = null;
-        endEventCallback = startEventCallback = Animator.NULL_ACTION;
+        endEventCallback = startEventCallback = TweenEngine.NULL_ACTION;
 
         isAutoRemoveEnabled = isAutoStartEnabled = true;
     }
@@ -307,7 +307,8 @@ abstract class BaseTween<T> {
     }
 
     /**
-     * Cancels the tween or timeline. If you are using a TweenManager, this object will be removed automatically.
+     * Cancels the tween or timeline. If you are starting via {@link Tween#start()}, this object will be removed automatically. If
+     * starting via {@link Tween#startUnmanaged()} you must manage the lifecycle automatically.
      */
     public
     void cancel() {
@@ -318,7 +319,7 @@ abstract class BaseTween<T> {
     /**
      * Stops and resets the tween or timeline, and sends it to its pool, for later reuse.
      * <p>
-     * If started normally (instead of un-managed), the {@link Animator} will automatically call this method once the animation is complete.
+     * If started normally (instead of un-managed), the {@link TweenEngine} will automatically call this method once the animation is complete.
      */
     public
     void free() {
@@ -407,9 +408,9 @@ abstract class BaseTween<T> {
     }
 
     /**
-     * Sets the "start" callback, which is called when the tween/timeline starts running.
+     * Sets the "start" callback, which is called when the tween/timeline starts running, NULL to remove.
      *
-     * @param startCallback this is the object that will be notified when the tween/timeline starts running
+     * @param startCallback this is the object that will be notified when the tween/timeline starts running. NULL to unset.
      *
      * @return The current tween or timeline, for chaining instructions.
      */
@@ -417,19 +418,20 @@ abstract class BaseTween<T> {
     public final
     T setStartCallback(final UpdateAction<T> startCallback) {
         if (startCallback == null) {
-            throw new RuntimeException("Callback cannot be null! Use BaseTween.NULL_ACTION if you wish to 'unset' the callback");
+            this.startEventCallback = TweenEngine.NULL_ACTION;
         }
-
-        this.startEventCallback = startCallback;
+        else {
+            this.startEventCallback = startCallback;
+        }
 
         animator.flushWrite();
         return (T) this;
     }
 
     /**
-     * Sets the "end" callback, which is called when the tween/timeline finishes running.
+     * Sets the "end" callback, which is called when the tween/timeline finishes running, NULL to remove.
      *
-     * @param endCallback this is the object that will be notified when the tween/timeline finishes running
+     * @param endCallback this is the object that will be notified when the tween/timeline finishes running. NULL to unset.
      *
      * @return The current tween or timeline, for chaining instructions.
      */
@@ -437,26 +439,16 @@ abstract class BaseTween<T> {
     public final
     T setEndCallback(final UpdateAction<T> endCallback) {
         if (endCallback == null) {
-            throw new RuntimeException("Callback cannot be null! Use BaseTween.NULL_ACTION if you wish to 'unset' the callback");
+            this.endEventCallback = TweenEngine.NULL_ACTION;
+        }
+        else {
+            this.endEventCallback = endCallback;
         }
 
-        this.endEventCallback = endCallback;
 
         animator.flushWrite();
         return (T) this;
     }
-
-    /**
-     * doesn't sync on anything.
-     * <p>
-     * Prepares the state of the tween before running (or initializing)
-     */
-    protected
-    void setup__() {
-        canTriggerBeginEvent = true;
-        state = START;
-    }
-
 
     /**
      * Starts or restarts the object unmanaged. You will need to take care of its life-cycle.
@@ -478,10 +470,8 @@ abstract class BaseTween<T> {
      * @return The current object, for chaining instructions.
      */
     @SuppressWarnings("unchecked")
-    T startUnmanaged__() {
+    void startUnmanaged__() {
         setup__();
-
-        return (T) this;
     }
 
     /**
@@ -492,11 +482,25 @@ abstract class BaseTween<T> {
     @SuppressWarnings("unchecked")
     public
     T start() {
-        animator.add(this);
+        animator.flushRead();
+
+        animator.add__(this);
 
         animator.flushWrite();
         return (T) this;
     }
+
+    /**
+     * doesn't sync on anything.
+     * <p>
+     * Prepares the state of the tween before running (or initializing)
+     */
+    protected
+    void setup__() {
+        canTriggerBeginEvent = true;
+        state = START;
+    }
+
 
     // -------------------------------------------------------------------------
     // Getters
@@ -630,7 +634,7 @@ abstract class BaseTween<T> {
      * Returns true if the Timeline/Tween is finished (i.e. if the tween has reached its end or has been killed). A tween may be restarted
      * by a timeline when there is a direction change in the timeline.
      * </p>
-     * If you don't use a TweenManager, you may want to call {@link BaseTween#free()} to reuse the object later.
+     * If the Tween/Timeline is un-managed, you should call {@link BaseTween#free()} to reuse the object later.
      */
     public
     boolean isFinished() {
@@ -644,7 +648,7 @@ abstract class BaseTween<T> {
      * Returns true if the Timeline/Tween is finished (i.e. if the tween has reached its end or has been killed). A tween may be restarted
      * by a timeline when there is a direction change in the timeline.
      * </p>
-     * If you don't use a TweenManager, you may want to call {@link BaseTween#free()} to reuse the object later.
+     * If the Tween/Timeline is un-managed, you should call {@link BaseTween#free()} to reuse the object later.
      */
     final
     boolean isFinished__() {
@@ -670,7 +674,7 @@ abstract class BaseTween<T> {
     }
 
     // -------------------------------------------------------------------------
-    // TweenManager behavior
+    // Manager behavior
     // -------------------------------------------------------------------------
 
     /**
@@ -950,7 +954,7 @@ abstract class BaseTween<T> {
     /**
      * Updates the tween or timeline state and values.
      * <p>
-     * <b>You may want to use a TweenManager to update objects for you.</b>
+     * <b>The preferred way to update a tween is via {@link TweenEngine#update(float)}.</b>
      * <p>
      * Slow motion, fast motion and backward play can be easily achieved by tweaking this delta time.
      * <p>
@@ -980,7 +984,7 @@ abstract class BaseTween<T> {
      * <p>
      * Updates the tween or timeline state and values.
      * <p>
-     * <b>You may want to use a TweenManager to update objects for you.</b>
+     * <b>The preferred way to update a tween is via {@link TweenEngine#update(float)}.</b>
      * <p>
      * Slow motion, fast motion and backward play can be easily achieved by tweaking this delta time.
      * <p>

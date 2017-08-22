@@ -7,7 +7,7 @@ import java.util.Map;
  *
  */
 public
-class AnimationBuilder {
+class EngineBuilder {
 
     // by default, we are thread-safe
     private boolean threadSafe = true;
@@ -18,21 +18,15 @@ class AnimationBuilder {
     private int waypointsLimit = 0;
 
 
-
-    private
-    AnimationBuilder() {}
-
-    public static
-    AnimationBuilder create() {
-        return new AnimationBuilder();
-    }
+    EngineBuilder() {}
 
     public
-    Animator build() {
+    TweenEngine build() {
         if (threadSafe) {
-            return new Animator(threadSafe, combinedAttrsLimit, waypointsLimit, registeredAccessors);
+            return new TweenEngine(threadSafe, combinedAttrsLimit, waypointsLimit, registeredAccessors);
         } else {
-            return new Animator(threadSafe, combinedAttrsLimit, waypointsLimit, registeredAccessors) {
+            // skip the volatile field access for faster performance, but NO THREAD VISIBILITY
+            return new TweenEngine(threadSafe, combinedAttrsLimit, waypointsLimit, registeredAccessors) {
                 @Override
                 long flushRead() {
                     return 0;
@@ -53,7 +47,7 @@ class AnimationBuilder {
      * What is read/written will always be correct, but is not protected against concurrent modification.
      */
     public
-    AnimationBuilder unsafe() {
+    EngineBuilder unsafe() {
         this.threadSafe = false;
         return this;
     }
@@ -64,7 +58,7 @@ class AnimationBuilder {
      * Changes the limit for combined attributes. Defaults to 3 to reduce memory footprint.
      */
     public
-    AnimationBuilder setCombinedAttributesLimit(final int limit) {
+    EngineBuilder setCombinedAttributesLimit(final int limit) {
         combinedAttrsLimit = limit;
         return this;
     }
@@ -75,7 +69,7 @@ class AnimationBuilder {
      * Changes the limit of allowed waypoints for each tween. Defaults to 0 to reduce memory footprint.
      */
     public
-    AnimationBuilder setWaypointsLimit(final int limit) {
+    EngineBuilder setWaypointsLimit(final int limit) {
         waypointsLimit = limit;
         return this;
     }
@@ -88,7 +82,7 @@ class AnimationBuilder {
      * @param defaultAccessor The accessor that will be used to tween any object of class "someClass".
      */
     public
-    AnimationBuilder registerAccessor(final Class<?> someClass, final TweenAccessor<?> defaultAccessor) {
+    EngineBuilder registerAccessor(final Class<?> someClass, final TweenAccessor<?> defaultAccessor) {
         registeredAccessors.put(someClass, defaultAccessor);
         return this;
     }
