@@ -16,8 +16,6 @@
  */
 package dorkbox.tweenengine;
 
-import java.util.Arrays;
-
 /**
  * BaseTween is the base class of Tween and Timeline. It defines the iteration engine used to play animations for any number of times,
  * and in any direction, at any speed.
@@ -208,62 +206,86 @@ abstract class BaseTween<T> {
         synchronized (TEMP_EMPTY) {
             if ((triggers & TweenCallback.Events.BEGIN) == TweenCallback.Events.BEGIN) {
                 int currentLength = forwards_Begin.length;
-                TweenCallback[] newEvents = Arrays.copyOf(forwards_Begin, currentLength + 1, TweenCallback[].class);
-                newEvents[currentLength] = callback;
 
-                forwards_Begin = newEvents;
+                int newLength = currentLength + 1;
+                TweenCallback[] copy = new TweenCallback[newLength];
+                System.arraycopy(forwards_Begin, 0, copy, 0, Math.min(currentLength, newLength));
+
+                copy[currentLength] = callback;
+                forwards_Begin = copy;
             }
             if ((triggers & TweenCallback.Events.START) == TweenCallback.Events.START) {
                 int currentLength = forwards_Start.length;
-                TweenCallback[] newEvents = Arrays.copyOf(forwards_Start, currentLength + 1, TweenCallback[].class);
-                newEvents[currentLength] = callback;
 
-                forwards_Start = newEvents;
+                int newLength = currentLength + 1;
+                TweenCallback[] copy = new TweenCallback[newLength];
+                System.arraycopy(forwards_Start, 0, copy, 0, Math.min(currentLength, newLength));
+
+                copy[currentLength] = callback;
+                forwards_Start = copy;
             }
             if ((triggers & TweenCallback.Events.END) == TweenCallback.Events.END) {
                 int currentLength = forwards_End.length;
-                TweenCallback[] newEvents = Arrays.copyOf(forwards_End, currentLength + 1, TweenCallback[].class);
-                newEvents[currentLength] = callback;
 
-                forwards_End = newEvents;
+                int newLength = currentLength + 1;
+                TweenCallback[] copy = new TweenCallback[newLength];
+                System.arraycopy(forwards_End, 0, copy, 0, Math.min(currentLength, newLength));
+
+                copy[currentLength] = callback;
+                forwards_End = copy;
             }
             if ((triggers & TweenCallback.Events.COMPLETE) == TweenCallback.Events.COMPLETE) {
                 int currentLength = forwards_Complete.length;
-                TweenCallback[] newEvents = Arrays.copyOf(forwards_Complete, currentLength + 1, TweenCallback[].class);
-                newEvents[currentLength] = callback;
 
-                forwards_Complete = newEvents;
+                int newLength = currentLength + 1;
+                TweenCallback[] copy = new TweenCallback[newLength];
+                System.arraycopy(forwards_Complete, 0, copy, 0, Math.min(currentLength, newLength));
+
+                copy[currentLength] = callback;
+                forwards_Complete = copy;
             }
 
 
 
             if ((triggers & TweenCallback.Events.BACK_BEGIN) == TweenCallback.Events.BACK_BEGIN) {
                 int currentLength = reverse_Begin.length;
-                TweenCallback[] newEvents = Arrays.copyOf(reverse_Begin, currentLength + 1, TweenCallback[].class);
-                newEvents[currentLength] = callback;
 
-                reverse_Begin = newEvents;
+                int newLength = currentLength + 1;
+                TweenCallback[] copy = new TweenCallback[newLength];
+                System.arraycopy(reverse_Begin, 0, copy, 0, Math.min(currentLength, newLength));
+
+                copy[currentLength] = callback;
+                reverse_Begin = copy;
             }
             if ((triggers & TweenCallback.Events.BACK_START) == TweenCallback.Events.BACK_START) {
                 int currentLength = reverse_Start.length;
-                TweenCallback[] newEvents = Arrays.copyOf(reverse_Start, currentLength + 1, TweenCallback[].class);
-                newEvents[currentLength] = callback;
 
-                reverse_Start = newEvents;
+                int newLength = currentLength + 1;
+                TweenCallback[] copy = new TweenCallback[newLength];
+                System.arraycopy(reverse_Start, 0, copy, 0, Math.min(currentLength, newLength));
+
+                copy[currentLength] = callback;
+                reverse_Start = copy;
             }
             if ((triggers & TweenCallback.Events.BACK_END) == TweenCallback.Events.BACK_END) {
                 int currentLength = reverse_End.length;
-                TweenCallback[] newEvents = Arrays.copyOf(reverse_End, currentLength + 1, TweenCallback[].class);
-                newEvents[currentLength] = callback;
 
-                reverse_End = newEvents;
+                int newLength = currentLength + 1;
+                TweenCallback[] copy = new TweenCallback[newLength];
+                System.arraycopy(reverse_End, 0, copy, 0, Math.min(currentLength, newLength));
+
+                copy[currentLength] = callback;
+                reverse_End = copy;
             }
             if ((triggers & TweenCallback.Events.BACK_COMPLETE) == TweenCallback.Events.BACK_COMPLETE) {
                 int currentLength = reverse_Complete.length;
-                TweenCallback[] newEvents = Arrays.copyOf(reverse_Complete, currentLength + 1, TweenCallback[].class);
-                newEvents[currentLength] = callback;
 
-                reverse_Complete = newEvents;
+                int newLength = currentLength + 1;
+                TweenCallback[] copy = new TweenCallback[newLength];
+                System.arraycopy(reverse_Complete, 0, copy, 0, Math.min(currentLength, newLength));
+
+                copy[currentLength] = callback;
+                reverse_Complete = copy;
             }
         }
 
