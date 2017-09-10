@@ -16,8 +16,6 @@
  */
 package dorkbox.tweenengine;
 
-import java.lang.ref.SoftReference;
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -25,9 +23,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import dorkbox.objectPool.ObjectPool;
-import dorkbox.objectPool.PoolableObject;
-import dorkbox.util.Version;
+import dorkbox.tweenengine.pool.ObjectPool;
+import dorkbox.tweenengine.pool.PoolableObject;
 
 /**
  * The TweenEngine is responsible for creating Tweens and Timelines, and can be either managed, or un-managed.
@@ -54,8 +51,7 @@ public
 class TweenEngine {
 
     /**
-     * Creates a builder for the TweenEngine.
-     * @return
+     * @return a builder for creating the TweenEngine.
      */
     public static
     EngineBuilder create() {
@@ -92,8 +88,8 @@ class TweenEngine {
      * Gets the version number.
      */
     public static
-    Version getVersion() {
-        return new Version("8.1");
+    String getVersion() {
+        return "8.1";
     }
 
     private final Map<Class<?>, TweenAccessor<?>> registeredAccessors = new HashMap<Class<?>, TweenAccessor<?>>();
@@ -106,8 +102,9 @@ class TweenEngine {
     private final int waypointsLimit;
 
 
+    private final ArrayList<BaseTween<?>> newTweens = new ArrayList<BaseTween<?>>(20);
     private final ArrayList<BaseTween<?>> tweenArrayList = new ArrayList<BaseTween<?>>(20);
-    private BaseTween<?>[] childrenArray = new BaseTween<?>[0];
+    // private BaseTween<?>[] childrenArray = new BaseTween<?>[0];
 
     private boolean isPaused = false;
 
@@ -126,55 +123,37 @@ class TweenEngine {
         this.waypointsLimit = waypointsLimit;
         this.registeredAccessors.putAll(registeredAccessors);
 
-        if (threadSafe) {
-            poolTimeline = ObjectPool.NonBlockingSoftReference(new PoolableObject<Timeline>() {
-                @Override public void onReturn(final Timeline object) {
-                    object.destroy();
-                }
+        PoolableObject<Timeline> timelinePoolableObject = new PoolableObject<Timeline>() {
+            @Override
+            public
+            void onReturn(final Timeline object) {
+                object.destroy();
+            }
 
-                @Override public Timeline create() {
-                    return new Timeline(TweenEngine.this);
-                }
-            });
+            @Override
+            public
+            Timeline create() {
+                return new Timeline(TweenEngine.this);
+            }
+        };
 
-            poolTween = ObjectPool.NonBlockingSoftReference(new PoolableObject<Tween>() {
-                @Override public void onReturn(final Tween object) {
-                    object.destroy();
-                }
+        PoolableObject<Tween> tweenPoolableObject = new PoolableObject<Tween>() {
+            @Override
+            public
+            void onReturn(final Tween object) {
+                object.destroy();
+            }
 
-                @Override public Tween create() {
-                    return new Tween(TweenEngine.this, TweenEngine.this.combinedAttrsLimit, TweenEngine.this.waypointsLimit);
-                }
-            });
-        } else {
-            poolTimeline = ObjectPool.NonBlockingSoftReference(new PoolableObject<Timeline>() {
-                @Override
-                public
-                void onReturn(final Timeline object) {
-                    object.destroy();
-                }
+            @Override
+            public
+            Tween create() {
+                return new Tween(TweenEngine.this, TweenEngine.this.combinedAttrsLimit, TweenEngine.this.waypointsLimit);
+            }
+        };
 
-                @Override
-                public
-                Timeline create() {
-                    return new Timeline(TweenEngine.this);
-                }
-            }, new ArrayDeque<SoftReference<Timeline>>());
 
-            poolTween = ObjectPool.NonBlockingSoftReference(new PoolableObject<Tween>() {
-                @Override
-                public
-                void onReturn(final Tween object) {
-                    object.destroy();
-                }
-
-                @Override
-                public
-                Tween create() {
-                    return new Tween(TweenEngine.this, TweenEngine.this.combinedAttrsLimit, TweenEngine.this.waypointsLimit);
-                }
-            }, new ArrayDeque<SoftReference<Tween>>());
-        }
+        poolTimeline = EngineUtils.getPool(threadSafe, timelinePoolableObject);
+        poolTween = EngineUtils.getPool(threadSafe, tweenPoolableObject);
     }
 
     /**
@@ -182,7 +161,7 @@ class TweenEngine {
      * The flush() methods are overwritten in the "unsafe" operating mode (along with a non-thread-safe pool), so that there is
      * better performance at the cost of thread visibility/safety
      */
-    private static volatile long lightSyncObject = System.nanoTime();
+    private static volatile long lightSyncObject = EngineUtils.nanoTime();
 
     /**
      * Only on public methods.
@@ -206,7 +185,7 @@ class TweenEngine {
      * This does not block and does not prevent race conditions.
      */
     void flushWrite() {
-        lightSyncObject = System.nanoTime();
+        lightSyncObject = EngineUtils.nanoTime();
     }
 
 
@@ -281,17 +260,10 @@ class TweenEngine {
      * doesn't sync on anything.
      * <p>
      * Adds a tween or timeline to the manager and starts or restarts it.
-     *
-     * @return The manager, for instruction chaining.
      */
     void add__(final BaseTween<?> tween) {
 
-        if (!tweenArrayList.contains(tween)) {
-            tweenArrayList.add(tween);
-        }
-
-        // setup our children array, so update iterations are faster  (marginal improvement)
-        childrenArray = tweenArrayList.toArray(BASE_TWEENS);
+        newTweens.add(tween);
 
         if (tween.isAutoStartEnabled) {
             tween.startUnmanaged__();
@@ -305,12 +277,12 @@ class TweenEngine {
     boolean containsTarget(final Object target) {
         flushRead();
 
-        for (int i = 0, n = childrenArray.length; i < n; i++) {
-            final BaseTween<?> tween = childrenArray[i];
+        for (BaseTween tween : tweenArrayList) {
             if (tween.containsTarget(target)) {
                 return true;
             }
         }
+
         return false;
     }
 
@@ -321,8 +293,7 @@ class TweenEngine {
     boolean containsTarget(final Object target, final int tweenType) {
         flushRead();
 
-        for (int i = 0, n = childrenArray.length; i < n; i++) {
-            final BaseTween<?> tween = childrenArray[i];
+        for (BaseTween tween : tweenArrayList) {
             if (tween.containsTarget(target, tweenType)) {
                 return true;
             }
@@ -337,24 +308,11 @@ class TweenEngine {
     void cancelAll() {
         flushRead();
 
-        boolean needsRefresh = false;
-
-        final Iterator<BaseTween<?>> iterator = tweenArrayList.iterator();
-        while (iterator.hasNext()) {
-            final BaseTween<?> tween = iterator.next();
+        boolean wasCanceled = false;
+        for (BaseTween tween : tweenArrayList) {
             tween.cancel();
 
-            // always remove (if not during an update)
-            if (!tween.isDuringUpdate) {
-                needsRefresh = true;
-                iterator.remove();
-                tween.free();
-            }
-        }
-
-        if (needsRefresh) {
-            // setup our children array, so update iterations are faster  (marginal improvement)
-            childrenArray = tweenArrayList.toArray(BASE_TWEENS);
+            // can only remove/resize the array list during update, otherwise modification of the list can happen during iteration.
         }
 
         flushWrite();
@@ -371,28 +329,17 @@ class TweenEngine {
     boolean cancelTarget(final Object target) {
         flushRead();
 
-        boolean needsRefresh = false;
-
-        final Iterator<BaseTween<?>> iterator = tweenArrayList.iterator();
-        while (iterator.hasNext()) {
-            final BaseTween<?> tween = iterator.next();
-            boolean killTarget = tween.killTarget(target);
-
-            // kill if not during an update, and if specified
-            if (killTarget && !tween.isDuringUpdate && tween.isFinished__()) {
-                needsRefresh = true;
-                iterator.remove();
-                tween.free();
+        boolean wasCanceled = false;
+        for (BaseTween tween : tweenArrayList) {
+            if (tween.cancelTarget(target)) {
+                wasCanceled = true;
             }
-        }
 
-        if (needsRefresh) {
-            // setup our children array, so update iterations are faster  (marginal improvement)
-            childrenArray = tweenArrayList.toArray(BASE_TWEENS);
+            // can only remove/resize the array list during update, otherwise modification of the list can happen during iteration.
         }
 
         flushWrite();
-        return needsRefresh;
+        return wasCanceled;
     }
 
     /**
@@ -406,28 +353,18 @@ class TweenEngine {
     boolean cancelTarget(final Object target, final int tweenType) {
         flushRead();
 
-        boolean needsRefresh = false;
 
-        final Iterator<BaseTween<?>> iterator = tweenArrayList.iterator();
-        while (iterator.hasNext()) {
-            final BaseTween<?> tween = iterator.next();
-            boolean killTarget = tween.killTarget(target, tweenType);
-
-            // kill if not during an update, and if specified
-            if (killTarget && !tween.isDuringUpdate && tween.isFinished__()) {
-                needsRefresh = true;
-                iterator.remove();
-                tween.free();
+        boolean wasCanceled = false;
+        for (BaseTween tween : tweenArrayList) {
+            if (tween.cancelTarget(target, tweenType)) {
+                wasCanceled = true;
             }
-        }
 
-        if (needsRefresh) {
-            // setup our children array, so update iterations are faster  (marginal improvement)
-            childrenArray = tweenArrayList.toArray(BASE_TWEENS);
+            // can only remove/resize the array list during update, otherwise modification of the list can happen during iteration.
         }
 
         flushWrite();
-        return needsRefresh;
+        return wasCanceled;
     }
 
     /**
@@ -465,7 +402,7 @@ class TweenEngine {
      */
     public
     void resetUpdateTime() {
-        this.lastTime = System.nanoTime();
+        this.lastTime = EngineUtils.nanoTime();
         flushWrite();
     }
 
@@ -479,7 +416,7 @@ class TweenEngine {
     void update() {
         flushRead();
 
-        final long newTime = System.nanoTime();
+        final long newTime = EngineUtils.nanoTime();
         final float deltaTime = (newTime - lastTime) / 1.0E9F;
         this.lastTime = newTime;
 
@@ -547,29 +484,48 @@ class TweenEngine {
             // on start sync
             startEventCallback.onEvent(this);
 
-            for (int i = 0, n = childrenArray.length; i < n; i++) {
-                BaseTween<?> tween = childrenArray[i];
-                tween.update__(delta);
+
+            int size = newTweens.size();
+            if (size > 0) {
+                tweenArrayList.addAll(newTweens);
+                newTweens.clear();
             }
 
-            boolean needsRefresh = false;
+            // this is the only place that REMOVING tweens from their list can occur, otherwise there can be issues with removing tweens
+            // in the middle of iteration (above) because of callbacks/etc
+            // boolean needsRefresh = false;
+            
+            for (BaseTween<?> tween : tweenArrayList) {
+                tween.update__(delta);
+            }
+            // for (int i = 0, n = childrenArray.length; i < n; i++) {
+            //     tween = childrenArray[i];
+            //     tween.update__(delta);
+            // }
 
-            for (int i = childrenArray.length - 1; i >= 0; i--) {
-                final BaseTween<?> tween = childrenArray[i];
-                if (tween.isAutoRemoveEnabled && tween.isFinished__()) {
-                    // guarantee the tween/timeline values are set at the end
-                    tween.setValues(true, false);
+            for (Iterator<BaseTween<?>> iterator = tweenArrayList.iterator(); iterator.hasNext(); ) {
+                final BaseTween<?> tween = iterator.next();
+                if (tween.isAutoRemoveEnabled) {
+                    if (tween.state == BaseTween.FINISHED) {
+                        // guarantee the tween/timeline values are set at the end
+                        tween.setValues(true, false);
 
-                    needsRefresh = true;
-                    tweenArrayList.remove(i);
-                    tween.free();
+                        // needsRefresh = true;
+                        iterator.remove();
+                        tween.free();
+                    }
+                    else if (tween.isCanceled) {
+                        // needsRefresh = true;
+                        iterator.remove();
+                        tween.free();
+                    }
                 }
             }
 
-            if (needsRefresh) {
-                // setup our children array, so update iterations are faster  (marginal improvement)
-                childrenArray = tweenArrayList.toArray(BASE_TWEENS);
-            }
+            // if (needsRefresh) {
+            //     // setup our children array, so update iterations are faster  (marginal improvement)
+            //     // childrenArray = tweenArrayList.toArray(BASE_TWEENS);
+            // }
 
             // on finish sync
             endEventCallback.onEvent(this);
@@ -585,7 +541,7 @@ class TweenEngine {
     public
     int size() {
         flushRead();
-        return childrenArray.length;
+        return tweenArrayList.size();
     }
 
     /**

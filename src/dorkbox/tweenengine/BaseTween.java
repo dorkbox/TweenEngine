@@ -86,9 +86,6 @@ abstract class BaseTween<T> {
     private boolean canTriggerBeginEvent;
     protected boolean isInAutoReverse;
 
-    /** Used by tween manager */
-    protected boolean isDuringUpdate;
-
     // Misc
     private Object userData;
 
@@ -142,7 +139,7 @@ abstract class BaseTween<T> {
         state = INVALID;
 
         duration = startDelay = repeatDelay = currentTime = 0.0F;
-        isPaused = isCanceled = isInAutoReverse = isDuringUpdate = isInitialized = false;
+        isPaused = isCanceled = isInAutoReverse = isInitialized = false;
         canTriggerBeginEvent = true;
 
         clearCallbacks_();
@@ -488,10 +485,7 @@ abstract class BaseTween<T> {
 
     /**
      * Starts or restarts the object unmanaged. You will need to take care of its life-cycle.
-     *
-     * @return The current object, for chaining instructions.
      */
-    @SuppressWarnings("unchecked")
     void startUnmanaged__() {
         setup__();
     }
@@ -653,7 +647,7 @@ abstract class BaseTween<T> {
     }
 
     /**
-     * Returns true if the Timeline/Tween is finished (i.e. if the tween has reached its end or has been killed). A tween may be restarted
+     * Returns true if the Timeline/Tween is finished (i.e. if the tween has reached its end or has been canceled). A tween may be restarted
      * by a timeline when there is a direction change in the timeline.
      * </p>
      * If the Tween/Timeline is un-managed, you should call {@link BaseTween#free()} to reuse the object later.
@@ -661,19 +655,6 @@ abstract class BaseTween<T> {
     public
     boolean isFinished() {
         animator.flushRead();
-        return isFinished__();
-    }
-
-    /**
-     * doesn't sync on anything.
-     * <p>
-     * Returns true if the Timeline/Tween is finished (i.e. if the tween has reached its end or has been killed). A tween may be restarted
-     * by a timeline when there is a direction change in the timeline.
-     * </p>
-     * If the Tween/Timeline is un-managed, you should call {@link BaseTween#free()} to reuse the object later.
-     */
-    final
-    boolean isFinished__() {
         return state == FINISHED || isCanceled;
     }
 
@@ -907,7 +888,7 @@ abstract class BaseTween<T> {
      * @return true if the target was killed, false if we do not contain the target, and it was not killed
      */
     protected
-    boolean killTarget(final Object target) {
+    boolean cancelTarget(final Object target) {
         if (containsTarget(target)) {
             cancel();
             return true;
@@ -923,7 +904,7 @@ abstract class BaseTween<T> {
      * @return true if the target was killed, false if we do not contain the target, and it was not killed
      */
     protected
-    boolean killTarget(final Object target, final int tweenType) {
+    boolean cancelTarget(final Object target, final int tweenType) {
         if (containsTarget(target, tweenType)) {
             cancel();
             return true;
@@ -1025,8 +1006,6 @@ abstract class BaseTween<T> {
     @SuppressWarnings({"unchecked", "Duplicates", "ConstantConditions"})
     protected final
     float update__(float delta) {
-        isDuringUpdate = true;
-
         if (isPaused || isCanceled) {
             return delta;
         }
@@ -1094,7 +1073,6 @@ abstract class BaseTween<T> {
                             // still in start delay
                             currentTime = newTime;
 
-                            isDuringUpdate = false;
                             endEventCallback.onEvent(this);
                             return 0.0F;
                         }
@@ -1140,7 +1118,6 @@ abstract class BaseTween<T> {
 
                             update(FORWARDS, delta);
 
-                            isDuringUpdate = false;
                             endEventCallback.onEvent(this);
                             return 0.0F;
                         }
@@ -1188,7 +1165,6 @@ abstract class BaseTween<T> {
                             // have to reset our repeat count, so outside repeats will start us in the correct state
                             repeatCount = repeatCountOrig;
 
-                            isDuringUpdate = false;
                             endEventCallback.onEvent(this);
 
                             // return the time that is remaining (the remaining amount of delta that wasn't processed)
@@ -1258,7 +1234,6 @@ abstract class BaseTween<T> {
                             // still in the "finished" state, and haven't been reversed somewhere
                             currentTime = newTime;
 
-                            isDuringUpdate = false;
                             endEventCallback.onEvent(this);
                             return 0.0F;
                         }
@@ -1292,7 +1267,6 @@ abstract class BaseTween<T> {
                             // still in delay
                             currentTime = newTime;
 
-                            isDuringUpdate = false;
                             endEventCallback.onEvent(this);
                             return 0.0F;
                         }
@@ -1339,7 +1313,6 @@ abstract class BaseTween<T> {
 
                             update(REVERSE, delta);
 
-                            isDuringUpdate = false;
                             endEventCallback.onEvent(this);
                             return 0.0F;
                         }
@@ -1392,7 +1365,6 @@ abstract class BaseTween<T> {
                             // have to reset our repeat count, so outside repeats will start us in the correct state
                             repeatCount = repeatCountOrig;
 
-                            isDuringUpdate = false;
                             endEventCallback.onEvent(this);
 
                             // return the time that is remaining (the remaining amount of delta that wasn't processed)
@@ -1462,7 +1434,6 @@ abstract class BaseTween<T> {
                             // still in the "finished" state, and haven't been reversed somewhere
                             currentTime = newTime;
 
-                            isDuringUpdate = false;
                             endEventCallback.onEvent(this);
                             return 0.0F;
                         }

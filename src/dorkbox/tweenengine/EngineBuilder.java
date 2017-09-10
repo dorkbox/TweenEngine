@@ -86,4 +86,14 @@ class EngineBuilder {
         registeredAccessors.put(someClass, defaultAccessor);
         return this;
     }
+
+    public
+    int getCombinedAttrsLimit() {
+        return combinedAttrsLimit;
+    }
+
+    public
+    int getWaypointsLimit() {
+        return waypointsLimit;
+    }
 }

@@ -4,11 +4,10 @@
     <facet type="gwt" name="GWT">
       <configuration>
         <setting name="compilerMaxHeapSize" value="1024" />
-        <setting name="gwtScriptOutputStyle" value="DETAILED" />
+        <setting name="gwtScriptOutputStyle" value="PRETTY" />
         <setting name="gwtSdkUrl" value="file://$MODULE_DIR$/../../resources/Dependencies/gwt" />
         <packaging>
-          <module name="dorkbox.tweenengine" enabled="false" />
-          <module name="dorkbox.util.tweenengine" enabled="false" />
+          <module name="TweenEngine" enabled="false" />
         </packaging>
       </configuration>
     </facet>
@@ -17,21 +16,12 @@
     <exclude-output />
     <content url="file://$MODULE_DIR$">
       <sourceFolder url="file://$MODULE_DIR$/src" isTestSource="false" />
-      <sourceFolder url="file://$MODULE_DIR$/test" isTestSource="false" />
-      <sourceFolder url="file://$MODULE_DIR$/demos" isTestSource="false" />
-      <sourceFolder url="file://$MODULE_DIR$/demos-libGDX/src" isTestSource="false" />
-      <sourceFolder url="file://$MODULE_DIR$/demos-libGDX/data" type="java-resource" />
-      <sourceFolder url="file://$MODULE_DIR$/demos-libGDX/libs" type="java-resource" />
-      <excludeFolder url="file://$MODULE_DIR$/demos-libGDX/data-src" />
-      <excludeFolder url="file://$MODULE_DIR$/dist" />
-      <excludeFolder url="file://$MODULE_DIR$/examples" />
-      <excludeFolder url="file://$MODULE_DIR$/libs" />
+      <sourceFolder url="file://$MODULE_DIR$/src/gwt/src" isTestSource="false" />
+      <excludeFolder url="file://$MODULE_DIR$/src/gwt" />
+      <excludeFolder url="file://$MODULE_DIR$/src/gwt/src/dorkbox" />
     </content>
-    <orderEntry type="jdk" jdkName="1.6" jdkType="JavaSDK" />
+    <orderEntry type="jdk" jdkName="1.8" jdkType="JavaSDK" />
     <orderEntry type="sourceFolder" forTests="false" />
-    <orderEntry type="module" module-name="ObjectPool" />
-    <orderEntry type="library" name="lib-GDX (for tweenengine demo)" level="project" />
-    <orderEntry type="module" module-name="Utilities" />
-    <orderEntry type="library" name="gwt-user" level="project" />
+    <orderEntry type="library" name="gwt-user" level="application" />
   </component>
 </module>

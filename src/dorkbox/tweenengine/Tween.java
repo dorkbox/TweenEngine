@@ -583,7 +583,7 @@ class Tween extends BaseTween<Tween> {
         final int waypointsCount = this.waypointsCount;
         verifyWaypoints(waypointsCount);
 
-        final int count = waypointsCount << 1;  //*2
+        final int count = waypointsCount * 2;
         final float[] waypoints = this.waypoints;
 
         waypoints[count] = targetValue1;

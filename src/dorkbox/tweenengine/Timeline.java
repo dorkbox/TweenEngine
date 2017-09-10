@@ -75,7 +75,7 @@ class Timeline extends BaseTween<Timeline> {
 
     private Mode mode;
 
-    protected Timeline parent;
+    private Timeline parent;
 
     // current is used for TWO things.
     //  - Tracking what to start/end during construction
@@ -354,9 +354,15 @@ class Timeline extends BaseTween<Timeline> {
 	@Override
 	public
     void free() {
+	    // free all children tweens as well.
+        BaseTween<?> tween;
         for (int i = children.size() - 1; i >= 0; i--) {
-            final BaseTween<?> tween = children.remove(i);
-            tween.free();
+            tween = children.remove(i);
+
+            if (tween.isAutoRemoveEnabled) {
+                // only release to the pool if auto-remove is enabled (since that is the contract with tweens)
+                tween.free();
+            }
         }
 
         animator.free(this);
