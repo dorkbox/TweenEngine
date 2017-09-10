@@ -52,7 +52,7 @@ package dorkbox.tweenengine;
  * @author Various optimizations by Michael "Code Poet" Pohoreski | https://github.com/Michaelangel007/
  * @author dorkbox, llc
  */
-@SuppressWarnings({"NumericCastThatLosesPrecision", "FloatingPointEquality"})
+@SuppressWarnings({"NumericCastThatLosesPrecision", "FloatingPointEquality", "unused"})
 public
 enum TweenEquations {
     // Linear (just to prevent confusion, same as none)
@@ -801,6 +801,7 @@ enum TweenEquations {
      *
      * @return The parsed equation, or null if there is no match.
      */
+    @SuppressWarnings("ForLoopReplaceableByForEach")
     public static
     TweenEquation parse(String name) {
         TweenEquations[] values = TweenEquations.values();
