@@ -89,7 +89,7 @@ class TweenEngine {
      */
     public static
     String getVersion() {
-        return "8.1";
+        return "8.2";
     }
 
     private final Map<Class<?>, TweenAccessor<?>> registeredAccessors = new HashMap<Class<?>, TweenAccessor<?>>();
@@ -982,3 +982,4 @@ class TweenEngine {
         return count;
     }
 }
+
