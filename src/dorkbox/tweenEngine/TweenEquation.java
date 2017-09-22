@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dorkbox.tweenengine;
+package dorkbox.tweenEngine;
 
 /**
  * Base class for every easing equation. You can create your own equations

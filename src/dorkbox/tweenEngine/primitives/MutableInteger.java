@@ -13,36 +13,36 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dorkbox.tweenengine.primitives;
+package dorkbox.tweenEngine.primitives;
 
-import dorkbox.tweenengine.TweenAccessor;
+import dorkbox.tweenEngine.TweenAccessor;
 
 /**
  * @author Aurelien Ribon | http://www.aurelienribon.com/
  */
 public
-class MutableFloat extends Number implements TweenAccessor<MutableFloat> {
-    private float value;
+class MutableInteger extends Number implements TweenAccessor<MutableInteger> {
+    private int value;
 
     public
-    MutableFloat(float value) {
+    MutableInteger(int value) {
         this.value = value;
     }
 
     public
-    MutableFloat() {
+    MutableInteger() {
         super();
     }
 
     public
-    void setValue(float value) {
+    void setValue(int value) {
         this.value = value;
     }
 
     @Override
     public
     int intValue() {
-        return (int) value;
+        return value;
     }
 
     @Override
@@ -54,7 +54,7 @@ class MutableFloat extends Number implements TweenAccessor<MutableFloat> {
     @Override
     public
     float floatValue() {
-        return value;
+        return (float) value;
     }
 
     @Override
@@ -65,14 +65,14 @@ class MutableFloat extends Number implements TweenAccessor<MutableFloat> {
 
     @Override
     public
-    int getValues(MutableFloat target, int tweenType, float[] returnValues) {
+    int getValues(MutableInteger target, int tweenType, float[] returnValues) {
         returnValues[0] = target.value;
         return 1;
     }
 
     @Override
     public
-    void setValues(MutableFloat target, int tweenType, float[] newValues) {
-        target.value = newValues[0];
+    void setValues(MutableInteger target, int tweenType, float[] newValues) {
+        target.value = (int) newValues[0];
     }
 }

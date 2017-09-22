@@ -13,15 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dorkbox.tweenengine;
+package dorkbox.tweenEngine;
 
 import java.lang.ref.SoftReference;
 import java.util.ArrayDeque;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
-import dorkbox.tweenengine.pool.ObjectPool;
-import dorkbox.tweenengine.pool.ObjectPoolSoft;
-import dorkbox.tweenengine.pool.PoolableObject;
+import dorkbox.tweenEngine.pool.ObjectPool;
+import dorkbox.tweenEngine.pool.ObjectPoolSoft;
+import dorkbox.tweenEngine.pool.PoolableObject;
 
 /**
  * Methods that are not compatible with GWT, and are changed when compiling GWT

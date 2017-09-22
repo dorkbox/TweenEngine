@@ -1,4 +1,4 @@
-package dorkbox.tweenengine;
+package dorkbox.tweenEngine;
 
 import java.util.HashMap;
 import java.util.Map;

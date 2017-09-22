@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dorkbox.tweenengine;
+package dorkbox.tweenEngine;
 
 /**
  * Core class of the Tween Engine. A Tween is basically an interpolation between two values of an object attribute. However, the main

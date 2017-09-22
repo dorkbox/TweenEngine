@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dorkbox.tweenengine;
+package dorkbox.tweenEngine;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -23,8 +23,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import dorkbox.tweenengine.pool.ObjectPool;
-import dorkbox.tweenengine.pool.PoolableObject;
+import dorkbox.tweenEngine.pool.ObjectPool;
+import dorkbox.tweenEngine.pool.PoolableObject;
 
 /**
  * The TweenEngine is responsible for creating Tweens and Timelines, and can be either managed, or un-managed.

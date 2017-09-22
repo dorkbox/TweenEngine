@@ -1,4 +1,4 @@
-package dorkbox.tweenengine.pool;
+package dorkbox.tweenEngine.pool;
 
 /**
  *

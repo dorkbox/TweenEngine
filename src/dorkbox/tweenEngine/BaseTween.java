@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dorkbox.tweenengine;
+package dorkbox.tweenEngine;
 
 /**
  * BaseTween is the base class of Tween and Timeline. It defines the iteration engine used to play animations for any number of times,
