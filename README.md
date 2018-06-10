@@ -1,11 +1,11 @@
-![logo](https://raw.githubusercontent.com/dorkbox/TweenEngine/master/demos/tween-engine-big-logo.jpg)
+![logo](https://git.dorkbox.com/dorkbox/TweenEngine-demo/raw/branch/master/src/tween-engine-big-logo.jpg)
 
 Forked from [JavaUniversalTweenEngine](http://www.aurelienribon.com/blog/projects/universal-tween-engine), by Aurelien Ribon
 
 # Check out the demo! #
 
   * [Android application](https://play.google.com/store/apps/details?id=aurelienribon.tweenengine.demo)
-  * [Desktop application](https://github.com/dorkbox/TweenEngine/blob/master/examples/tween-engine-demo-6.3.0.zip)
+  * [Desktop application](https://xxxxxxxxx)
   * [WebGL html5 page](http://www.aurelienribon.com/universal-tween-engine/gwt/demo.html) (requires a WebGL enabled browser)
 
 # Changelog #
