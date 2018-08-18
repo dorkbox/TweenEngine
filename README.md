@@ -137,10 +137,19 @@ Maven Info
 </dependencies>
 ```
 
-Or if you don't want to use Maven, you can access the files directly here:  
-https://oss.sonatype.org/content/repositories/releases/com/dorkbox/TweenEngine/  
-https://oss.sonatype.org/content/repositories/releases/com/dorkbox/ObjectPool/    
+Gradle Info
+---------
+````
+dependencies {
+    ...
+    compile 'com.dorkbox:TweenEngine:8.3'
+}
+````
 
+Or if you don't want to use Maven, you can access the files directly here:  
+https://repo1.maven.org/maven2/com/dorkbox/TweenEngine/
+  
+https://repo1.maven.org/maven2/com/dorkbox/ObjectPool/    
 https://repo1.maven.org/maven2/org/slf4j/slf4j-api/    
 
 
