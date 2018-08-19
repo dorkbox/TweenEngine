@@ -39,6 +39,7 @@ buildscript {
 
 plugins {
     id 'java'
+    id 'java-library' // give us access to api/implementation differences for building java libraries
     id 'maven-publish'
     id 'signing'
 
@@ -59,10 +60,6 @@ plugins {
 // this is the only way to also get the source code for IDE auto-complete
 apply plugin: "com.dorkbox.Licensing"
 
-// give us access to api/implementation differences for building java libraries
-apply plugin: 'java-library'
-
-
 
 project.description = 'Unbuffered input and ANSI output support for Linux, MacOS, or Windows for Java 6+'
 project.group = 'com.dorkbox'
@@ -79,6 +76,7 @@ targetCompatibility = 1.6
 licensing {
     license(License.APACHE_2) {
         author 'dorkbox, llc'
+        author 'Aurelien Ribon'
         url project.ext.url
         note project.description
     }
@@ -106,7 +104,28 @@ repositories {
 
 
 dependencies {
-
+//    // Compile GWT libs, needed for gwtCompile and the javaCompile
+//    // Also includes the servlet-api
+//    compileOnly 'com.google.gwt:gwt-user:2.8.2'
+//    compileOnly 'com.google.gwt:gwt-dev:2.8.2'
+//
+//    // Needed for GWT compile and at runtime for RequestBuilder
+//    // Specify two artifacts as workaround for GRADLE-1934
+//    compile('javax.validation:validation-api:1.0.0.GA') {
+//        artifact {
+//            name = 'validation-api'
+//            type = 'jar'
+//        }
+//        artifact {
+//            name = 'validation-api'
+//            type = 'jar'
+//            classifier = 'sources'
+//        }
+//    }
+//
+//    // Runtime GWT libraries, should be included in WAR
+//    runtime 'com.google.gwt:gwt-servlet:2.4.0'
+//    runtime 'org.json:json:20090211'
 }
 
 
