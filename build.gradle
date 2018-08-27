@@ -19,12 +19,18 @@ import java.time.Instant
 
 buildscript {
     // load properties from custom location
-    def propsFile = Paths.get("${projectDir}/../../gradle.properties").toAbsolutePath().normalize().toFile()
-    println("Loading custom property data from: ${propsFile}")
+    def propsFile = Paths.get("${projectDir}/../../gradle.properties").normalize().toFile()
+    if (propsFile.canRead()) {
+        println("Loading custom property data from: ${propsFile}")
 
-    def props = new Properties()
-    propsFile.withInputStream {props.load(it)}
-    props.each {key, val -> project.ext.set(key, val)}
+        def props = new Properties()
+        propsFile.withInputStream {props.load(it)}
+        props.each {key, val -> project.ext.set(key, val)}
+    }
+    else {
+        ext.sonatypeUsername = ""
+        ext.sonatypePassword = ""
+    }
 
     // for plugin publishing and license sources
     repositories {
