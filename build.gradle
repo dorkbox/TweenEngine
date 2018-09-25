@@ -239,7 +239,6 @@ nexusStaging {
 }
 
 signing {
-    required {hasProperty('sonatypeUsername')}
     sign publishing.publications.maven
 }
 
@@ -263,4 +262,14 @@ tasks.withType(PublishToMavenLocal) {
     onlyIf {
         publication == publishing.publications.maven
     }
+}
+
+/////////////////////////////
+////    Gradle Wrapper Configuration.
+///  Run this task, then refresh the gradle project
+/////////////////////////////
+task updateWrapper(type: Wrapper) {
+    gradleVersion = '4.10.2'
+    distributionUrl = distributionUrl.replace("bin", "all")
+    setDistributionType(Wrapper.DistributionType.ALL)
 }
