@@ -1,6 +1,6 @@
  - TweenEngine - 
    https://git.dorkbox.com/dorkbox/TweenEngine
-   Copyright 2018 - The Apache Software License, Version 2.0
+   Copyright 2019 - The Apache Software License, Version 2.0
      dorkbox, llc
      Aurelien Ribon
    Unbuffered input and ANSI output support for Linux, MacOS, or Windows for Java 6+
@@ -8,5 +8,5 @@
 
  - ObjectPool - 
    https://git.dorkbox.com/dorkbox/ObjectPool
-   Copyright 2018 - The Apache Software License, Version 2.0
+   Copyright 2019 - The Apache Software License, Version 2.0
      dorkbox, llc

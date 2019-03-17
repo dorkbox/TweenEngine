@@ -14,94 +14,121 @@
  * limitations under the License.
  */
 
-import java.nio.file.Paths
+import com.github.benmanes.gradle.versions.updates.DependencyUpdatesTask
 import java.time.Instant
+import java.util.*
+import kotlin.reflect.KMutableProperty
+import kotlin.reflect.full.declaredMemberProperties
 
-buildscript {
-    // load properties from custom location
-    def propsFile = Paths.get("${projectDir}/../../gradle.properties").normalize().toFile()
-    if (propsFile.canRead()) {
-        println("Loading custom property data from: ${propsFile}")
+///////////////////////////////
+//////    PUBLISH TO SONATYPE / MAVEN CENTRAL
+//////
+////// TESTING : local maven repo <PUBLISHING - publishToMavenLocal>
+//////
+////// RELEASE : sonatype / maven central, <PUBLISHING - publish> then <RELEASE - closeAndReleaseRepository>
+///////////////////////////////
 
-        def props = new Properties()
-        propsFile.withInputStream {props.load(it)}
-        props.each {key, val -> project.ext.set(key, val)}
-    }
-    else {
-        ext.sonatypeUsername = ""
-        ext.sonatypePassword = ""
-    }
-
-    // for plugin publishing and license sources
-    repositories {
-        maven {url "https://plugins.gradle.org/m2/"}
-    }
-    dependencies {
-        // this is the only way to also get the source code for IDE auto-complete
-        classpath "gradle.plugin.com.dorkbox:Licensing:1.2.2"
-        classpath "gradle.plugin.com.dorkbox:Licensing:1.2.2:sources"
-    }
-}
+println("\tGradle ${project.gradle.gradleVersion}")
 
 plugins {
-    id 'java'
-    id 'java-library' // give us access to api/implementation differences for building java libraries
-    id 'maven-publish'
-    id 'signing'
+    java
+    signing
+    `maven-publish`
 
     // let us change how intellij is setup
-    id 'idea'
+    id("idea")
 
     // close and release on sonatype
-    id 'io.codearte.nexus-staging' version '0.11.0'
+    id("io.codearte.nexus-staging") version "0.20.0"
 
-    id "com.dorkbox.CrossCompile" version "1.0.1"
-    id "com.dorkbox.VersionUpdate" version "1.2"
+    id("com.dorkbox.CrossCompile") version "1.0.1"
+    id("com.dorkbox.Licensing") version "1.4"
+    id("com.dorkbox.VersionUpdate") version "1.4.1"
 
-    // setup checking for the latest version of a plugin or dependency (and updating the gradle build)
-    id "se.patrikerdes.use-latest-versions" version "0.2.3"
-    id 'com.github.ben-manes.versions' version '0.16.0'
+    // setup checking for the latest version of a plugin or dependency
+    id("com.github.ben-manes.versions") version "0.20.0"
+
+    kotlin("jvm") version "1.3.21"
 }
 
-// this is the only way to also get the source code for IDE auto-complete
-apply plugin: "com.dorkbox.Licensing"
 
+object Extras {
+    // set for the project
+    const val description = "High performance and lightweight Animation/Tween framework for Java 6+"
+    const val group = "com.dorkbox"
+    const val version = "8.3"
 
-project.description = 'Unbuffered input and ANSI output support for Linux, MacOS, or Windows for Java 6+'
-project.group = 'com.dorkbox'
-project.version = '8.3'
+    // set as project.ext
+    const val name = "TweenEngine"
+    const val id = "TweenEngine"
+    const val vendor = "Dorkbox LLC"
+    const val url = "https://git.dorkbox.com/dorkbox/TweenEngine"
+    val buildDate = Instant.now().toString()
 
-project.ext.name = 'TweenEngine'
-project.ext.url = 'https://git.dorkbox.com/dorkbox/TweenEngine'
+    val JAVA_VERSION = JavaVersion.VERSION_1_6.toString()
 
+    var sonatypeUserName = ""
+    var sonatypePassword = ""
+}
 
-sourceCompatibility = 1.6
-targetCompatibility = 1.6
+///////////////////////////////
+/////  assign 'Extras'
+///////////////////////////////
+description = Extras.description
+group = Extras.group
+version = Extras.version
+
+val propsFile = File("$projectDir/../../gradle.properties").normalize()
+if (propsFile.canRead()) {
+    println("\tLoading custom property data from: [$propsFile]")
+
+    val props = Properties()
+    propsFile.inputStream().use {
+        props.load(it)
+    }
+
+    val extraProperties = Extras::class.declaredMemberProperties.filterIsInstance<KMutableProperty<String>>()
+    props.forEach { (k, v) -> run {
+        val key = k as String
+        val value = v as String
+
+        val member = extraProperties.find { it.name == key }
+        if (member != null) {
+            member.setter.call(Extras::class.objectInstance, value)
+        }
+        else {
+            project.extra.set(k, v)
+        }
+    }}
+}
 
 
 licensing {
     license(License.APACHE_2) {
-        author 'dorkbox, llc'
-        author 'Aurelien Ribon'
-        url project.ext.url
-        note project.description
+        author(Extras.vendor)
+        author("Aurelien Ribon")
+        url(Extras.url)
+        note(Extras.description)
     }
 
-    license('ObjectPool', License.APACHE_2) {
-        author 'dorkbox, llc'
-        url 'https://git.dorkbox.com/dorkbox/ObjectPool'
+    license("ObjectPool", License.APACHE_2) {
+        author("dorkbox, llc")
+        url("https://git.dorkbox.com/dorkbox/ObjectPool")
     }
 }
+
 
 sourceSets {
     main {
         java {
-            setSrcDirs Collections.singletonList('src')
-            exclude 'gwt/*'
+            setSrcDirs(listOf("src"))
+
+            // want to include java files for the source. 'setSrcDirs' resets includes...
+            include("**/*.java")
+            exclude("**/gwt")
         }
     }
 }
-
 
 repositories {
     mavenLocal() // this must be first!
@@ -109,167 +136,208 @@ repositories {
 }
 
 
+///////////////////////////////
+//////    Task defaults
+///////////////////////////////
+tasks.withType<JavaCompile> {
+    options.encoding = "UTF-8"
+
+    sourceCompatibility = Extras.JAVA_VERSION
+    targetCompatibility = Extras.JAVA_VERSION
+}
+
+tasks.withType<Jar> {
+    duplicatesStrategy = DuplicatesStrategy.FAIL
+}
+
+tasks.compileJava.get().apply {
+    println("\tCompiling classes to Java $sourceCompatibility")
+}
+
+tasks.jar.get().apply {
+    manifest {
+        // https://docs.oracle.com/javase/tutorial/deployment/jar/packageman.html
+        attributes["Name"] = Extras.name
+
+        attributes["Specification-Title"] = Extras.name
+        attributes["Specification-Version"] = Extras.version
+        attributes["Specification-Vendor"] = Extras.vendor
+
+        attributes["Implementation-Title"] = "${Extras.group}.${Extras.id}"
+        attributes["Implementation-Version"] = Extras.buildDate
+        attributes["Implementation-Vendor"] = Extras.vendor
+    }
+}
+
 dependencies {
-//    // Compile GWT libs, needed for gwtCompile and the javaCompile
-//    // Also includes the servlet-api
-//    compileOnly 'com.google.gwt:gwt-user:2.8.2'
-//    compileOnly 'com.google.gwt:gwt-dev:2.8.2'
+    // Compile GWT libs, needed for gwtCompile and the javaCompile
+    // Also includes the servlet-api
+//    compileOnly("com.google.gwt:gwt-user:2.8.2")
+//    compileOnly("com.google.gwt:gwt-dev:2.8.2")
 //
 //    // Needed for GWT compile and at runtime for RequestBuilder
 //    // Specify two artifacts as workaround for GRADLE-1934
-//    compile('javax.validation:validation-api:1.0.0.GA') {
+//    compile("javax.validation:validation-api:1.0.0.GA") {
 //        artifact {
-//            name = 'validation-api'
-//            type = 'jar'
+//            name = "validation-api"
+//            type = "jar"
 //        }
 //        artifact {
-//            name = 'validation-api'
-//            type = 'jar'
-//            classifier = 'sources'
+//            name = "validation-api"
+//            type = "jar"
+//            classifier = "sources"
 //        }
 //    }
 //
 //    // Runtime GWT libraries, should be included in WAR
-//    runtime 'com.google.gwt:gwt-servlet:2.4.0'
-//    runtime 'org.json:json:20090211'
+//    runtime ("com.google.gwt:gwt-servlet:2.4.0")
+//    runtime ("org.json:json:20090211")
 }
-
 
 idea {
     module {
         //and some extra dirs that should be excluded by IDEA
-        excludeDirs += file('src/gwt')
-        downloadJavadoc = false
-        downloadSources = true
+        excludeDirs = excludeDirs + file("src/gwt")
+        isDownloadJavadoc = false
+        isDownloadSources = true
     }
 }
 
-
-///////////////////////////////
-//////    Task defaults
-///////////////////////////////
-tasks.withType(JavaCompile) {
-    options.encoding = 'UTF-8'
-}
-
-tasks.withType(Jar) {
-    duplicatesStrategy DuplicatesStrategy.FAIL
-
-    manifest {
-        attributes['Implementation-Version'] = version
-        attributes['Build-Date'] = Instant.now().toString()
-    }
-}
-
-
 /////////////////////////////
-////    Maven Publishing + Release
+////    PUBLISH TO SONATYPE / MAVEN CENTRAL
+////
+//// TESTING : local maven repo <PUBLISHING - publishToMavenLocal>
+////
+//// RELEASE : sonatype / maven central, <PUBLISHING - publish> then <RELEASE - closeAndReleaseRepository>
 /////////////////////////////
-task sourceJar(type: Jar) {
+val sourceJar = task<Jar>("sourceJar") {
     description = "Creates a JAR that contains the source code."
 
-    from sourceSets.main.java
+    from(sourceSets["main"].java)
 
-    classifier = "sources"
+    archiveClassifier.set("sources")
 }
 
-task javaDocJar(type: Jar) {
+val javaDocJar = task<Jar>("javaDocJar") {
     description = "Creates a JAR that contains the javadocs."
 
-    classifier = "javadoc"
+    archiveClassifier.set("javadoc")
 }
 
-// for testing, we don't publish to maven central, but only to local maven
 publishing {
     publications {
-        maven(MavenPublication) {
-            from components.java
+        create<MavenPublication>("maven") {
+            groupId = Extras.group
+            artifactId = Extras.id
+            version = Extras.version
 
-            artifact(javaDocJar)
+            from(components["java"])
+
             artifact(sourceJar)
-
-            groupId project.group
-            artifactId project.ext.name
-            version project.version
+            artifact(javaDocJar)
 
             pom {
-                name = project.ext.name
-                url = project.ext.url
-                description = project.description
+                name.set(Extras.name)
+                description.set(Extras.description)
+                url.set(Extras.url)
 
                 issueManagement {
-                    url = "${project.ext.url}/issues".toString()
-                    system = 'Gitea Issues'
+                    url.set("${Extras.url}/issues")
+                    system.set("Gitea Issues")
                 }
-
                 organization {
-                    name = 'dorkbox, llc'
-                    url = 'https://dorkbox.com'
+                    name.set(Extras.vendor)
+                    url.set("https://dorkbox.com")
                 }
-
                 developers {
                     developer {
-                        name = 'dorkbox, llc'
-                        email = 'email@dorkbox.com'
+                        id.set("dorkbox")
+                        name.set(Extras.vendor)
+                        email.set("email@dorkbox.com")
                     }
                 }
-
                 scm {
-                    url = project.ext.url
-                    connection = "scm:${project.ext.url}.git".toString()
+                    url.set(Extras.url)
+                    connection.set("scm:${Extras.url}.git")
                 }
             }
+
         }
     }
+
 
     repositories {
         maven {
-            url "https://oss.sonatype.org/service/local/staging/deploy/maven2"
+            setUrl("https://oss.sonatype.org/service/local/staging/deploy/maven2")
             credentials {
-                username sonatypeUsername
-                password sonatypePassword
+                username = Extras.sonatypeUserName
+                password = Extras.sonatypePassword
             }
         }
+    }
+
+
+    tasks.withType<PublishToMavenRepository> {
+        onlyIf {
+            publication == publishing.publications["maven"] && repository == publishing.repositories["maven"]
+        }
+    }
+
+    tasks.withType<PublishToMavenLocal> {
+        onlyIf {
+            publication == publishing.publications["maven"]
+        }
+    }
+
+    // output the release URL in the console
+    tasks["releaseRepository"].doLast {
+        val url = "https://oss.sonatype.org/content/repositories/releases/"
+        val projectName = Extras.group.replace('.', '/')
+        val name = Extras.name
+        val version = Extras.version
+
+        println("Maven URL: $url$projectName/$name/$version/")
     }
 }
 
 nexusStaging {
-    username sonatypeUsername
-    password sonatypePassword
+    username = Extras.sonatypeUserName
+    password = Extras.sonatypePassword
 }
 
 signing {
-    sign publishing.publications.maven
+    sign(publishing.publications["maven"])
 }
 
-// output the release URL in the console
-releaseRepository.doLast {
-    def URL = 'https://oss.sonatype.org/content/repositories/releases/'
-    def projectName = project.group.toString().replaceAll('\\.', '/')
-    def name = project.ext.name
-    def version = project.version
 
-    println("Maven URL: ${URL}${projectName}/${name}/${version}/")
-}
-
-// we don't use maven with the plugin (it's uploaded separately to gradle plugins)
-tasks.withType(PublishToMavenRepository) {
-    onlyIf {
-        repository == publishing.repositories.maven && publication == publishing.publications.maven
+/////////////////////////////
+///   Prevent anything other than a release from showing version updates
+//  https://github.com/ben-manes/gradle-versions-plugin/blob/master/README.md
+/////////////////////////////
+tasks.named<DependencyUpdatesTask>("dependencyUpdates") {
+    resolutionStrategy {
+        componentSelection {
+            all {
+                val rejected = listOf("alpha", "beta", "rc", "cr", "m", "preview")
+                        .map { qualifier -> Regex("(?i).*[.-]$qualifier[.\\d-]*") }
+                        .any { it.matches(candidate.version) }
+                if (rejected) {
+                    reject("Release candidate")
+                }
+            }
+        }
     }
+
+    // optional parameters
+    checkForGradleUpdate = true
 }
-tasks.withType(PublishToMavenLocal) {
-    onlyIf {
-        publication == publishing.publications.maven
-    }
-}
+
 
 /////////////////////////////
 ////    Gradle Wrapper Configuration.
 ///  Run this task, then refresh the gradle project
 /////////////////////////////
-task updateWrapper(type: Wrapper) {
-    gradleVersion = '4.10.2'
+val wrapperUpdate by tasks.creating(Wrapper::class) {
+    gradleVersion = "5.2.1"
     distributionUrl = distributionUrl.replace("bin", "all")
-    setDistributionType(Wrapper.DistributionType.ALL)
 }
