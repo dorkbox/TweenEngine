@@ -2,6 +2,8 @@
 
 Forked from [JavaUniversalTweenEngine](http://www.aurelienribon.com/blog/projects/universal-tween-engine), by Aurelien Ribon
 
+###### [![Dorkbox](https://badge.dorkbox.com/dorkbox.svg "Dorkbox")](https://git.dorkbox.com/dorkbox/TweenEngine) [![Github](https://badge.dorkbox.com/github.svg "Github")](https://github.com/dorkbox/TweenEngine) [![Gitlab](https://badge.dorkbox.com/gitlab.svg "Gitlab")](https://gitlab.com/dorkbox/TweenEngine) [![Bitbucket](https://badge.dorkbox.com/bitbucket.svg "Bitbucket")](https://bitbucket.org/dorkbox/TweenEngine)
+
 # Check out the demo! #
 
   * [Android application](https://play.google.com/store/apps/details?id=aurelienribon.tweenengine.demo)
@@ -142,7 +144,7 @@ Gradle Info
 ````
 dependencies {
     ...
-    compile 'com.dorkbox:TweenEngine:8.3'
+    compile "com.dorkbox:TweenEngine:8.3"
 }
 ````
 
