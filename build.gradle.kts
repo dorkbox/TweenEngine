@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 dorkbox, llc
+ * Copyright 2021 dorkbox, llc
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,45 +14,33 @@
  * limitations under the License.
  */
 
-import com.github.benmanes.gradle.versions.updates.DependencyUpdatesTask
 import java.time.Instant
-import java.util.*
-import kotlin.reflect.KMutableProperty
-import kotlin.reflect.full.declaredMemberProperties
 
 ///////////////////////////////
 //////    PUBLISH TO SONATYPE / MAVEN CENTRAL
-//////
-////// TESTING : local maven repo <PUBLISHING - publishToMavenLocal>
-//////
-////// RELEASE : sonatype / maven central, <PUBLISHING - publish> then <RELEASE - closeAndReleaseRepository>
+////// TESTING : (to local maven repo) <'publish and release' - 'publishToMavenLocal'>
+////// RELEASE : (to sonatype/maven central), <'publish and release' - 'publishToSonatypeAndRelease'>
 ///////////////////////////////
 
-println("\tGradle ${project.gradle.gradleVersion} on Java ${JavaVersion.current()}")
+gradle.startParameter.showStacktrace = ShowStacktrace.ALWAYS_FULL   // always show the stacktrace!
+gradle.startParameter.warningMode = WarningMode.All
 
 plugins {
-    java
-    signing
-    `maven-publish`
+    id("com.dorkbox.GradleUtils") version "1.16"
+    id("com.dorkbox.Licensing") version "2.5.5"
+    id("com.dorkbox.VersionUpdate") version "2.1"
+    id("com.dorkbox.GradlePublish") version "1.10"
+//    id("com.dorkbox.GradleModuleInfo") version "1.0"
 
-    // let us change how intellij is setup
-    id("idea")
+//    id("com.dorkbox.CrossCompile") version "1.1"
 
-    // close and release on sonatype
-    id("io.codearte.nexus-staging") version "0.20.0"
-
-    id("com.dorkbox.CrossCompile") version "1.0.1"
-    id("com.dorkbox.Licensing") version "1.4"
-    id("com.dorkbox.VersionUpdate") version "1.4.1"
-    id("com.dorkbox.GradleUtils") version "1.0"
-
-    kotlin("jvm") version "1.3.21"
+    kotlin("jvm") version "1.4.31"
 }
 
 
 object Extras {
     // set for the project
-    const val description = "High performance and lightweight Animation/Tween framework for Java 6+"
+    const val description = "High performance and lightweight Animation/Tween framework for Java 8+"
     const val group = "com.dorkbox"
     const val version = "8.3"
 
@@ -60,46 +48,19 @@ object Extras {
     const val name = "TweenEngine"
     const val id = "TweenEngine"
     const val vendor = "Dorkbox LLC"
+    const val vendorUrl = "https://dorkbox.com"
     const val url = "https://git.dorkbox.com/dorkbox/TweenEngine"
     val buildDate = Instant.now().toString()
-
-    val JAVA_VERSION = JavaVersion.VERSION_1_6.toString()
-
-    var sonatypeUserName = ""
-    var sonatypePassword = ""
 }
 
 ///////////////////////////////
 /////  assign 'Extras'
 ///////////////////////////////
-description = Extras.description
-group = Extras.group
-version = Extras.version
-
-val propsFile = File("$projectDir/../../gradle.properties").normalize()
-if (propsFile.canRead()) {
-    println("\tLoading custom property data from: [$propsFile]")
-
-    val props = Properties()
-    propsFile.inputStream().use {
-        props.load(it)
-    }
-
-    val extraProperties = Extras::class.declaredMemberProperties.filterIsInstance<KMutableProperty<String>>()
-    props.forEach { (k, v) -> run {
-        val key = k as String
-        val value = v as String
-
-        val member = extraProperties.find { it.name == key }
-        if (member != null) {
-            member.setter.call(Extras::class.objectInstance, value)
-        }
-        else {
-            project.extra.set(k, v)
-        }
-    }}
-}
-
+GradleUtils.load("$projectDir/../../gradle.properties", Extras)
+GradleUtils.fixIntellijPaths()
+GradleUtils.defaultResolutionStrategy()
+// NOTE: Only support java 8 as the lowest target now. We use Multi-Release Jars to provide additional functionality as needed
+GradleUtils.compileConfiguration(JavaVersion.VERSION_11)
 
 licensing {
     license(License.APACHE_2) {
@@ -107,11 +68,6 @@ licensing {
         author("Aurelien Ribon")
         url(Extras.url)
         note(Extras.description)
-    }
-
-    license("ObjectPool", License.APACHE_2) {
-        author("dorkbox, llc")
-        url("https://git.dorkbox.com/dorkbox/ObjectPool")
     }
 }
 
@@ -123,8 +79,27 @@ sourceSets {
 
             // want to include java files for the source. 'setSrcDirs' resets includes...
             include("**/*.java")
-            exclude("**/gwt")
         }
+    }
+
+    test {
+        java {
+            setSrcDirs(listOf("test"))
+
+            // only want to include java files for the source. 'setSrcDirs' resets includes...
+            include("**/*.java")
+
+            srcDir(sourceSets["main"].allJava)
+        }
+
+        resources {
+            setSrcDirs(listOf("test"))
+            include("**/*.png", "**/*.jpg")
+
+            srcDir(sourceSets["main"].resources)
+        }
+
+        compileClasspath += sourceSets.main.get().runtimeClasspath
     }
 }
 
@@ -137,20 +112,6 @@ repositories {
 ///////////////////////////////
 //////    Task defaults
 ///////////////////////////////
-tasks.withType<JavaCompile> {
-    options.encoding = "UTF-8"
-
-    sourceCompatibility = Extras.JAVA_VERSION
-    targetCompatibility = Extras.JAVA_VERSION
-}
-
-tasks.withType<Jar> {
-    duplicatesStrategy = DuplicatesStrategy.FAIL
-}
-
-tasks.compileJava.get().apply {
-    println("\tCompiling classes to Java $sourceCompatibility")
-}
 
 tasks.jar.get().apply {
     manifest {
@@ -170,141 +131,33 @@ tasks.jar.get().apply {
 }
 
 dependencies {
-    // Compile GWT libs, needed for gwtCompile and the javaCompile
-    // Also includes the servlet-api
-//    compileOnly("com.google.gwt:gwt-user:2.8.2")
-//    compileOnly("com.google.gwt:gwt-dev:2.8.2")
-//
-//    // Needed for GWT compile and at runtime for RequestBuilder
-//    // Specify two artifacts as workaround for GRADLE-1934
-//    compile("javax.validation:validation-api:1.0.0.GA") {
-//        artifact {
-//            name = "validation-api"
-//            type = "jar"
-//        }
-//        artifact {
-//            name = "validation-api"
-//            type = "jar"
-//            classifier = "sources"
-//        }
-//    }
-//
-//    // Runtime GWT libraries, should be included in WAR
-//    runtime ("com.google.gwt:gwt-servlet:2.4.0")
-//    runtime ("org.json:json:20090211")
+    implementation("com.dorkbox:ObjectPool:3.2")
+
+    testImplementation("com.dorkbox:Utilities:1.9")
+    testImplementation("com.dorkbox:SwingActiveRender:1.1")
 }
 
-idea {
-    module {
-        //and some extra dirs that should be excluded by IDEA
-        excludeDirs = excludeDirs + file("src/gwt")
-        isDownloadJavadoc = false
-        isDownloadSources = true
-    }
-}
 
-/////////////////////////////
-////    PUBLISH TO SONATYPE / MAVEN CENTRAL
-////
-//// TESTING : local maven repo <PUBLISHING - publishToMavenLocal>
-////
-//// RELEASE : sonatype / maven central, <PUBLISHING - publish> then <RELEASE - closeAndReleaseRepository>
-/////////////////////////////
-val sourceJar = task<Jar>("sourceJar") {
-    description = "Creates a JAR that contains the source code."
+publishToSonatype {
+    groupId = Extras.group
+    artifactId = Extras.id
+    version = Extras.version
 
-    from(sourceSets["main"].java)
+    name = Extras.name
+    description = Extras.description
+    url = Extras.url
 
-    archiveClassifier.set("sources")
-}
+    vendor = Extras.vendor
+    vendorUrl = Extras.vendorUrl
 
-val javaDocJar = task<Jar>("javaDocJar") {
-    description = "Creates a JAR that contains the javadocs."
-
-    archiveClassifier.set("javadoc")
-}
-
-publishing {
-    publications {
-        create<MavenPublication>("maven") {
-            groupId = Extras.group
-            artifactId = Extras.id
-            version = Extras.version
-
-            from(components["java"])
-
-            artifact(sourceJar)
-            artifact(javaDocJar)
-
-            pom {
-                name.set(Extras.name)
-                description.set(Extras.description)
-                url.set(Extras.url)
-
-                issueManagement {
-                    url.set("${Extras.url}/issues")
-                    system.set("Gitea Issues")
-                }
-                organization {
-                    name.set(Extras.vendor)
-                    url.set("https://dorkbox.com")
-                }
-                developers {
-                    developer {
-                        id.set("dorkbox")
-                        name.set(Extras.vendor)
-                        email.set("email@dorkbox.com")
-                    }
-                }
-                scm {
-                    url.set(Extras.url)
-                    connection.set("scm:${Extras.url}.git")
-                }
-            }
-
-        }
+    issueManagement {
+        url = "${Extras.url}/issues"
+        nickname = "Gitea Issues"
     }
 
-
-    repositories {
-        maven {
-            setUrl("https://oss.sonatype.org/service/local/staging/deploy/maven2")
-            credentials {
-                username = Extras.sonatypeUserName
-                password = Extras.sonatypePassword
-            }
-        }
+    developer {
+        id = "dorkbox"
+        name = Extras.vendor
+        email = "email@dorkbox.com"
     }
-
-
-    tasks.withType<PublishToMavenRepository> {
-        onlyIf {
-            publication == publishing.publications["maven"] && repository == publishing.repositories["maven"]
-        }
-    }
-
-    tasks.withType<PublishToMavenLocal> {
-        onlyIf {
-            publication == publishing.publications["maven"]
-        }
-    }
-
-    // output the release URL in the console
-    tasks["releaseRepository"].doLast {
-        val url = "https://oss.sonatype.org/content/repositories/releases/"
-        val projectName = Extras.group.replace('.', '/')
-        val name = Extras.name
-        val version = Extras.version
-
-        println("Maven URL: $url$projectName/$name/$version/")
-    }
-}
-
-nexusStaging {
-    username = Extras.sonatypeUserName
-    password = Extras.sonatypePassword
-}
-
-signing {
-    sign(publishing.publications["maven"])
 }

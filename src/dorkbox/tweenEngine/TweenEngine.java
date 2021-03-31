@@ -16,6 +16,8 @@
  */
 package dorkbox.tweenEngine;
 
+import java.lang.ref.SoftReference;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -23,8 +25,9 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import dorkbox.tweenEngine.pool.ObjectPool;
-import dorkbox.tweenEngine.pool.PoolableObject;
+import dorkbox.objectPool.ObjectPool;
+import dorkbox.objectPool.Pool;
+import dorkbox.objectPool.PoolObject;
 
 /**
  * The TweenEngine is responsible for creating Tweens and Timelines, and can be either managed, or un-managed.
@@ -94,8 +97,8 @@ class TweenEngine {
 
     private final Map<Class<?>, TweenAccessor<?>> registeredAccessors = new HashMap<Class<?>, TweenAccessor<?>>();
 
-    private final ObjectPool<Timeline> poolTimeline;
-    private final ObjectPool<Tween> poolTween;
+    private final Pool<Timeline> poolTimeline;
+    private final Pool<Tween> poolTween;
 
     // cannot change these once the animation system is built
     private final int combinedAttrsLimit;
@@ -123,21 +126,21 @@ class TweenEngine {
         this.waypointsLimit = waypointsLimit;
         this.registeredAccessors.putAll(registeredAccessors);
 
-        PoolableObject<Timeline> timelinePoolableObject = new PoolableObject<Timeline>() {
+        PoolObject<Timeline> timelinePoolableObject = new PoolObject<Timeline>() {
+            @Override
+            public
+            Timeline newInstance() {
+                return new Timeline(TweenEngine.this);
+            }
+
             @Override
             public
             void onReturn(final Timeline object) {
                 object.destroy();
             }
-
-            @Override
-            public
-            Timeline create() {
-                return new Timeline(TweenEngine.this);
-            }
         };
 
-        PoolableObject<Tween> tweenPoolableObject = new PoolableObject<Tween>() {
+        PoolObject<Tween> tweenPoolableObject = new PoolObject<Tween>() {
             @Override
             public
             void onReturn(final Tween object) {
@@ -146,14 +149,21 @@ class TweenEngine {
 
             @Override
             public
-            Tween create() {
+            Tween newInstance() {
                 return new Tween(TweenEngine.this, TweenEngine.this.combinedAttrsLimit, TweenEngine.this.waypointsLimit);
             }
         };
 
-
-        poolTimeline = EngineUtils.getPool(threadSafe, timelinePoolableObject);
-        poolTween = EngineUtils.getPool(threadSafe, tweenPoolableObject);
+        if (threadSafe) {
+            poolTimeline = ObjectPool.INSTANCE.nonBlockingSoftReference(timelinePoolableObject);
+            poolTween = ObjectPool.INSTANCE.nonBlockingSoftReference(tweenPoolableObject);
+        }
+        else {
+            poolTimeline = ObjectPool.INSTANCE.nonBlockingSoftReference(timelinePoolableObject,
+                                                                        new ArrayDeque<SoftReference<Timeline>>());
+            poolTween = ObjectPool.INSTANCE.nonBlockingSoftReference(tweenPoolableObject,
+                                                                     new ArrayDeque<SoftReference<Tween>>());
+        }
     }
 
     /**
@@ -161,7 +171,7 @@ class TweenEngine {
      * The flush() methods are overwritten in the "unsafe" operating mode (along with a non-thread-safe pool), so that there is
      * better performance at the cost of thread visibility/safety
      */
-    private static volatile long lightSyncObject = EngineUtils.nanoTime();
+    private static volatile long lightSyncObject = System.nanoTime();
 
     /**
      * Only on public methods.
@@ -185,7 +195,7 @@ class TweenEngine {
      * This does not block and does not prevent race conditions.
      */
     void flushWrite() {
-        lightSyncObject = EngineUtils.nanoTime();
+        lightSyncObject = System.nanoTime();
     }
 
 
@@ -402,7 +412,7 @@ class TweenEngine {
      */
     public
     void resetUpdateTime() {
-        this.lastTime = EngineUtils.nanoTime();
+        this.lastTime = System.nanoTime();
         flushWrite();
     }
 
@@ -416,7 +426,7 @@ class TweenEngine {
     void update() {
         flushRead();
 
-        final long newTime = EngineUtils.nanoTime();
+        final long newTime = System.nanoTime();
         final float deltaTime = (newTime - lastTime) / 1.0E9F;
         this.lastTime = newTime;
 
