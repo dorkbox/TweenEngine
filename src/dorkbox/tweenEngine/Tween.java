@@ -77,9 +77,17 @@ package dorkbox.tweenEngine;
  * @author Aurelien Ribon | http://www.aurelienribon.com/
  * @author dorkbox, llc
  */
-@SuppressWarnings({"unused", "WeakerAccess", "ResultOfMethodCallIgnored"})
+@SuppressWarnings({"unused", "WeakerAccess"})
 public final
-class Tween extends BaseTween<Tween> {
+class Tween<T> extends BaseTween<Tween<T>> {
+    /**
+     * Gets the version number.
+     */
+    public static
+    String getVersion() {
+        return "8.3";
+    }
+
     /**
      * Used as parameter in {@link #repeat(int, float)} and {@link #repeatAutoReverse(int, float)} methods.
      */
@@ -94,9 +102,9 @@ class Tween extends BaseTween<Tween> {
     // -------------------------------------------------------------------------
 
     // Main
-    private Object target;
+    private T target;
     private Class<?> targetClass;
-    private TweenAccessor accessor;
+    private TweenAccessor<T> accessor;
 
     private int type;
     private TweenEquation equation;
@@ -172,7 +180,7 @@ class Tween extends BaseTween<Tween> {
     /**
      * doesn't sync on anything.
      */
-    void setup__(final Object target, final int tweenType, final TweenAccessor targetAccessor, final float duration) {
+    void setup__(final T target, final int tweenType, final TweenAccessor<T> targetAccessor, final float duration) {
         if (duration < 0.0F) {
             throw new RuntimeException("Duration can not be negative");
         }
@@ -194,7 +202,7 @@ class Tween extends BaseTween<Tween> {
      */
     private
     Class<?> findTargetClass__() {
-        final Object target = this.target;
+        final T target = this.target;
 
         if (target instanceof TweenAccessor) {
             return target.getClass();
@@ -212,6 +220,251 @@ class Tween extends BaseTween<Tween> {
 
         return parentClass;
     }
+
+    // -------------------------------------------------------------------------
+    // Common Public API
+    // -------------------------------------------------------------------------
+
+    /**
+     * Adds a callback. By default, it will be fired at the completion of the tween (event COMPLETE). If you want to change
+     * this behavior use the {@link TweenCallback#TweenCallback(int)} constructor.
+     *
+     * Thread/Concurrent safe
+     *
+     * @see TweenCallback
+     * @return The current tween
+     */
+    @Override
+    public final
+    Tween<T> addCallback(final TweenCallback callback) {
+        super.addCallback(callback);
+        return this;
+    }
+
+    /**
+     * Clears all of the callbacks.
+     *
+     * Thread/Concurrent safe
+     *
+     * @return The current tween
+     */
+    @Override
+    public final
+    Tween<T> clearCallbacks() {
+        super.clearCallbacks();
+        return this;
+    }
+
+    /**
+     * Stops and resets the tween, and sends it to its pool, for later reuse.
+     * <p>
+     * If started normally (instead of un-managed), the {@link TweenEngine} will automatically call this method once the animation is complete.
+     */
+    @Override
+    public
+    void free() {
+        animator.free(this);
+    }
+
+    /**
+     * Adds a start delay to the tween or timeline in seconds.
+     *
+     * @param delay A duration in seconds for the delay
+     *
+     * @return The current tween
+     */
+    @Override
+    public final
+    Tween<T> delay(final float delay) {
+        super.delay(delay);
+        return this;
+    }
+
+    /**
+     * Repeats the tween for a given number of times.
+     *
+     * @param count The number of repetitions. For infinite repetition, use {@link Tween#INFINITY} or -1.
+     * @param delay A delay between each iteration, in seconds.
+     *
+     * @return The current tween
+     */
+    @Override
+    public final
+    Tween<T> repeat(final int count, final float delay) {
+        super.repeat(count, delay);
+        return this;
+    }
+
+    /**
+     * Repeats the tween for a given number of times.
+     * </p>
+     * Once an iteration is complete, it will be played in reverse.
+     *
+     * @param count The number of repetitions. For infinite repetition, use {@link Tween#INFINITY} or -1.
+     * @param delay A delay before each repetition, in seconds.
+     *
+     * @return The current tween
+     */
+    @Override
+    public final
+    Tween<T> repeatAutoReverse(final int count, final float delay) {
+        super.repeatAutoReverse(count, delay);
+        return this;
+    }
+
+    /**
+     * Sets the "start" callback, which is called when the tween starts running, NULL to remove.
+     *
+     * @param startCallback this is the object that will be notified when the tween starts running. NULL to unset.
+     *
+     * @return The current tween
+     */
+    @Override
+    public final
+    Tween<T> setStartCallback(final UpdateAction<Tween<T>> startCallback) {
+        super.setStartCallback(startCallback);
+        return this;
+    }
+
+    /**
+     * Sets the "end" callback, which is called when the tween finishes running, NULL to remove.
+     *
+     * @param endCallback this is the object that will be notified when the tween finishes running. NULL to unset.
+     *
+     * @return The current tween
+     */
+    @Override
+    public final
+    Tween<T> setEndCallback(final UpdateAction<Tween<T>> endCallback) {
+        super.setEndCallback(endCallback);
+        return this;
+    }
+
+    /**
+     * Sets the tween to a specific point in time based on it's duration + delays. Callbacks are not notified and the change is
+     * immediate. The tween will continue in it's original direction
+     * For example:
+     * <ul>
+     * <li> setProgress(0F, true) : set it to the starting position just after the start delay in the forward direction</li>
+     * <li> setProgress(.5F, true) : set it to the middle position in the forward direction</li>
+     * <li> setProgress(.5F, false) : set it to the middle position in the reverse direction</li>
+     * <li> setProgress(1F, false) : set it to the end position in the reverse direction</li>
+     * </ul>
+     * <p>
+     * Caveat: If the tween is set to end in reverse, and it CANNOT go in reverse, then it will end up in the finished state
+     * (end position). If the tween is in repeat mode then it will end up in the same position if it was going forwards.
+     *
+     * @param percentage the percentage (of it's duration) from 0-1, that the tween be set to
+     */
+    @Override
+    public final
+    Tween<T> setProgress(final float percentage) {
+        super.setProgress(percentage);
+        return this;
+    }
+
+    /**
+     * Sets the tween to a specific point in time based on it's duration + delays. Callbacks are not notified and the change is
+     * immediate.
+     * For example:
+     * <ul>
+     *     <li> setProgress(0F, true) : set it to the starting position just after the start delay in the forward direction</li>
+     *     <li> setProgress(.5F, true) : set it to the middle position in the forward direction</li>
+     *     <li> setProgress(.5F, false) : set it to the middle position in the reverse direction</li>
+     *     <li> setProgress(1F, false) : set it to the end position in the reverse direction</li>
+     * </ul>
+     * <p>
+     * Caveat: If the tween is set to end in reverse, and it CANNOT go in reverse, then it will end up in the finished state
+     *          (end position). If the timeline/tween is in repeat mode then it will end up in the same position if it was going forwards.
+     *
+     * @param percentage the percentage (of it's duration) from 0-1, that the tween be set to
+     * @param direction sets the direction of the timeline when it updates next: forwards (true) or reverse (false).
+     */
+    @Override
+    public final
+    Tween<T> setProgress(final float percentage, final boolean direction) {
+        super.setProgress(percentage, direction);
+        return this;
+    }
+
+
+    /**
+     * Starts or restarts the tween unmanaged. You will need to take care of its life-cycle.
+     *
+     * @return The current tween
+     */
+    @Override
+    public final
+    Tween<T> startUnmanaged() {
+        animator.flushRead();
+
+        startUnmanaged__();
+
+        animator.flushWrite();
+        return this;
+    }
+
+    @Override
+    protected final
+    void startUnmanaged__() {
+        super.startUnmanaged__();
+
+        final T target = this.target;
+        if (target == null) {
+            return;
+        }
+
+        if (accessor == null) {
+            if (target instanceof TweenAccessor) {
+                //noinspection unchecked
+                accessor = (TweenAccessor<T>) target;
+            }
+            else {
+                accessor = animator.getAccessor(targetClass);
+            }
+        }
+
+        if (accessor != null) {
+            combinedAttrsCnt = accessor.getValues(target, type, accessorBuffer);
+        }
+        else {
+            throw new NullPointerException("No TweenAccessor was found for the target");
+        }
+
+        verifyCombinedAttrs(combinedAttrsCnt);
+    }
+
+    /**
+     * Convenience method to add an object to a tween where it's life-cycle will be automatically handled .
+     *
+     * @return The current tween
+     */
+    @Override
+    public final
+    Tween<T> start() {
+        super.start();
+        return this;
+    }
+
+    // -------------------------------------------------------------------------
+    // User Data
+    // -------------------------------------------------------------------------
+
+    /**
+     * Attaches an object to this tween. It can be useful in order
+     * to retrieve some data from a TweenCallback.
+     *
+     * @param data Any kind of object.
+     *
+     * @return The current tween
+     */
+    @Override
+    public final
+    Tween<T> setUserData(final Object data) {
+        super.setUserData(data);
+        return this;
+    }
+
 
     // -------------------------------------------------------------------------
     // Public API
@@ -237,12 +490,12 @@ class Tween extends BaseTween<Tween> {
      * - Bounce.In | Out | InOut,<br/>
      * - Elastic.In | Out | InOut
      *
-     * @return The current tween, for chaining instructions.
+     * @return The current tween
      * @see TweenEquation
      * @see TweenEquations
      */
     public
-    Tween ease(final TweenEquation easeEquation) {
+    Tween<T> ease(final TweenEquation easeEquation) {
         this.equation = easeEquation;
 
         animator.flushWrite();
@@ -269,13 +522,13 @@ class Tween extends BaseTween<Tween> {
      * - Bounce.In | Out | InOut,<br/>
      * - Elastic.In | Out | InOut
      *
-     * @return The current tween, for chaining instructions.
+     * @return The current tween
      * @see TweenEquation
      * @see TweenEquations
      */
     public
-    Tween ease(final TweenEquations easeEquation) {
-        ease__(easeEquation);
+    Tween<T> ease(final TweenEquations easeEquation) {
+        this.equation = easeEquation.getEquation();
 
         animator.flushWrite();
         return this;
@@ -303,12 +556,13 @@ class Tween extends BaseTween<Tween> {
      * - Bounce.In | Out | InOut,<br/>
      * - Elastic.In | Out | InOut
      *
-     * @return The current tween, for chaining instructions.
+     * @return The current tween
      * @see TweenEquation
      * @see TweenEquations
      */
+    @SuppressWarnings("UnusedReturnValue")
     protected
-    Tween ease__(final TweenEquations easeEquation) {
+    Tween<T> ease__(final TweenEquations easeEquation) {
         this.equation = easeEquation.getEquation();
         return this;
     }
@@ -320,10 +574,10 @@ class Tween extends BaseTween<Tween> {
      *
      * @param targetClass A class registered with an accessor.
      *
-     * @return The current tween, for chaining instructions.
+     * @return The current tween
      */
     public
-    Tween cast(final Class<?> targetClass) {
+    Tween<T> cast(final Class<?> targetClass) {
         animator.flushRead();
 
         if (isInitialized) {
@@ -346,10 +600,10 @@ class Tween extends BaseTween<Tween> {
      *
      * @param targetValue The target value of the interpolation.
      *
-     * @return The current tween, for chaining instructions.
+     * @return The current tween
      */
     public
-    Tween target(final float targetValue) {
+    Tween<T> target(final float targetValue) {
         targetValues[0] = targetValue;
 
         animator.flushWrite();
@@ -368,10 +622,10 @@ class Tween extends BaseTween<Tween> {
      * @param targetValue1 The 1st target value of the interpolation.
      * @param targetValue2 The 2nd target value of the interpolation.
      *
-     * @return The current tween, for chaining instructions.
+     * @return The current tween
      */
     public
-    Tween target(final float targetValue1, final float targetValue2) {
+    Tween<T> target(final float targetValue1, final float targetValue2) {
         targetValues[0] = targetValue1;
         targetValues[1] = targetValue2;
 
@@ -392,10 +646,10 @@ class Tween extends BaseTween<Tween> {
      * @param targetValue2 The 2nd target value of the interpolation.
      * @param targetValue3 The 3rd target value of the interpolation.
      *
-     * @return The current tween, for chaining instructions.
+     * @return The current tween
      */
     public
-    Tween target(final float targetValue1, final float targetValue2, final float targetValue3) {
+    Tween<T> target(final float targetValue1, final float targetValue2, final float targetValue3) {
         targetValues[0] = targetValue1;
         targetValues[1] = targetValue2;
         targetValues[2] = targetValue3;
@@ -415,10 +669,10 @@ class Tween extends BaseTween<Tween> {
      *
      * @param targetValues The target values of the interpolation.
      *
-     * @return The current tween, for chaining instructions.
+     * @return The current tween
      */
     public
-    Tween target(final float... targetValues) {
+    Tween<T> target(final float... targetValues) {
         animator.flushRead();
 
         final int length = targetValues.length;
@@ -440,10 +694,10 @@ class Tween extends BaseTween<Tween> {
      *
      * @param targetValue The relative target value of the interpolation.
      *
-     * @return The current tween, for chaining instructions.
+     * @return The current tween
      */
     public
-    Tween targetRelative(final float targetValue) {
+    Tween<T> targetRelative(final float targetValue) {
         animator.flushRead();
 
         isRelative = true;
@@ -464,10 +718,10 @@ class Tween extends BaseTween<Tween> {
      * @param targetValue1 The 1st relative target value of the interpolation.
      * @param targetValue2 The 2nd relative target value of the interpolation.
      *
-     * @return The current tween, for chaining instructions.
+     * @return The current tween
      */
     public
-    Tween targetRelative(final float targetValue1, final float targetValue2) {
+    Tween<T> targetRelative(final float targetValue1, final float targetValue2) {
         animator.flushRead();
 
         isRelative = true;
@@ -491,10 +745,10 @@ class Tween extends BaseTween<Tween> {
      * @param targetValue2 The 2nd relative target value of the interpolation.
      * @param targetValue3 The 3rd relative target value of the interpolation.
      *
-     * @return The current tween, for chaining instructions.
+     * @return The current tween
      */
     public
-    Tween targetRelative(final float targetValue1, final float targetValue2, final float targetValue3) {
+    Tween<T> targetRelative(final float targetValue1, final float targetValue2, final float targetValue3) {
         animator.flushRead();
 
         this.isRelative = true;
@@ -519,10 +773,10 @@ class Tween extends BaseTween<Tween> {
      *
      * @param targetValues The relative target values of the interpolation.
      *
-     * @return The current tween, for chaining instructions.
+     * @return The current tween
      */
     public
-    Tween targetRelative(final float... targetValues) {
+    Tween<T> targetRelative(final float... targetValues) {
         animator.flushRead();
 
         final int length = targetValues.length;
@@ -548,10 +802,10 @@ class Tween extends BaseTween<Tween> {
      *
      * @param targetValue The target of this waypoint.
      *
-     * @return The current tween, for chaining instructions.
+     * @return The current tween
      */
     public
-    Tween waypoint(final float targetValue) {
+    Tween<T> waypoint(final float targetValue) {
         animator.flushRead();
 
         final int waypointsCount = this.waypointsCount;
@@ -574,10 +828,10 @@ class Tween extends BaseTween<Tween> {
      * @param targetValue1 The 1st target of this waypoint.
      * @param targetValue2 The 2nd target of this waypoint.
      *
-     * @return The current tween, for chaining instructions.
+     * @return The current tween
      */
     public
-    Tween waypoint(final float targetValue1, final float targetValue2) {
+    Tween<T> waypoint(final float targetValue1, final float targetValue2) {
         animator.flushRead();
 
         final int waypointsCount = this.waypointsCount;
@@ -605,10 +859,10 @@ class Tween extends BaseTween<Tween> {
      * @param targetValue2 The 2nd target of this waypoint.
      * @param targetValue3 The 3rd target of this waypoint.
      *
-     * @return The current tween, for chaining instructions.
+     * @return The current tween
      */
     public
-    Tween waypoint(final float targetValue1, final float targetValue2, final float targetValue3) {
+    Tween<T> waypoint(final float targetValue1, final float targetValue2, final float targetValue3) {
         animator.flushRead();
 
         final int waypointsCount = this.waypointsCount;
@@ -635,10 +889,10 @@ class Tween extends BaseTween<Tween> {
      *
      * @param targetValues The targets of this waypoint.
      *
-     * @return The current tween, for chaining instructions.
+     * @return The current tween
      */
     public
-    Tween waypoint(final float... targetValues) {
+    Tween<T> waypoint(final float... targetValues) {
         animator.flushRead();
 
         final int waypointsCount = this.waypointsCount;
@@ -657,13 +911,13 @@ class Tween extends BaseTween<Tween> {
      *
      * @param path A TweenPath implementation.
      *
-     * @return The current tween, for chaining instructions.
+     * @return The current tween
      * @see TweenPath
      * @see TweenPaths
      */
     public
-    Tween path(final TweenPaths path) {
-        path__(path);
+    Tween<T> path(final TweenPath path) {
+        this.path = path;
 
         animator.flushWrite();
         return this;
@@ -677,31 +931,14 @@ class Tween extends BaseTween<Tween> {
      *
      * @param path A TweenPath implementation.
      *
-     * @return The current tween, for chaining instructions.
+     * @return The current tween
      * @see TweenPath
      * @see TweenPaths
      */
+    @SuppressWarnings("UnusedReturnValue")
     protected
-    Tween path__(final TweenPaths path) {
-        this.path = path.path();
-        return this;
-    }
-
-    /**
-     * Sets the algorithm that will be used to navigate through the waypoints, from the start values to the end values. Default is a
-     * catmull-rom spline, but you can find other paths in the {@link TweenPaths} class.
-     *
-     * @param path A TweenPath implementation.
-     *
-     * @return The current tween, for chaining instructions.
-     * @see TweenPath
-     * @see TweenPaths
-     */
-    public
-    Tween path(final TweenPath path) {
-        path__(path);
-
-        animator.flushWrite();
+    Tween<T> path__(final TweenPaths path) {
+        this.path = path.getPath();
         return this;
     }
 
@@ -713,12 +950,12 @@ class Tween extends BaseTween<Tween> {
      *
      * @param path A TweenPath implementation.
      *
-     * @return The current tween, for chaining instructions.
+     * @return The current tween
      * @see TweenPath
      * @see TweenPaths
      */
     protected
-    Tween path__(final TweenPath path) {
+    Tween<T> path__(final TweenPath path) {
         this.path = path;
         return this;
     }
@@ -795,53 +1032,6 @@ class Tween extends BaseTween<Tween> {
     // Overrides
     // -------------------------------------------------------------------------
 
-    @SuppressWarnings("unchecked")
-    @Override
-    public
-    Tween startUnmanaged() {
-        animator.flushRead();
-
-        startUnmanaged__();
-
-        animator.flushWrite();
-        return this;
-    }
-
-    @SuppressWarnings("unchecked")
-    @Override
-    public
-    void startUnmanaged__() {
-        super.startUnmanaged__();
-
-        final Object target = this.target;
-        if (target == null) {
-            return;
-        }
-
-        if (accessor == null) {
-            if (target instanceof TweenAccessor) {
-                accessor = (TweenAccessor<Object>) target;
-            }
-            else {
-                accessor = animator.getAccessor(targetClass);
-            }
-        }
-
-        if (accessor != null) {
-            combinedAttrsCnt = accessor.getValues(target, type, accessorBuffer);
-        }
-        else {
-            throw new NullPointerException("No TweenAccessor was found for the target");
-        }
-
-        verifyCombinedAttrs(combinedAttrsCnt);
-    }
-
-    @Override
-    public
-    void free() {
-        animator.free(this);
-    }
 
     /**
      * Forces a timeline/tween to have it's start/target values. Repeat behavior is also correctly modeled in the decision process
@@ -850,7 +1040,6 @@ class Tween extends BaseTween<Tween> {
      * @param updateValue this is the start (true) or target (false) to set the tween to.
      */
     @Override
-    @SuppressWarnings("unchecked")
     protected
     void setValues(final boolean updateDirection, final boolean updateValue) {
         if (target == null || !this.isInitialized || this.isCanceled) {
@@ -876,7 +1065,7 @@ class Tween extends BaseTween<Tween> {
     @Override
     protected
     void initializeValues() {
-        final Object target = this.target;
+        final T target = this.target;
         if (target == null || this.isCanceled) {
             return;
         }
@@ -887,7 +1076,6 @@ class Tween extends BaseTween<Tween> {
         final float[] targetValues = this.targetValues;
         final int combinedAttrsCnt = this.combinedAttrsCnt;
 
-        //noinspection unchecked
         accessor.getValues(target, this.type, startValues);
 
         // expanded form of "isRelative" + "isFrom"
@@ -947,7 +1135,7 @@ class Tween extends BaseTween<Tween> {
     @Override
     protected
     void update(final boolean updateDirection, final float delta) {
-        final Object target = this.target;
+        final T target = this.target;
         final TweenEquation equation = this.equation;
 
         // be aware that a tween can ONLY have it's values updated IFF it has been initialized (reached START state at least once)
@@ -991,7 +1179,6 @@ class Tween extends BaseTween<Tween> {
             }
         }
 
-        //noinspection unchecked
         accessor.setValues(target, type, accessorBuffer);
     }
 

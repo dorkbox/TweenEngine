@@ -13,18 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dorkbox.tweenEngine;
+package dorkbox.tweenEngine
 
 /**
- * Base class for every easing equation. You can create your own equations
- * and directly use them in the Tween engine by inheriting from this class.
+ * Base interface for every easing equation. You can create your own equations
+ * and directly use them in the Tween engine by implementing this.
  *
  * @see Tween
+ *
  * @author Aurelien Ribon | http://www.aurelienribon.com/
  */
-public abstract
-class TweenEquation {
-
+interface TweenEquation {
     /**
      * Computes the next value of the interpolation.
      *
@@ -32,17 +31,10 @@ class TweenEquation {
      *
      * @return The corresponding value.
      */
-    public abstract
-    float compute(float time);
+    fun compute(time: Float): Float
 
     /**
-     * @return true if the given string is the name of this equation (the name
-     * is returned in the toString() method, don't forget to override it).
-     * </p>
-     * This method is usually used to save/load a tween to/from a text file.
+     * @return the assign name of this TweenEquation, used for serialization
      */
-    public
-    boolean isValueOf(String string) {
-        return string.equals(toString());
-    }
+    fun name(): String
 }

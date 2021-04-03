@@ -117,9 +117,9 @@ public class TweenApplet extends javax.swing.JApplet {
 		easingCbox.addActionListener(listener);
 		delaySpinner.addChangeListener(listener);
 		durationSpinner.addChangeListener(listener);
-		rptSpinner.addChangeListener(listener);
-		rptDelaySpinner.addChangeListener(listener);
-		autoReverseChk.addActionListener(listener);
+		repeatSpinner.addChangeListener(listener);
+		repeatDelaySpinner.addChangeListener(listener);
+		autoReverseCheckbox.addActionListener(listener);
 
 		generateCode();
 
@@ -142,9 +142,9 @@ public class TweenApplet extends javax.swing.JApplet {
 		String easing = (String) easingCbox.getSelectedItem();
 		int delay = (Integer) delaySpinner.getValue();
 		float duration = convertToSeconds((Integer) durationSpinner.getValue());
-		int rptCnt = (Integer) rptSpinner.getValue();
-		float rptDelay = convertToSeconds((Integer) rptDelaySpinner.getValue());
-		boolean isautoReverse = autoReverseChk.isSelected();
+		int repeatCount = (Integer) repeatSpinner.getValue();
+		float repeatDelay = convertToSeconds((Integer) repeatDelaySpinner.getValue());
+		boolean isAutoReverse = autoReverseCheckbox.isSelected();
 
         String code = "Tween.to(mySprite, POSITION_XY, " + duration + ")";
         code += "\n     .target()";
@@ -155,8 +155,8 @@ public class TweenApplet extends javax.swing.JApplet {
         if (delay > 0) {
             code += "\n     .delay(" + delay + ")";
         }
-        if (rptCnt > 0) {
-            code += "\n     .repeat" + (isautoReverse ? "autoReverse" : "") + "(" + rptCnt + ", " + rptDelay + ")";
+        if (repeatCount > 0) {
+            code += "\n     .repeat" + (isAutoReverse ? "autoReverse" : "") + "(" + repeatCount + ", " + repeatDelay + ")";
         }
 
         code += "\n     .start(myManager);";
@@ -216,27 +216,27 @@ public class TweenApplet extends javax.swing.JApplet {
 		@SuppressWarnings("GwtInconsistentSerializableClass")
         private final MouseAdapter mouseAdapter = new MouseAdapter() {
 			@Override public void mousePressed(MouseEvent e) {
-                TweenEquation easing = TweenEquations.parse((String) easingCbox.getSelectedItem());
+                TweenEquation easing = TweenEquations.Companion.parse((String) easingCbox.getSelectedItem());
                 int delay = (Integer) delaySpinner.getValue();
                 float duration = convertToSeconds((Integer) durationSpinner.getValue());
-                int rptCnt = (Integer) rptSpinner.getValue();
-                float rptDelay = convertToSeconds((Integer) rptDelaySpinner.getValue());
-                boolean isautoReverse = autoReverseChk.isSelected();
+                int repeatCount = (Integer) repeatSpinner.getValue();
+                float repeatDelay = convertToSeconds((Integer) repeatDelaySpinner.getValue());
+                boolean isAutoReverse = autoReverseCheckbox.isSelected();
 
                 tweenEngine.cancelAll();
 
-                Tween tween = tweenEngine.to(vialSprite, SpriteAccessor.POSITION_XY, duration)
+                Tween<Sprite> tween = tweenEngine.to(vialSprite, SpriteAccessor.POSITION_XY, duration)
                                          .target(e.getX(), e.getY())
                                          .delay(delay);
 
                 if (easing != null) {
                     tween.ease(easing);
                 }
-                if (isautoReverse) {
-                    tween.repeatAutoReverse(rptCnt, rptDelay);
+                if (isAutoReverse) {
+                    tween.repeatAutoReverse(repeatCount, repeatDelay);
                 }
                 else {
-                    tween.repeat(rptCnt, rptDelay);
+                    tween.repeat(repeatCount, repeatDelay);
                 }
 
                 tween.start();
@@ -269,14 +269,14 @@ public class TweenApplet extends javax.swing.JApplet {
         jLabel3 = new javax.swing.JLabel();
         delaySpinner = new javax.swing.JSpinner();
         jLabel4 = new javax.swing.JLabel();
-        rptSpinner = new javax.swing.JSpinner();
-        autoReverseChk = new javax.swing.JCheckBox();
+        repeatSpinner = new javax.swing.JSpinner();
+        autoReverseCheckbox = new javax.swing.JCheckBox();
         jLabel5 = new javax.swing.JLabel();
         durationSpinner = new javax.swing.JSpinner();
         jLabel7 = new javax.swing.JLabel();
         easingCbox = new javax.swing.JComboBox();
         jLabel6 = new javax.swing.JLabel();
-        rptDelaySpinner = new javax.swing.JSpinner();
+        repeatDelaySpinner = new javax.swing.JSpinner();
         jPanel4 = new javax.swing.JPanel();
         jLabel8 = new javax.swing.JLabel();
 
@@ -337,9 +337,9 @@ public class TweenApplet extends javax.swing.JApplet {
 
         jLabel4.setText("Repetitions:");
 
-        rptSpinner.setModel(new javax.swing.SpinnerNumberModel(0, 0, null, 1));
+        repeatSpinner.setModel(new javax.swing.SpinnerNumberModel(0, 0, null, 1));
 
-        autoReverseChk.setText("Auto reverse");
+        autoReverseCheckbox.setText("Auto reverse");
 
         jLabel5.setText("Duration (in ms):");
 
@@ -352,7 +352,7 @@ public class TweenApplet extends javax.swing.JApplet {
 
         jLabel6.setText("Repeat delay (in ms):");
 
-        rptDelaySpinner.setModel(new javax.swing.SpinnerNumberModel(0, 0, null, 100));
+        repeatDelaySpinner.setModel(new javax.swing.SpinnerNumberModel(0, 0, null, 100));
 
         javax.swing.GroupLayout jPanel2Layout = new javax.swing.GroupLayout(jPanel2);
         jPanel2.setLayout(jPanel2Layout);
@@ -361,7 +361,7 @@ public class TweenApplet extends javax.swing.JApplet {
             .addGroup(jPanel2Layout.createSequentialGroup()
                 .addContainerGap()
                 .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(autoReverseChk, javax.swing.GroupLayout.Alignment.TRAILING)
+                    .addComponent(autoReverseCheckbox, javax.swing.GroupLayout.Alignment.TRAILING)
                     .addGroup(jPanel2Layout.createSequentialGroup()
                         .addComponent(jLabel7)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
@@ -378,11 +378,11 @@ public class TweenApplet extends javax.swing.JApplet {
                     .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel2Layout.createSequentialGroup()
                         .addComponent(jLabel4)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                        .addComponent(rptSpinner, javax.swing.GroupLayout.PREFERRED_SIZE, 66, javax.swing.GroupLayout.PREFERRED_SIZE))
+                        .addComponent(repeatSpinner, javax.swing.GroupLayout.PREFERRED_SIZE, 66, javax.swing.GroupLayout.PREFERRED_SIZE))
                     .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel2Layout.createSequentialGroup()
                         .addComponent(jLabel6)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                        .addComponent(rptDelaySpinner, javax.swing.GroupLayout.PREFERRED_SIZE, 66, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                        .addComponent(repeatDelaySpinner, javax.swing.GroupLayout.PREFERRED_SIZE, 66, javax.swing.GroupLayout.PREFERRED_SIZE)))
                 .addContainerGap())
         );
         jPanel2Layout.setVerticalGroup(
@@ -402,14 +402,14 @@ public class TweenApplet extends javax.swing.JApplet {
                     .addComponent(jLabel5))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(rptSpinner, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(repeatSpinner, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(jLabel4))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(rptDelaySpinner, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(repeatDelaySpinner, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(jLabel6))
                 .addGap(18, 18, 18)
-                .addComponent(autoReverseChk)
+                .addComponent(autoReverseCheckbox)
                 .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
 
@@ -500,9 +500,9 @@ public class TweenApplet extends javax.swing.JApplet {
     private javax.swing.JPanel jPanel4;
     private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JTextArea resultArea;
-    private javax.swing.JSpinner rptDelaySpinner;
-    private javax.swing.JSpinner rptSpinner;
-    private javax.swing.JCheckBox autoReverseChk;
+    private javax.swing.JSpinner repeatDelaySpinner;
+    private javax.swing.JSpinner repeatSpinner;
+    private javax.swing.JCheckBox autoReverseCheckbox;
     // End of variables declaration//GEN-END:variables
 
 }

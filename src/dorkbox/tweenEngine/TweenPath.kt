@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dorkbox.tweenEngine;
+package dorkbox.tweenEngine
 
 /**
  * Base class for every paths. You can create your own paths and directly use
@@ -21,19 +21,17 @@ package dorkbox.tweenEngine;
  *
  * @author Aurelien Ribon | http://www.aurelienribon.com/
  */
-public
 interface TweenPath {
-
     /**
      * Computes the next value of the interpolation, based on its waypoints and
      * the current progress.
      *
      * @param tweenValue The progress of the interpolation, between 0 and 1. May be out
-     *                   of these bounds if the easing equation involves some kind of rebounds.
+     * of these bounds if the easing equation involves some kind of rebounds.
      * @param points The waypoints of the tween, from start to target values.
      * @param pointsCount The number of valid points in the array.
      *
      * @return The next value of the interpolation.
      */
-    float compute(final float tweenValue, final float[] points, final int pointsCount);
+    fun compute(tweenValue: Float, points: FloatArray, pointsCount: Int): Float
 }

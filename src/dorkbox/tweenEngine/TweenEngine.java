@@ -16,7 +16,6 @@
  */
 package dorkbox.tweenEngine;
 
-import java.lang.ref.SoftReference;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -70,22 +69,17 @@ class TweenEngine {
     public static
     TweenEngine build() {
         // defaults
-        return new TweenEngine(true, 3, 0, new HashMap<Class<?>, TweenAccessor<?>>());
+        return new TweenEngine(true, 3, 0, new HashMap<>());
     }
 
 
     // for creating arrays slightly faster...
-    private static final BaseTween[] BASE_TWEENS = new BaseTween[0];
+    private static final BaseTween<?>[] BASE_TWEENS = new BaseTween[0];
 
     /**
      * The default update event, which does nothing.
      */
-    public static final UpdateAction<?> NULL_ACTION = new UpdateAction<Object>() {
-        @Override
-        public
-        void onEvent(final Object tween) {
-        }
-    };
+    public static final UpdateAction<TweenEngine> NULL_ACTION = tween-> {};
 
     /**
      * Gets the version number.
@@ -95,24 +89,24 @@ class TweenEngine {
         return "8.3";
     }
 
-    private final Map<Class<?>, TweenAccessor<?>> registeredAccessors = new HashMap<Class<?>, TweenAccessor<?>>();
+    private final Map<Class<?>, TweenAccessor<?>> registeredAccessors = new HashMap<>();
 
     private final Pool<Timeline> poolTimeline;
-    private final Pool<Tween> poolTween;
+    private final Pool<Tween<?>> poolTween;
 
     // cannot change these once the animation system is built
     private final int combinedAttrsLimit;
     private final int waypointsLimit;
 
 
-    private final ArrayList<BaseTween<?>> newTweens = new ArrayList<BaseTween<?>>(20);
-    private final ArrayList<BaseTween<?>> tweenArrayList = new ArrayList<BaseTween<?>>(20);
+    private final ArrayList<BaseTween<?>> newTweens = new ArrayList<>(20);
+    private final ArrayList<BaseTween<?>> tweenArrayList = new ArrayList<>(20);
     // private BaseTween<?>[] childrenArray = new BaseTween<?>[0];
 
     private boolean isPaused = false;
 
-    private UpdateAction startEventCallback = NULL_ACTION;
-    private UpdateAction endEventCallback = NULL_ACTION;
+    private UpdateAction<TweenEngine> startEventCallback = NULL_ACTION;
+    private UpdateAction<TweenEngine> endEventCallback = NULL_ACTION;
 
     private long lastTime = 0L;
 
@@ -140,17 +134,17 @@ class TweenEngine {
             }
         };
 
-        PoolObject<Tween> tweenPoolableObject = new PoolObject<Tween>() {
+        PoolObject<Tween<?>> tweenPoolableObject = new PoolObject<Tween<?>>() {
             @Override
             public
-            void onReturn(final Tween object) {
+            void onReturn(final Tween<?> object) {
                 object.destroy();
             }
 
             @Override
             public
-            Tween newInstance() {
-                return new Tween(TweenEngine.this, TweenEngine.this.combinedAttrsLimit, TweenEngine.this.waypointsLimit);
+            Tween<?> newInstance() {
+                return new Tween<>(TweenEngine.this, TweenEngine.this.combinedAttrsLimit, TweenEngine.this.waypointsLimit);
             }
         };
 
@@ -159,10 +153,8 @@ class TweenEngine {
             poolTween = ObjectPool.INSTANCE.nonBlockingSoftReference(tweenPoolableObject);
         }
         else {
-            poolTimeline = ObjectPool.INSTANCE.nonBlockingSoftReference(timelinePoolableObject,
-                                                                        new ArrayDeque<SoftReference<Timeline>>());
-            poolTween = ObjectPool.INSTANCE.nonBlockingSoftReference(tweenPoolableObject,
-                                                                     new ArrayDeque<SoftReference<Tween>>());
+            poolTimeline = ObjectPool.INSTANCE.nonBlockingSoftReference(timelinePoolableObject, new ArrayDeque<>());
+            poolTween = ObjectPool.INSTANCE.nonBlockingSoftReference(tweenPoolableObject, new ArrayDeque<>());
         }
     }
 
@@ -287,7 +279,7 @@ class TweenEngine {
     boolean containsTarget(final Object target) {
         flushRead();
 
-        for (BaseTween tween : tweenArrayList) {
+        for (BaseTween<?> tween : tweenArrayList) {
             if (tween.containsTarget(target)) {
                 return true;
             }
@@ -303,7 +295,7 @@ class TweenEngine {
     boolean containsTarget(final Object target, final int tweenType) {
         flushRead();
 
-        for (BaseTween tween : tweenArrayList) {
+        for (BaseTween<?> tween : tweenArrayList) {
             if (tween.containsTarget(target, tweenType)) {
                 return true;
             }
@@ -319,7 +311,7 @@ class TweenEngine {
         flushRead();
 
         boolean wasCanceled = false;
-        for (BaseTween tween : tweenArrayList) {
+        for (BaseTween<?> tween : tweenArrayList) {
             tween.cancel();
 
             // can only remove/resize the array list during update, otherwise modification of the list can happen during iteration.
@@ -340,7 +332,7 @@ class TweenEngine {
         flushRead();
 
         boolean wasCanceled = false;
-        for (BaseTween tween : tweenArrayList) {
+        for (BaseTween<?> tween : tweenArrayList) {
             if (tween.cancelTarget(target)) {
                 wasCanceled = true;
             }
@@ -365,7 +357,7 @@ class TweenEngine {
 
 
         boolean wasCanceled = false;
-        for (BaseTween tween : tweenArrayList) {
+        for (BaseTween<?> tween : tweenArrayList) {
             if (tween.cancelTarget(target, tweenType)) {
                 wasCanceled = true;
             }
@@ -464,7 +456,6 @@ class TweenEngine {
      *
      * @param delta A delta time in SECONDS between now and the previous call.
      */
-    @SuppressWarnings("unchecked")
     public final
     void update(final float delta) {
         flushRead();
@@ -487,7 +478,6 @@ class TweenEngine {
      * Slow motion, fast motion and backward play can be easily achieved by tweaking this delta time. Multiply it by -1 to play the
      * animation backward, or by 0.5 to play it twice slower than its normal speed.
      */
-    @SuppressWarnings("unchecked")
     private
     void update__(final float delta) {
         if (!isPaused) {
@@ -659,7 +649,7 @@ class TweenEngine {
      * @return The generated Tween.
      */
     public
-    Tween to(final Object target, final int tweenType, final float duration) {
+    <T> Tween<T> to(final T target, final int tweenType, final float duration) {
         return to(target, tweenType, null, duration);
     }
 
@@ -692,8 +682,8 @@ class TweenEngine {
      * @return The generated Tween.
      */
     public
-    <T> Tween to(final T target, final int tweenType, final TweenAccessor<T> targetAccessor, final float duration) {
-        Tween tween = takeTween();
+    <T> Tween<T> to(final T target, final int tweenType, final TweenAccessor<T> targetAccessor, final float duration) {
+        Tween<T> tween = takeTween();
         flushRead();
 
         tween.setup__(target, tweenType, targetAccessor, duration);
@@ -731,7 +721,7 @@ class TweenEngine {
      * @return The generated Tween.
      */
     public
-    <T> Tween from(final T target, final int tweenType, final float duration) {
+    <T> Tween<T> from(final T target, final int tweenType, final float duration) {
         return from(target, tweenType, null, duration);
     }
 
@@ -763,8 +753,8 @@ class TweenEngine {
      * @return The generated Tween.
      */
     public
-    <T> Tween from(final T target, final int tweenType, final TweenAccessor<T> targetAccessor, final float duration) {
-        Tween tween = takeTween();
+    <T> Tween<T> from(final T target, final int tweenType, final TweenAccessor<T> targetAccessor, final float duration) {
+        Tween<T> tween = takeTween();
         flushRead();
 
         tween.setup__(target, tweenType, targetAccessor, duration);
@@ -802,7 +792,7 @@ class TweenEngine {
      * @return The generated Tween.
      */
     public
-    <T> Tween set(final T target, final int tweenType) {
+    <T> Tween<T> set(final T target, final int tweenType) {
         return set(target, tweenType, null);
     }
 
@@ -833,8 +823,8 @@ class TweenEngine {
      * @return The generated Tween.
      */
     public
-    <T> Tween set(final T target, final int tweenType, final TweenAccessor<T> targetAccessor) {
-        Tween tween = takeTween();
+    <T> Tween<T> set(final T target, final int tweenType, final TweenAccessor<T> targetAccessor) {
+        Tween<T> tween = takeTween();
         flushRead();
 
         tween.setup__(target, tweenType, targetAccessor, 0.0F);
@@ -866,13 +856,13 @@ class TweenEngine {
      * @see TweenCallback
      */
     public
-    Tween call(final TweenCallback callback) {
-        Tween tween = takeTween();
+    <T> Tween<T> call(final TweenCallback callback) {
+        Tween<T> tween = takeTween();
         flushRead();
 
         tween.setup__(null, -1, null, 0.0F);
-        callback.triggers = TweenCallback.Events.START;
-        tween.addCallback(callback); // Thread/Concurrent use Safe
+        callback.setTriggers(TweenCallback.Events.START);
+        tween.addCallback(callback); // Thread/Concurrent safe
 
         flushWrite();
         return tween;
@@ -888,8 +878,8 @@ class TweenEngine {
      * @see Timeline
      */
     public
-    Tween mark() {
-        Tween tween = takeTween(); // calls flushRead
+    <T> Tween<T> mark() {
+        Tween<T> tween = takeTween(); // calls flushRead
 
         tween.setup__(null, -1, null, 0.0F);
 
@@ -908,16 +898,13 @@ class TweenEngine {
      *
      * @see Timeline
      */
-    Tween mark__() {
-        Tween tween = takeTween__();
+    <T> Tween<T> mark__() {
+        Tween<T> tween = takeTween__();
 
         tween.setup__(null, -1, null, 0.0F);
 
         return tween;
     }
-
-
-
 
 
     // -------------------------------------------------------------------------
@@ -936,8 +923,9 @@ class TweenEngine {
     /**
      * Also flushRead();
      */
-    Tween takeTween() {
-        Tween take = poolTween.take();
+    <T> Tween<T> takeTween() {
+        //noinspection unchecked
+        Tween<T> take = (Tween<T>)poolTween.take();
         flushRead();
         return take;
     }
@@ -945,15 +933,16 @@ class TweenEngine {
     /**
      * doesn't sync on anything.
      */
-    Tween takeTween__() {
-        return poolTween.take();
+    <T> Tween<T> takeTween__() {
+        //noinspection unchecked
+        return (Tween<T>)poolTween.take();
     }
 
     void free(final Timeline timeline) {
         poolTimeline.put(timeline);
     }
 
-    void free(final Tween tween) {
+    <T> void free(final Tween<T> tween) {
         poolTween.put(tween);
     }
 
@@ -961,8 +950,9 @@ class TweenEngine {
         return registeredAccessors.containsKey(accessorClass);
     }
 
-    TweenAccessor getAccessor(final Class<?> accessorClass) {
-        return registeredAccessors.get(accessorClass);
+    <T> TweenAccessor<T> getAccessor(final Class<?> accessorClass) {
+        //noinspection unchecked
+        return (TweenAccessor<T>) registeredAccessors.get(accessorClass);
     }
 
     private static

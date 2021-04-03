@@ -58,9 +58,17 @@ import java.util.List;
  * @author Aurelien Ribon | http://www.aurelienribon.com/
  * @author dorkbox, llc
  */
-@SuppressWarnings({"ForLoopReplaceableByForEach", "ResultOfMethodCallIgnored", "unused"})
+@SuppressWarnings({"ForLoopReplaceableByForEach", "unused"})
 public final
 class Timeline extends BaseTween<Timeline> {
+    /**
+     * Gets the version number.
+     */
+    public static
+    String getVersion() {
+        return "8.3";
+    }
+
     // -------------------------------------------------------------------------
 	// Attributes
 	// -------------------------------------------------------------------------
@@ -68,7 +76,7 @@ class Timeline extends BaseTween<Timeline> {
 	enum Mode {SEQUENTIAL, PARALLEL}
 
 
-	private final List<BaseTween<?>> children = new ArrayList<BaseTween<?>>(10);
+	private final List<BaseTween<?>> children = new ArrayList<>(10);
     private BaseTween<?>[] childrenArray = null;
     private int childrenSize;
     private int childrenSizeMinusOne;
@@ -133,16 +141,254 @@ class Timeline extends BaseTween<Timeline> {
 	}
 
 	// -------------------------------------------------------------------------
-	// Public API
+	// Common Public API
 	// -------------------------------------------------------------------------
+
+    /**
+     * Adds a callback. By default, it will be fired at the completion of the timeline (event COMPLETE). If you want to change
+     * this behavior use the {@link TweenCallback#TweenCallback(int)} constructor.
+     *
+     * Thread/Concurrent safe
+     *
+     * @see TweenCallback
+     */
+    @Override
+    public final
+    Timeline addCallback(final TweenCallback callback) {
+        super.addCallback(callback);
+        return this;
+    }
+
+    /**
+     * Clears all of the callback.
+     *
+     * Thread/Concurrent safe
+     */
+    @Override
+    public final
+    Timeline clearCallbacks() {
+        super.clearCallbacks();
+        return this;
+    }
+
+    /**
+     * Stops and resets the timeline, and sends it to its pool, for later reuse.
+     * <p>
+     * If started normally (instead of un-managed), the {@link TweenEngine} will automatically call this method once the animation is complete.
+     */
+    @Override
+    public final
+    void free() {
+        // free all children tweens as well.
+        BaseTween<?> tween;
+        for (int i = children.size() - 1; i >= 0; i--) {
+            tween = children.remove(i);
+
+            if (tween.isAutoRemoveEnabled) {
+                // only release to the pool if auto-remove is enabled (since that is the contract with tweens)
+                tween.free();
+            }
+        }
+
+        animator.free(this);
+    }
+
+    /**
+     * Adds a start delay to the timeline in seconds.
+     *
+     * @param delay A duration in seconds for the delay
+     *
+     * @return The current timeline
+     */
+    @Override
+    public final
+    Timeline delay(final float delay) {
+        super.delay(delay);
+        return this;
+    }
+
+    /**
+     * Repeats the timeline for a given number of times.
+     *
+     * @param count The number of repetitions. For infinite repetition, use {@link Tween#INFINITY} or -1.
+     * @param delay A delay between each iteration, in seconds.
+     *
+     * @return The current timeline
+     */
+    @Override
+    public final
+    Timeline repeat(final int count, final float delay) {
+        super.repeat(count, delay);
+        return this;
+    }
+
+    /**
+     * Repeats the timeline for a given number of times.
+     * </p>
+     * Once an iteration is complete, it will be played in reverse.
+     *
+     * @param count The number of repetitions. For infinite repetition, use {@link Tween#INFINITY} or -1.
+     * @param delay A delay before each repetition, in seconds.
+     *
+     * @return The current timeline
+     */
+    @Override
+    public final
+    Timeline repeatAutoReverse(final int count, final float delay) {
+        super.repeatAutoReverse(count, delay);
+        return this;
+    }
+
+    /**
+     * Sets the "start" callback, which is called when the timeline starts running, NULL to remove.
+     *
+     * @param startCallback this is the object that will be notified when the timeline starts running. NULL to unset.
+     *
+     * @return The current timeline
+     */
+    @Override
+    public final
+    Timeline setStartCallback(final UpdateAction<Timeline> startCallback) {
+        super.setStartCallback(startCallback);
+        return this;
+    }
+
+    /**
+     * Sets the "end" callback, which is called when the timeline finishes running, NULL to remove.
+     *
+     * @param endCallback this is the object that will be notified when the timeline finishes running. NULL to unset.
+     *
+     * @return The current timeline
+     */
+    @Override
+    public final
+    Timeline setEndCallback(final UpdateAction<Timeline> endCallback) {
+        super.setEndCallback(endCallback);
+        return this;
+    }
+
+    /**
+     * Sets the timeline to a specific point in time based on it's duration + delays. Callbacks are not notified and the change is
+     * immediate. The timeline will continue in it's original direction
+     * For example:
+     * <ul>
+     * <li> setProgress(0F, true) : set it to the starting position just after the start delay in the forward direction</li>
+     * <li> setProgress(.5F, true) : set it to the middle position in the forward direction</li>
+     * <li> setProgress(.5F, false) : set it to the middle position in the reverse direction</li>
+     * <li> setProgress(1F, false) : set it to the end position in the reverse direction</li>
+     * </ul>
+     * <p>
+     * Caveat: If the timeline is set to end in reverse, and it CANNOT go in reverse, then it will end up in the finished state
+     * (end position). If the timeline is in repeat mode then it will end up in the same position if it was going forwards.
+     *
+     * @param percentage the percentage (of it's duration) from 0-1, that the timeline be set to
+     */
+    @Override
+    public final
+    Timeline setProgress(final float percentage) {
+        super.setProgress(percentage);
+        return this;
+    }
+
+    /**
+     * Sets the timeline to a specific point in time based on it's duration + delays. Callbacks are not notified and the change is
+     * immediate.
+     * For example:
+     * <ul>
+     *     <li> setProgress(0F, true) : set it to the starting position just after the start delay in the forward direction</li>
+     *     <li> setProgress(.5F, true) : set it to the middle position in the forward direction</li>
+     *     <li> setProgress(.5F, false) : set it to the middle position in the reverse direction</li>
+     *     <li> setProgress(1F, false) : set it to the end position in the reverse direction</li>
+     * </ul>
+     * <p>
+     * Caveat: If the timeline is set to end in reverse, and it CANNOT go in reverse, then it will end up in the finished state
+     *          (end position). If the timeline/tween is in repeat mode then it will end up in the same position if it was going forwards.
+     *
+     * @param percentage the percentage (of it's duration) from 0-1, that the timeline be set to
+     * @param direction sets the direction of the timeline when it updates next: forwards (true) or reverse (false).
+     */
+    @Override
+    public final
+    Timeline setProgress(final float percentage, final boolean direction) {
+        super.setProgress(percentage, direction);
+        return this;
+    }
+
+    /**
+     * Starts or restarts the timeline unmanaged. You will need to take care of its life-cycle.
+     *
+     * @return The current timeline
+     */
+    @Override
+    public
+    Timeline startUnmanaged() {
+        animator.flushRead();
+
+        startUnmanaged__();
+
+        animator.flushWrite();
+
+        return this;
+    }
+
+    @Override
+    protected
+    void startUnmanaged__() {
+        super.startUnmanaged__();
+
+        for (int i = 0; i < childrenSize; i++) {
+            final BaseTween<?> obj = childrenArray[i];
+
+            if (obj.repeatCountOrig < 0) {
+                throw new RuntimeException("You can't push an object with infinite repetitions in a timeline");
+            }
+
+            obj.startUnmanaged__();
+        }
+    }
+
+    /**
+     * Convenience method to add an object to a timeline where it's life-cycle will be automatically handled .
+     *
+     * @return The current timeline
+     */
+    @Override
+    public final
+    Timeline start() {
+        super.start();
+        return this;
+    }
+
+    // -------------------------------------------------------------------------
+    // User Data
+    // -------------------------------------------------------------------------
+
+    /**
+     * Attaches an object to this timeline. It can be useful in order
+     * to retrieve some data from a TweenCallback.
+     *
+     * @param data Any kind of object.
+     *
+     * @return The current timeline
+     */
+    @Override
+    public
+    Timeline setUserData(final Object data) {
+        super.setUserData(data);
+        return this;
+    }
+
+    // -------------------------------------------------------------------------
+    // Public API
+    // -------------------------------------------------------------------------
 
 	/**
 	 * Adds a Tween to the current timeline.
 	 *
-	 * @return The current timeline, for chaining instructions.
+	 * @return The current timeline
 	 */
 	public
-    Timeline push(final Tween tween) {
+    Timeline push(final Tween<?> tween) {
         tween.startUnmanaged(); // calls flushRead()
 
         children.add(tween);
@@ -156,7 +402,7 @@ class Timeline extends BaseTween<Timeline> {
 	/**
 	 * Nests a Timeline in the current one.
 	 *
-	 * @return The current timeline, for chaining instructions.
+	 * @return The current timeline
 	 */
 	public
     Timeline push(final Timeline timeline) {
@@ -176,7 +422,7 @@ class Timeline extends BaseTween<Timeline> {
 	 *
 	 * @param time A positive or negative duration in seconds
      *
-	 * @return The current timeline, for chaining instructions.
+	 * @return The current timeline
 	 */
 	public
     Timeline pushPause(final float time) {
@@ -185,7 +431,7 @@ class Timeline extends BaseTween<Timeline> {
                                        " with a parallel timeline and appropriate delays in place.");
         }
 
-        final Tween tween = animator.mark__();
+        final Tween<?> tween = animator.mark__();
         animator.flushRead();
 
         tween.delay__(time);
@@ -202,7 +448,7 @@ class Timeline extends BaseTween<Timeline> {
 	/**
 	 * Starts a nested timeline with a 'sequential' behavior. Don't forget to call {@link Timeline#end()} to close this nested timeline.
 	 *
-	 * @return The new sequential timeline, for chaining instructions.
+	 * @return The new sequential timeline
 	 */
     public
     Timeline beginSequential() {
@@ -225,7 +471,7 @@ class Timeline extends BaseTween<Timeline> {
 	/**
 	 * Starts a nested timeline with a 'parallel' behavior. Don't forget to call {@link Timeline#end()} to close this nested timeline.
 	 *
-	 * @return The new parallel timeline, for chaining instructions.
+	 * @return The new parallel timeline
 	 */
     public
     Timeline beginParallel() {
@@ -249,7 +495,7 @@ class Timeline extends BaseTween<Timeline> {
 	/**
 	 * Closes the last nested timeline.
 	 *
-	 * @return The original (parent) timeline, for chaining instructions.
+	 * @return The original (parent) timeline
 	 */
     public
     Timeline end() {
@@ -266,9 +512,6 @@ class Timeline extends BaseTween<Timeline> {
 
         if (current == null) {
             throw new RuntimeException("Whoops! Shouldn't be null!");
-        }
-        if (current.getClass() != Timeline.class) {
-            throw new RuntimeException("You cannot end something other than a Timeline!");
         }
 
         animator.flushWrite();
@@ -318,59 +561,9 @@ class Timeline extends BaseTween<Timeline> {
 	// Overrides
 	// -------------------------------------------------------------------------
 
-    @Override
-	public
-    Timeline startUnmanaged() {
-        super.startUnmanaged();
 
-        for (int i = 0; i < childrenSize; i++) {
-            final BaseTween<?> obj = childrenArray[i];
 
-            if (obj.repeatCountOrig < 0) {
-                throw new RuntimeException("You can't push an object with infinite repetitions in a timeline");
-            }
 
-            obj.startUnmanaged();
-        }
-
-        return this;
-    }
-
-    @Override
-    void startUnmanaged__() {
-        super.startUnmanaged__();
-
-        for (int i = 0; i < childrenSize; i++) {
-            final BaseTween<?> obj = childrenArray[i];
-
-            if (obj.repeatCountOrig < 0) {
-                throw new RuntimeException("You can't push an object with infinite repetitions in a timeline");
-            }
-
-            obj.startUnmanaged__();
-        }
-    }
-
-	@Override
-	public
-    void free() {
-	    // free all children tweens as well.
-        BaseTween<?> tween;
-        for (int i = children.size() - 1; i >= 0; i--) {
-            tween = children.remove(i);
-
-            if (tween.isAutoRemoveEnabled) {
-                // only release to the pool if auto-remove is enabled (since that is the contract with tweens)
-                tween.free();
-            }
-        }
-
-        animator.free(this);
-    }
-
-	// -------------------------------------------------------------------------
-	// BaseTween impl.
-	// -------------------------------------------------------------------------
 
 
     /**

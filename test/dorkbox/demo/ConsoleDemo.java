@@ -193,7 +193,7 @@ class ConsoleDemo {
     class Bugtest {
         public float val = 0; // tweened
         public char name;
-        public Tween t;
+        public Tween<Bugtest> t;
 
 
         Bugtest(char name) {

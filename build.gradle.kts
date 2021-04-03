@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+import dorkbox.gradle.kotlin
 import java.time.Instant
 
 ///////////////////////////////
@@ -32,9 +33,7 @@ plugins {
     id("com.dorkbox.GradlePublish") version "1.10"
 //    id("com.dorkbox.GradleModuleInfo") version "1.0"
 
-//    id("com.dorkbox.CrossCompile") version "1.1"
-
-    kotlin("jvm") version "1.4.31"
+    kotlin("jvm") version "1.4.32"
 }
 
 
@@ -50,6 +49,7 @@ object Extras {
     const val vendor = "Dorkbox LLC"
     const val vendorUrl = "https://dorkbox.com"
     const val url = "https://git.dorkbox.com/dorkbox/TweenEngine"
+
     val buildDate = Instant.now().toString()
 }
 
@@ -60,7 +60,7 @@ GradleUtils.load("$projectDir/../../gradle.properties", Extras)
 GradleUtils.fixIntellijPaths()
 GradleUtils.defaultResolutionStrategy()
 // NOTE: Only support java 8 as the lowest target now. We use Multi-Release Jars to provide additional functionality as needed
-GradleUtils.compileConfiguration(JavaVersion.VERSION_11)
+GradleUtils.compileConfiguration(JavaVersion.VERSION_1_8)
 
 licensing {
     license(License.APACHE_2) {
@@ -69,6 +69,12 @@ licensing {
         url(Extras.url)
         note(Extras.description)
     }
+
+    // Copyright © 2001 Robert Penner
+    // * All rights reserved.
+    // *                              BSD License
+
+    // also  Michael Pohoreski's work: https://github.com/Michaelangel007/easing/blob/master/js/core/easing.js
 }
 
 
@@ -80,6 +86,13 @@ sourceSets {
             // want to include java files for the source. 'setSrcDirs' resets includes...
             include("**/*.java")
         }
+
+        kotlin {
+            setSrcDirs(listOf("src"))
+
+            // want to include kotlin files for the source. 'setSrcDirs' resets includes...
+            include("**/*.java", "**/*.kt")
+        }
     }
 
     test {
@@ -88,18 +101,19 @@ sourceSets {
 
             // only want to include java files for the source. 'setSrcDirs' resets includes...
             include("**/*.java")
+        }
 
-            srcDir(sourceSets["main"].allJava)
+        kotlin {
+            setSrcDirs(listOf("test"))
+
+            // want to include kotlin files for the source. 'setSrcDirs' resets includes...
+            include("**/*.java", "**/*.kt")
         }
 
         resources {
             setSrcDirs(listOf("test"))
             include("**/*.png", "**/*.jpg")
-
-            srcDir(sourceSets["main"].resources)
         }
-
-        compileClasspath += sourceSets.main.get().runtimeClasspath
     }
 }
 
@@ -131,6 +145,7 @@ tasks.jar.get().apply {
 }
 
 dependencies {
+    implementation(kotlin("stdlib-jdk8"))
     implementation("com.dorkbox:ObjectPool:3.2")
 
     testImplementation("com.dorkbox:Utilities:1.9")
