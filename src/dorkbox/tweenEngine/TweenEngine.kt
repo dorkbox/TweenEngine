@@ -794,7 +794,7 @@ open class TweenEngine internal constructor(
         val tween: Tween<Any> = takeTween()
         flushRead()
 
-        tween.setup__(0, -1, null, 0.0f)
+        tween.setupEmpty__()
         callback.triggers = TweenCallback.Events.START
         tween.addCallback(callback) // Thread/Concurrent safe
 
@@ -813,7 +813,7 @@ open class TweenEngine internal constructor(
      */
     fun mark(): Tween<Int> {
         val tween: Tween<Int> = takeTween()
-        tween.setup__(0, -1, null, 0.0f)
+        tween.setupEmpty__()
 
         flushWrite()
         return tween
@@ -832,7 +832,7 @@ open class TweenEngine internal constructor(
      */
     fun mark__(): Tween<Int> {
         val tween: Tween<Int> = takeTween()
-        tween.setup__(0, -1, null, 0.0f)
+        tween.setupEmpty__()
         return tween
     }
 

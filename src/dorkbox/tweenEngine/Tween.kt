@@ -183,6 +183,19 @@ class Tween<T> internal constructor(animator: TweenEngine, private val combinedA
     /**
      * doesn't sync on anything.
      */
+    fun setupEmpty__() {
+        this.target = null
+        this.accessor = null
+        this.targetClass = null
+
+        type = -1
+        this.duration = 0.0f
+        this.setup__()
+    }
+
+    /**
+     * doesn't sync on anything.
+     */
     fun setup__(target: T, tweenType: Int, targetAccessor: TweenAccessor<T>?, duration: Float) {
         if (duration < 0.0f) {
             throw RuntimeException("Duration can not be negative")
