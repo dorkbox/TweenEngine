@@ -27,13 +27,12 @@ gradle.startParameter.showStacktrace = ShowStacktrace.ALWAYS_FULL   // always sh
 gradle.startParameter.warningMode = WarningMode.All
 
 plugins {
-    id("com.dorkbox.GradleUtils") version "1.16"
-    id("com.dorkbox.Licensing") version "2.5.5"
-    id("com.dorkbox.VersionUpdate") version "2.1"
-    id("com.dorkbox.GradlePublish") version "1.10"
-//    id("com.dorkbox.GradleModuleInfo") version "1.0"
+    id("com.dorkbox.GradleUtils") version "3.9"
+    id("com.dorkbox.Licensing") version "2.19.1"
+    id("com.dorkbox.VersionUpdate") version "2.5"
+    id("com.dorkbox.GradlePublish") version "1.17"
 
-    kotlin("jvm") version "1.4.32"
+    kotlin("jvm") version "1.8.0"
 }
 
 
@@ -57,8 +56,7 @@ object Extras {
 /////  assign 'Extras'
 ///////////////////////////////
 GradleUtils.load("$projectDir/../../gradle.properties", Extras)
-GradleUtils.fixIntellijPaths()
-GradleUtils.defaultResolutionStrategy()
+GradleUtils.defaults()
 // NOTE: Only support java 8 as the lowest target now. We use Multi-Release Jars to provide additional functionality as needed
 GradleUtils.compileConfiguration(JavaVersion.VERSION_1_8)
 
@@ -79,47 +77,12 @@ licensing {
 
 
 sourceSets {
-    main {
-        java {
-            setSrcDirs(listOf("src"))
-
-            // want to include java files for the source. 'setSrcDirs' resets includes...
-            include("**/*.java")
-        }
-
-        kotlin {
-            setSrcDirs(listOf("src"))
-
-            // want to include kotlin files for the source. 'setSrcDirs' resets includes...
-            include("**/*.java", "**/*.kt")
-        }
-    }
-
     test {
-        java {
-            setSrcDirs(listOf("test"))
-
-            // only want to include java files for the source. 'setSrcDirs' resets includes...
-            include("**/*.java")
-        }
-
-        kotlin {
-            setSrcDirs(listOf("test"))
-
-            // want to include kotlin files for the source. 'setSrcDirs' resets includes...
-            include("**/*.java", "**/*.kt")
-        }
-
         resources {
             setSrcDirs(listOf("test"))
             include("**/*.png", "**/*.jpg")
         }
     }
-}
-
-repositories {
-    mavenLocal() // this must be first!
-    jcenter()
 }
 
 
@@ -139,14 +102,12 @@ tasks.jar.get().apply {
         attributes["Implementation-Title"] = "${Extras.group}.${Extras.id}"
         attributes["Implementation-Version"] = Extras.buildDate
         attributes["Implementation-Vendor"] = Extras.vendor
-
-        attributes["Automatic-Module-Name"] = Extras.id
     }
 }
 
 dependencies {
-    implementation(kotlin("stdlib-jdk8"))
-    implementation("com.dorkbox:ObjectPool:3.2")
+    api("com.dorkbox:ObjectPool:4.1")
+    api("com.dorkbox:Updates:1.1")
 
     testImplementation("com.dorkbox:Utilities:1.9")
     testImplementation("com.dorkbox:SwingActiveRender:1.1")

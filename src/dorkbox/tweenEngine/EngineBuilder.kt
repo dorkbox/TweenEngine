@@ -16,41 +16,32 @@
 
 package dorkbox.tweenEngine
 
-/**
- * Creates a TweenEngine using the builder pattern.
- */
+/** Creates a TweenEngine using the builder pattern. */
 class EngineBuilder internal constructor() {
 
     companion object {
-        /**
-         * Gets the version number.
-         */
+        /** Gets the version number. */
         const val version = "8.3"
     }
 
 
-    private val registeredAccessors: MutableMap<Class<*>, TweenAccessor<*>> = hashMapOf()
+    private val registeredAccessors = mutableMapOf<Class<*>, TweenAccessor<*>>()
+    private var threadSafe = true // by default, we are thread-safe
+    private var combinedAttrsLimit = 3
+    private var waypointsLimit = 0
 
-    // by default, we are thread-safe
-    var threadSafe = true
-        private set
-
-    var combinedAttrsLimit = 3
-        private set
-    var waypointsLimit = 0
-        private set
 
     fun build(): TweenEngine {
         return if (threadSafe) {
-            TweenEngine(threadSafe, combinedAttrsLimit, waypointsLimit, registeredAccessors)
+            TweenEngine(true, combinedAttrsLimit, waypointsLimit, registeredAccessors)
         } else {
             // skip the volatile field access for faster performance, but NO THREAD VISIBILITY
-            object : TweenEngine(threadSafe, combinedAttrsLimit, waypointsLimit, registeredAccessors) {
-                public override fun flushRead(): Long {
+            object : TweenEngine(false, combinedAttrsLimit, waypointsLimit, registeredAccessors) {
+                override fun flushRead(): Long {
                     return 0
                 }
 
-                public override fun flushWrite() {}
+                override fun flushWrite() {}
             }
         }
     }

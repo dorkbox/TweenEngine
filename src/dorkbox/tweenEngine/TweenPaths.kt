@@ -16,6 +16,7 @@
  */
 package dorkbox.tweenEngine
 
+import dorkbox.tweenEngine.TweenPath.Companion.catmullRomSpline
 import kotlin.math.floor
 import kotlin.math.max
 import kotlin.math.min
@@ -74,24 +75,6 @@ enum class TweenPaths(computeFunction: (Float, FloatArray, Int) -> Float) {
     val path: TweenPath = InnerTweenPath(computeFunction)
 
     companion object {
-        private fun catmullRomSpline(a: Float, b: Float, c: Float, d: Float, t: Float): Float {
-            val t1 = (c - a) * 0.5f
-            val t2 = (d - b) * 0.5f
-            val _t2 = t * t
-            val _t3 = _t2 * t
-            val _2t3 = 2 * _t3
-            val _3t2 = 3 * _t2
-            val h1 = +_2t3 - _3t2 + 1
-            val h2 = -_2t3 + _3t2
-            val h3 = _t3 - 2 * _t2 + t
-            val h4 = _t3 - _t2
-            return b * h1 + c * h2 + t1 * h3 + t2 * h4
-        }
 
-        private class InnerTweenPath(val computeFunction: (Float, FloatArray, Int) -> Float) : TweenPath {
-            override fun compute(tweenValue: Float, points: FloatArray, pointsCount: Int): Float {
-                return computeFunction(tweenValue, points, pointsCount)
-            }
-        }
     }
 }

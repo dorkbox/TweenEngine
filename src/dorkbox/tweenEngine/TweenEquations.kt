@@ -48,6 +48,14 @@ package dorkbox.tweenEngine
 
 import kotlin.math.*
 
+// float values of used constants
+private const val E = 2.7182817f
+private const val PI = 3.1415927f
+
+private const val PI_DIV_2 = PI / 2f
+private const val PI_DIV_6 = PI / 6f
+private const val PI_DIV_18 = PI / 18f
+
 /**
  * Easing equation based on Michael Pohoreski's work: https://github.com/Michaelangel007/easing/blob/master/js/core/easing.js
  *
@@ -55,7 +63,6 @@ import kotlin.math.*
  */
 @Suppress("unused", "EnumEntryName")
 enum class TweenEquations(typeName: String, computeFunction: (Float) -> Float) {
-
     // Power -- grouped by In,Out,InOut
     None("None",           { 1f                   }), // t^0 Placeholder for no active animation
     Linear("Linear",       { t -> t               }), // t^1 In = Out = InOut
@@ -177,13 +184,6 @@ enum class TweenEquations(typeName: String, computeFunction: (Float) -> Float) {
     val equation: TweenEquation = InnerTweenEq(typeName, computeFunction)
 
     companion object {
-        // float values of used constants
-        private const val E = 2.7182818284590452354f
-        private const val PI = 3.141592653589793238f
-        private const val PI_DIV_2 = PI / 2f
-        private const val PI_DIV_6 = PI / 6f
-        private const val PI_DIV_18 = PI / 18f
-
         /**
          * Takes an easing name and gives you the corresponding TweenEquation. You probably won't need this, but tools will love that.
          *

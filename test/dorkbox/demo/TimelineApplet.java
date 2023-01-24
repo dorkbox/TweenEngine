@@ -43,7 +43,6 @@ import dorkbox.demo.applets.SpriteAccessor;
 import dorkbox.demo.applets.Theme;
 import dorkbox.swingActiveRender.ActionHandlerLong;
 import dorkbox.swingActiveRender.SwingActiveRender;
-import dorkbox.tweenEngine.BaseTween;
 import dorkbox.tweenEngine.Timeline;
 import dorkbox.tweenEngine.TweenCallback;
 import dorkbox.tweenEngine.TweenEngine;
@@ -264,7 +263,7 @@ public class TimelineApplet extends javax.swing.JApplet {
     private class MyCanvas extends Canvas {
         private static final long serialVersionUID = 1L;
 
-        final TweenEngine tweenEngine = TweenEngine.create()
+        final TweenEngine tweenEngine = TweenEngine.Companion.create()
                                                    .unsafe()
                                                    .setWaypointsLimit(10)
                                                    .setCombinedAttributesLimit(3)
@@ -329,44 +328,44 @@ public class TimelineApplet extends javax.swing.JApplet {
             // scale is NOT "1 tick = 1 second". It is adjusted for use with "animation speed" slider (slider is in MILLISECONDS)
 
 			timeline = tweenEngine.createSequential()
-                                  .addCallback(new TweenCallback(TweenCallback.Events.START) {
+                              .addCallback(new TweenCallback<Timeline>(TweenCallback.Events.START) {
                                    @Override
                                    public
-                                   void onEvent(final int type, final BaseTween<?> source) {
+                                   void onEvent(final int type, final Timeline source) {
                                        iterationTimeSlider.setValue(0);
                                    }
                                })
-                                  .addCallback(new TweenCallback(TweenCallback.Events.END) {
+                              .addCallback(new TweenCallback<Timeline>(TweenCallback.Events.END) {
                                    @Override
                                    public
-                                   void onEvent(final int type, final BaseTween<?> source) {
+                                   void onEvent(final int type, final Timeline source) {
                                        // has to be in milliseconds
                                        iterationTimeSlider.setValue((int)source.getDuration() * 1000);
                                    }
                                })
-                                  .push(tweenEngine.to(imgTweenSprite, SpriteAccessor.POSITION_XY, 0.5F)
-                                                   .target(60, 140)
-                                                   .ease(TweenEquations.Quart_Out))
+                              .push(tweenEngine.to(imgTweenSprite, SpriteAccessor.POSITION_XY, 0.5F)
+                                               .target(60, 140)
+                                               .ease(TweenEquations.Quart_Out))
 
-                                  .push(tweenEngine.to(imgEngineSprite, SpriteAccessor.POSITION_XY, 0.5F)
-                                                   .target(200, 140)
-                                                   .ease(TweenEquations.Quart_Out))
-                                  .push(tweenEngine.to(imgUniversalSprite, SpriteAccessor.POSITION_XY, 1.0F)
-                                                   .target(60, 105)
-                                                   .ease(TweenEquations.Bounce_Out))
+                              .push(tweenEngine.to(imgEngineSprite, SpriteAccessor.POSITION_XY, 0.5F)
+                                               .target(200, 140)
+                                               .ease(TweenEquations.Quart_Out))
+                              .push(tweenEngine.to(imgUniversalSprite, SpriteAccessor.POSITION_XY, 1.0F)
+                                               .target(60, 105)
+                                               .ease(TweenEquations.Bounce_Out))
 
-                                  .pushPause(0.5F)
+                              .pushPause(0.5F)
 
-                                  .beginParallel()
-                                  .push(tweenEngine.set(imgLogoSprite, SpriteAccessor.VISIBILITY)
-                                                   .target(1))
-                                  .push(tweenEngine.to(imgLogoSprite, SpriteAccessor.SCALE_XY, 0.8F)
-                                                   .target(1, 1)
-                                                   .ease(TweenEquations.Back_Out))
-                                  .push(tweenEngine.to(blankStripSprite, SpriteAccessor.SCALE_XY, 0.5F)
-                                                   .target(1, 1)
-                                                   .ease(TweenEquations.Back_Out))
-                                  .end();
+                              .beginParallel()
+                              .push(tweenEngine.set(imgLogoSprite, SpriteAccessor.VISIBILITY)
+                                               .target(1))
+                              .push(tweenEngine.to(imgLogoSprite, SpriteAccessor.SCALE_XY, 0.8F)
+                                               .target(1, 1)
+                                               .ease(TweenEquations.Back_Out))
+                              .push(tweenEngine.to(blankStripSprite, SpriteAccessor.SCALE_XY, 0.5F)
+                                               .target(1, 1)
+                                               .ease(TweenEquations.Back_Out))
+                              .end();
 
 			int rptCnt = (Integer) rptSpinner.getValue();
 			float rpDelay = convertToSeconds((Integer) rptDelaySpinner.getValue());
@@ -433,7 +432,7 @@ public class TimelineApplet extends javax.swing.JApplet {
 
         jLabel1.setText("Java code:");
 
-        jLabel9.setText("<html>\nTween Engine v" + TweenEngine.getVersion());
+        jLabel9.setText("<html>\nTween Engine v" + TweenEngine.version);
 
         javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
         jPanel1.setLayout(jPanel1Layout);

@@ -21,21 +21,21 @@ package dorkbox.tweenEngine
  * members of the [TweenCallback.Events] class, are:
  *
  *
- * **BEGIN**: right after the delay (if any)
+ * - **BEGIN**: right after the delay (if any)
  *
- * **START**: at each iteration beginning
+ * - **START**: at each iteration beginning
  *
- * **END**: at each iteration ending, before the repeat delay
+ * - **END**: at each iteration ending, before the repeat delay
  *
- * **COMPLETE**: at last END event
+ * - **COMPLETE**: at last END event
  *
- * **BACK_BEGIN**: at the beginning of the first backward iteration
+ * - **BACK_BEGIN**: at the beginning of the first backward iteration
  *
- * **BACK_START**: at each backward iteration beginning, after the repeat delay
+ * - **BACK_START**: at each backward iteration beginning, after the repeat delay
  *
- * **BACK_END**: at each backward iteration ending
+ * - **BACK_END**: at each backward iteration ending
  *
- * **BACK_COMPLETE**: at last BACK_END event
+ * - **BACK_COMPLETE**: at last BACK_END event
  *
  *
  * Timeline events are ALWAYS happen before children events (begin/start), or after (complete/end)
@@ -69,94 +69,7 @@ package dorkbox.tweenEngine
  *            ╰╴> [R.DELAY]->>-[XXXXXXXXXX]  ...
  * ```
  */
-abstract class TweenCallback {
-    var triggers: Int
-
-    /**
-     * Creates a new TweenCallback with the default COMPLETE trigger. The available triggers, listed as
-     * members of the [TweenCallback.Events] class, are:
-     *
-     * **BEGIN**: right after the delay (if any)
-     *
-     * **START**: at each iteration beginning
-     *
-     * **END**: at each iteration ending, before the repeat delay
-     *
-     * **COMPLETE**: at last END event
-     *
-     * **BACK_BEGIN**: at the beginning of the first backward iteration
-     *
-     * **BACK_START**: at each backward iteration beginning, after the repeat delay
-     *
-     * **BACK_END**: at each backward iteration ending
-     *
-     * **BACK_COMPLETE**: at last BACK_END event
-     */
-    constructor() {
-        triggers = Events.COMPLETE
-    }
-
-    /**
-     * Specifies the triggers for a callback. The available triggers, listed as
-     * members of the [TweenCallback.Events] class, are:
-     *
-     * **BEGIN**: right after the delay (if any)
-     *
-     * **START**: at each iteration beginning
-     *
-     * **END**: at each iteration ending, before the repeat delay
-     *
-     * **COMPLETE**: at last END event
-     *
-     * **BACK_BEGIN**: at the beginning of the first backward iteration
-     *
-     * **BACK_START**: at each backward iteration beginning, after the repeat delay
-     *
-     * **BACK_END**: at each backward iteration ending
-     *
-     * **BACK_COMPLETE**: at last BACK_END event
-     *
-     *
-     * Timeline events are ALWAYS happen before children events (begin/start), or after (complete/end)
-     * ```
-     * DELAY - (delay) initial start delay, only happens once, during init
-     * R.DELAY - (repeatDelay) delay between repeat iterations, if there are more than one.
-     *
-     * there are two modes for repeat. LINEAR and AUTO_REVERSE
-     *
-     * LINEAR:
-     *
-     * BEGIN                                     COMPLETE
-     * START      END                 START      END
-     * v          v                   v          v
-     * |---[DELAY]----[XXXXXXXXXX]->>-[R.DELAY]-->>--[XXXXXXXXXX]
-     *
-     *
-     *
-     * AUTO_REVERSE:
-     *
-     * BEGIN      COMPLETE
-     * START      END
-     * v          v
-     * |---[DELAY]----[XXXXXXXXXX]──────────-─────╮
-     *            ╭╴  [XXXXXXXXXX]-<<-[R.DELAY] <─╯
-     *            │   ^          ^
-     *            │   bEND       bSTART
-     *            │   bCOMPLETE  bBEGIN
-     *            │
-     *            ╰╴> [R.DELAY]->>-[XXXXXXXXXX]  ╶╮
-     *            ╭╴  [XXXXXXXXXX]-<<-[R.DELAY] <─╯
-     *            ╰╴> [R.DELAY]->>-[XXXXXXXXXX]  ...
-     *```
-     *
-     * @param triggers one or more triggers, separated by the '|' operator.
-     */
-    constructor(triggers: Int) {
-        this.triggers = triggers
-    }
-
-    abstract fun onEvent(type: Int, source: BaseTween<*>?)
-
+abstract class TweenCallback<T: BaseTween<T>>(var triggers: Int = Events.COMPLETE)  {
     object Events {
         /** **BEGIN**: right after the delay (if any)  */
         const val BEGIN = 1 // 00000001
@@ -188,4 +101,6 @@ abstract class TweenCallback {
         const val ANY_BACKWARD = 0xF0 // 11110000
         const val ANY = 0xFF // 11111111
     }
+
+    abstract fun onEvent(type: Int, source: T)
 }

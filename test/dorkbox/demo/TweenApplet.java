@@ -177,7 +177,7 @@ public class TweenApplet extends javax.swing.JApplet {
 	// -------------------------------------------------------------------------
 
 	private class MyCanvas extends Canvas {
-        private final TweenEngine tweenEngine = TweenEngine.create()
+        private final TweenEngine tweenEngine = TweenEngine.Companion.create()
                                                            .unsafe()
                                                            .setWaypointsLimit(10)
                                                            .setCombinedAttributesLimit(3)
@@ -290,7 +290,7 @@ public class TweenApplet extends javax.swing.JApplet {
 
         jLabel1.setText("Java code:");
 
-        jLabel9.setText("<html>\nTween Engine v" + TweenEngine.getVersion());
+        jLabel9.setText("<html>\nTween Engine v" + TweenEngine.version);
 
         javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
         jPanel1.setLayout(jPanel1Layout);

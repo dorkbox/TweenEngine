@@ -27,7 +27,7 @@ import dorkbox.tweenEngine.TweenEngine;
 public
 class ConsoleDemo {
 
-    private static final TweenEngine tweenEngine = TweenEngine.create()
+    private static final TweenEngine tweenEngine = TweenEngine.Companion.create()
                                                               .unsafe()
                                                               .setWaypointsLimit(10)
                                                               .setCombinedAttributesLimit(3)
@@ -40,12 +40,12 @@ class ConsoleDemo {
         RunConsole();
     }
 
-    private static
-    TweenCallback buildCallback(final String name, final int triggers) {
-        return new TweenCallback(triggers) {
+     private static
+    <T extends BaseTween<T>> TweenCallback<T> buildCallback(final String name, final int triggers) {
+        return new TweenCallback<T>(triggers) {
             @Override
             public
-            void onEvent(int type, BaseTween<?> source) {
+            void onEvent(final int type, final T source) {
                 String t;
                 if (type == Events.BEGIN) {
                     t = "BEGIN        ";
