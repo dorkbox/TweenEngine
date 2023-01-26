@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-import dorkbox.gradle.kotlin
 import java.time.Instant
 
 ///////////////////////////////
@@ -27,9 +26,9 @@ gradle.startParameter.showStacktrace = ShowStacktrace.ALWAYS_FULL   // always sh
 gradle.startParameter.warningMode = WarningMode.All
 
 plugins {
-    id("com.dorkbox.GradleUtils") version "3.9"
-    id("com.dorkbox.Licensing") version "2.19.1"
-    id("com.dorkbox.VersionUpdate") version "2.5"
+    id("com.dorkbox.GradleUtils") version "3.10"
+    id("com.dorkbox.Licensing") version "2.20"
+    id("com.dorkbox.VersionUpdate") version "2.6"
     id("com.dorkbox.GradlePublish") version "1.17"
 
     kotlin("jvm") version "1.8.0"
@@ -40,7 +39,7 @@ object Extras {
     // set for the project
     const val description = "High performance and lightweight Animation/Tween framework for Java 8+"
     const val group = "com.dorkbox"
-    const val version = "8.3"
+    const val version = "8.3.1"
 
     // set as project.ext
     const val name = "TweenEngine"
@@ -57,7 +56,6 @@ object Extras {
 ///////////////////////////////
 GradleUtils.load("$projectDir/../../gradle.properties", Extras)
 GradleUtils.defaults()
-// NOTE: Only support java 8 as the lowest target now. We use Multi-Release Jars to provide additional functionality as needed
 GradleUtils.compileConfiguration(JavaVersion.VERSION_1_8)
 
 licensing {
@@ -66,13 +64,19 @@ licensing {
         author("Aurelien Ribon")
         url(Extras.url)
         note(Extras.description)
+
+        extra("Robert Penner's Easing Functions", License.BSD_3) {
+            copyright(2001)
+            author("Robert Penner")
+            url("http://robertpenner.com/easing")
+        }
+
+        extra("Easing Functions", License.BSD_3) {
+            copyright(2017)
+            author("Michael Pohoreski")
+            url("https://github.com/Michaelangel007/easing/blob/master/js/core/easing.js")
+        }
     }
-
-    // Copyright © 2001 Robert Penner
-    // * All rights reserved.
-    // *                              BSD License
-
-    // also  Michael Pohoreski's work: https://github.com/Michaelangel007/easing/blob/master/js/core/easing.js
 }
 
 
