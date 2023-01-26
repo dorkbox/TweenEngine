@@ -13,46 +13,52 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dorkbox.demo.applets;
+package dorkbox.demo.applets
 
-import dorkbox.tweenEngine.TweenAccessor;
+import dorkbox.tweenEngine.TweenAccessor
 
 /**
  * @author Aurelien Ribon | http://www.aurelienribon.com
  */
-public class SpriteAccessor implements TweenAccessor<Sprite> {
-	public static final int POSITION_XY = 1;
-	public static final int SCALE_XY = 2;
-	public static final int VISIBILITY = 3;
+class SpriteAccessor : TweenAccessor<Sprite> {
+    override fun getValues(target: Sprite, tweenType: Int, returnValues: FloatArray): Int {
+        return when (tweenType) {
+            POSITION_XY -> {
+                returnValues[0] = target.x
+                returnValues[1] = target.y
+                2
+            }
 
-	@Override
-	public int getValues(Sprite target, int tweenType, float[] returnValues) {
-		switch (tweenType) {
-			case POSITION_XY:
-				returnValues[0] = target.getX();
-				returnValues[1] = target.getY();
-				return 2;
+            SCALE_XY -> {
+                returnValues[0] = target.scaleX
+                returnValues[1] = target.scaleY
+                2
+            }
 
-			case SCALE_XY:
-				returnValues[0] = target.getScaleX();
-				returnValues[1] = target.getScaleY();
-				return 2;
+            VISIBILITY -> {
+                returnValues[0] = (if (target.isVisible) 1 else 0).toFloat()
+                1
+            }
 
-			case VISIBILITY:
-				returnValues[0] = target.isVisible() ? 1 : 0;
-				return 1;
+            else -> {
+                assert(false)
+                -1
+            }
+        }
+    }
 
-			default: assert false; return -1;
-		}
-	}
+    override fun setValues(target: Sprite, tweenType: Int, newValues: FloatArray) {
+        when (tweenType) {
+            POSITION_XY -> target.setPosition(newValues[0], newValues[1])
+            SCALE_XY -> target.setScale(newValues[0], newValues[1])
+            VISIBILITY -> target.isVisible = newValues[0] > 0
+            else -> assert(false)
+        }
+    }
 
-	@Override
-	public void setValues(Sprite target, int tweenType, float[] newValues) {
-		switch (tweenType) {
-			case POSITION_XY: target.setPosition(newValues[0], newValues[1]); break;
-			case SCALE_XY: target.setScale(newValues[0], newValues[1]); break;
-			case VISIBILITY: target.setVisible(newValues[0] > 0); break;
-			default: assert false;
-		}
-	}
+    companion object {
+        const val POSITION_XY = 1
+        const val SCALE_XY = 2
+        const val VISIBILITY = 3
+    }
 }

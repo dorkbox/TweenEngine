@@ -13,496 +13,417 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dorkbox.demo;
+package dorkbox.demo
 
-import java.awt.BorderLayout;
-import java.awt.Canvas;
-import java.awt.Graphics;
-import java.awt.Graphics2D;
-import java.awt.Rectangle;
-import java.awt.TexturePaint;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
-import java.awt.image.BufferedImage;
-import java.io.IOException;
-
-import javax.imageio.ImageIO;
-import javax.swing.UIManager;
-import javax.swing.WindowConstants;
-import javax.swing.event.ChangeEvent;
-import javax.swing.event.ChangeListener;
-
-import dorkbox.demo.applets.Sprite;
-import dorkbox.demo.applets.SpriteAccessor;
-import dorkbox.demo.applets.Theme;
-import dorkbox.swingActiveRender.ActionHandlerLong;
-import dorkbox.swingActiveRender.SwingActiveRender;
-import dorkbox.tweenEngine.Tween;
-import dorkbox.tweenEngine.TweenEngine;
-import dorkbox.tweenEngine.TweenEquation;
-import dorkbox.tweenEngine.TweenEquations;
-import dorkbox.util.SwingUtil;
-import dorkbox.util.swing.GroupBorder;
-import dorkbox.util.swing.SwingHelper;
+import dorkbox.demo.applets.Sprite
+import dorkbox.demo.applets.SpriteAccessor
+import dorkbox.demo.applets.Theme.MAIN_BACKGROUND
+import dorkbox.demo.applets.Theme.apply
+import dorkbox.swingActiveRender.ActionHandlerLong
+import dorkbox.swingActiveRender.SwingActiveRender
+import dorkbox.tweenEngine.TweenEngine
+import dorkbox.tweenEngine.TweenEngine.Companion.create
+import dorkbox.tweenEngine.TweenEquations.Companion.parse
+import dorkbox.util.SwingUtil
+import dorkbox.util.swing.GroupBorder
+import dorkbox.util.swing.SwingHelper.showOnSameScreenAsMouseCenter
+import java.awt.*
+import java.awt.event.ActionEvent
+import java.awt.event.ActionListener
+import java.awt.event.MouseAdapter
+import java.awt.event.MouseEvent
+import java.io.IOException
+import javax.imageio.ImageIO
+import javax.swing.*
+import javax.swing.event.ChangeEvent
+import javax.swing.event.ChangeListener
 
 /**
  * @author Aurelien Ribon | http://www.aurelienribon.com
  */
-@SuppressWarnings("FieldCanBeLocal")
-public class TweenApplet extends javax.swing.JApplet {
-    public static void main(String[] args) {
-        SwingUtil.invokeLater(new Runnable() {
-            @Override
-            public
-            void run() {
+class TweenApplet : JApplet() {
+
+    companion object {
+        @JvmStatic
+        fun main(args: Array<String>) {
+            SwingUtil.invokeLater {
                 // NullRepaintManager.install();
-
-                TweenApplet applet = new TweenApplet();
-                applet.init();
-                applet.start();
-
-                javax.swing.JFrame wnd = new javax.swing.JFrame();
-                wnd.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
-                wnd.add(applet);
-                wnd.setSize(600, 550);
-
-                SwingHelper.showOnSameScreenAsMouseCenter(wnd);
-                wnd.setVisible(true);
-
-                SwingActiveRender.addActiveRender(applet.canvas);
+                val applet = TweenApplet()
+                applet.init()
+                applet.start()
+                val wnd = JFrame()
+                wnd.defaultCloseOperation = WindowConstants.EXIT_ON_CLOSE
+                wnd.add(applet)
+                wnd.setSize(600, 550)
+                showOnSameScreenAsMouseCenter(wnd)
+                wnd.isVisible = true
+                SwingActiveRender.addActiveRender(applet.canvas)
             }
-        });
+        }
+
+        private fun convertToSeconds(milliSeconds: Int): Float {
+            return milliSeconds / 1000.0f
+        }
     }
 
-	// -------------------------------------------------------------------------
-	// Applet
-	// -------------------------------------------------------------------------
+    private val canvasWrapper = JPanel()
+    private val delaySpinner = JSpinner()
+    private val durationSpinner = JSpinner()
+    private val easingCbox = JComboBox<Any?>()
+    private val jLabel1 = JLabel()
+    private val jLabel2 = JLabel()
+    private val jLabel3 = JLabel()
+    private val jLabel4 = JLabel()
+    private val jLabel5 = JLabel()
+    private val jLabel6 = JLabel()
+    private val jLabel7 = JLabel()
+    private val jLabel8 = JLabel()
+    private val jLabel9 = JLabel()
+    private val jPanel1 = JPanel()
+    private val jPanel2 = JPanel()
+    private val jPanel3 = JPanel()
+    private val jPanel4 = JPanel()
+    private val jScrollPane1 = JScrollPane()
+    private val resultArea = JTextArea()
+    private val repeatDelaySpinner = JSpinner()
+    private val repeatSpinner = JSpinner()
+    private val autoReverseCheckbox = JCheckBox()
 
-    private ActionHandlerLong frameStartHandler;
-    public MyCanvas canvas;
 
-    @Override
-    public
-    void init() {
-        SwingUtil.invokeAndWaitQuietly(new Runnable() {
-            @Override
-            public
-            void run() {
-                load();
-            }
-        });
+    private var frameStartHandler: ActionHandlerLong? = null
+    private val canvas = MyCanvas()
+
+    override fun init() {
+        SwingUtil.invokeAndWaitQuietly { load() }
     }
 
-	@Override
-	public void destroy() {
-        SwingActiveRender.removeActiveRender(canvas);
-        SwingActiveRender.removeActiveRenderFrameStart(frameStartHandler);
-	}
+    override fun destroy() {
+        SwingActiveRender.removeActiveRender(canvas)
+        SwingActiveRender.removeActiveRenderFrameStart(frameStartHandler)
+    }
 
-	private void load() {
-		try {
-			UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
-		} catch (Exception ex) {
-            ex.printStackTrace();
-		}
+    private fun load() {
+        try {
+            UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName())
+        } catch (ex: Exception) {
+            ex.printStackTrace()
+        }
 
-		initComponents();
+        initComponents()
 
-		getContentPane().setBackground(Theme.MAIN_BACKGROUND);
-		Theme.apply(getContentPane());
+        contentPane.background = MAIN_BACKGROUND
+        apply(contentPane)
+        val listener = OptionsListener()
+        easingCbox.addActionListener(listener)
+        delaySpinner.addChangeListener(listener)
+        durationSpinner.addChangeListener(listener)
+        repeatSpinner.addChangeListener(listener)
+        repeatDelaySpinner.addChangeListener(listener)
+        autoReverseCheckbox.addActionListener(listener)
 
-		OptionsListener listener = new OptionsListener();
-		easingCbox.addActionListener(listener);
-		delaySpinner.addChangeListener(listener);
-		durationSpinner.addChangeListener(listener);
-		repeatSpinner.addChangeListener(listener);
-		repeatDelaySpinner.addChangeListener(listener);
-		autoReverseCheckbox.addActionListener(listener);
+        generateCode()
 
-		generateCode();
+        canvasWrapper.add(canvas, BorderLayout.CENTER)
 
-        canvas = new MyCanvas();
-        canvasWrapper.add(canvas, BorderLayout.CENTER);
+        frameStartHandler = ActionHandlerLong { deltaInNanos ->
+            canvas.tweenEngine.update(deltaInNanos)
+            // canvas.repaint();
+        }
+        SwingActiveRender.addActiveRenderFrameStart(frameStartHandler)
+    }
 
-        frameStartHandler = new ActionHandlerLong() {
-            @Override
-            public
-            void handle(final long deltaInNanos) {
-                canvas.tweenEngine.update(deltaInNanos);
-                // canvas.repaint();
-            }
-        };
+    // -------------------------------------------------------------------------
+    // Generated stuff
+    // -------------------------------------------------------------------------
+    private fun initComponents() {
+        jPanel1.border = GroupBorder()
+        jScrollPane1.verticalScrollBarPolicy = ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS
+        jScrollPane1.setViewportView(resultArea)
+        resultArea.columns = 20
+        resultArea.rows = 5
+        jLabel1.text = "Java code:"
+        jLabel9.text = """
+             <html>
+             Tween Engine v${TweenEngine.version}
+             """.trimIndent()
 
-        SwingActiveRender.addActiveRenderFrameStart(frameStartHandler);
-	}
 
-	private void generateCode() {
-		String easing = (String) easingCbox.getSelectedItem();
-		int delay = (Integer) delaySpinner.getValue();
-		float duration = convertToSeconds((Integer) durationSpinner.getValue());
-		int repeatCount = (Integer) repeatSpinner.getValue();
-		float repeatDelay = convertToSeconds((Integer) repeatDelaySpinner.getValue());
-		boolean isAutoReverse = autoReverseCheckbox.isSelected();
+        val jPanel1Layout = GroupLayout(jPanel1)
+        jPanel1.layout = jPanel1Layout
+        jPanel1Layout.setHorizontalGroup(
+                jPanel1Layout.createParallelGroup(GroupLayout.Alignment.LEADING)
+                        .addGroup(jPanel1Layout.createSequentialGroup()
+                                .addContainerGap()
+                                .addGroup(jPanel1Layout.createParallelGroup(GroupLayout.Alignment.LEADING)
+                                        .addComponent(jScrollPane1, GroupLayout.DEFAULT_SIZE, 562, Short.MAX_VALUE.toInt())
+                                        .addGroup(jPanel1Layout.createSequentialGroup()
+                                                .addComponent(jLabel1)
+                                                .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED, 237, Short.MAX_VALUE.toInt())
+                                                .addComponent(jLabel9, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)))
+                                .addContainerGap())
+        )
+        jPanel1Layout.setVerticalGroup(
+                jPanel1Layout.createParallelGroup(GroupLayout.Alignment.LEADING)
+                        .addGroup(jPanel1Layout.createSequentialGroup()
+                                .addContainerGap()
+                                .addGroup(jPanel1Layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
+                                        .addComponent(jLabel1)
+                                        .addComponent(jLabel9, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
+                                .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
+                                .addComponent(jScrollPane1, GroupLayout.DEFAULT_SIZE, 101, Short.MAX_VALUE.toInt())
+                                .addContainerGap())
+        )
 
-        String code = "Tween.to(mySprite, POSITION_XY, " + duration + ")";
-        code += "\n     .target()";
 
-        if (!easing.equals("Linear") && !easing.equals("----------")) {
-            code += "\n     .ease(" + easing + ")";
+        canvasWrapper.layout = BorderLayout()
+        jPanel3.isOpaque = false
+        jLabel2.horizontalAlignment = SwingConstants.CENTER
+        jLabel2.icon = ImageIcon(Sprite::class.java.getResource("gfx/logo-tween.png"))
+
+        val groupBorder1 = GroupBorder()
+        groupBorder1.title = "Options"
+        jPanel2.border = groupBorder1
+        jLabel3.text = "Delay:"
+        delaySpinner.model = SpinnerNumberModel(0, 0, null, 100)
+        jLabel4.text = "Repetitions:"
+        repeatSpinner.model = SpinnerNumberModel(0, 0, null, 1)
+        autoReverseCheckbox.text = "Auto reverse"
+        jLabel5.text = "Duration (in ms):"
+        durationSpinner.model = SpinnerNumberModel(500, 0, null, 100)
+        jLabel7.text = "Easing:"
+        easingCbox.model = DefaultComboBoxModel(arrayOf<String?>("Linear.INOUT", "----------", "Quad.IN", "Quad.OUT", "Quad.INOUT", "----------", "Cubic.IN", "Cubic.OUT", "Cubic.INOUT", "----------", "Quart.IN", "Quart.OUT", "Quart.INOUT", "----------", "Quint.IN", "Quint.OUT", "Quint.INOUT", "----------", "Circ.IN", "Circ.OUT", "Circ.INOUT", "----------", "Sine.IN", "Sine.OUT", "Sine.INOUT", "----------", "Expo.IN", "Expo.OUT", "Expo.INOUT", "----------", "Back.IN", "Back.OUT", "Back.INOUT", "----------", "Bounce.IN", "Bounce.OUT", "Bounce.INOUT", "----------", "Elastic.IN", "Elastic.OUT", "Elastic.INOUT"))
+        easingCbox.selectedIndex = 31
+        jLabel6.text = "Repeat delay (in ms):"
+        repeatDelaySpinner.model = SpinnerNumberModel(0, 0, null, 100)
+
+        val jPanel2Layout = GroupLayout(jPanel2)
+        jPanel2.layout = jPanel2Layout
+        jPanel2Layout.setHorizontalGroup(
+                jPanel2Layout.createParallelGroup(GroupLayout.Alignment.LEADING)
+                        .addGroup(jPanel2Layout.createSequentialGroup()
+                                .addContainerGap()
+                                .addGroup(jPanel2Layout.createParallelGroup(GroupLayout.Alignment.LEADING)
+                                        .addComponent(autoReverseCheckbox, GroupLayout.Alignment.TRAILING)
+                                        .addGroup(jPanel2Layout.createSequentialGroup()
+                                                .addComponent(jLabel7)
+                                                .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
+                                                .addComponent(easingCbox, 0, 105, Short.MAX_VALUE.toInt()))
+                                        .addGroup(GroupLayout.Alignment.TRAILING, jPanel2Layout.createSequentialGroup()
+                                                .addGap(13, 13, 13)
+                                                .addGroup(jPanel2Layout.createParallelGroup(GroupLayout.Alignment.TRAILING)
+                                                        .addComponent(jLabel5)
+                                                        .addComponent(jLabel3))
+                                                .addPreferredGap(LayoutStyle.ComponentPlacement.UNRELATED)
+                                                .addGroup(jPanel2Layout.createParallelGroup(GroupLayout.Alignment.LEADING)
+                                                        .addComponent(durationSpinner, GroupLayout.Alignment.TRAILING, GroupLayout.PREFERRED_SIZE, 66, GroupLayout.PREFERRED_SIZE)
+                                                        .addComponent(delaySpinner, GroupLayout.Alignment.TRAILING, GroupLayout.PREFERRED_SIZE, 66, GroupLayout.PREFERRED_SIZE)))
+                                        .addGroup(GroupLayout.Alignment.TRAILING, jPanel2Layout.createSequentialGroup()
+                                                .addComponent(jLabel4)
+                                                .addPreferredGap(LayoutStyle.ComponentPlacement.UNRELATED)
+                                                .addComponent(repeatSpinner, GroupLayout.PREFERRED_SIZE, 66, GroupLayout.PREFERRED_SIZE))
+                                        .addGroup(GroupLayout.Alignment.TRAILING, jPanel2Layout.createSequentialGroup()
+                                                .addComponent(jLabel6)
+                                                .addPreferredGap(LayoutStyle.ComponentPlacement.UNRELATED)
+                                                .addComponent(repeatDelaySpinner, GroupLayout.PREFERRED_SIZE, 66, GroupLayout.PREFERRED_SIZE)))
+                                .addContainerGap())
+        )
+        jPanel2Layout.setVerticalGroup(
+                jPanel2Layout.createParallelGroup(GroupLayout.Alignment.LEADING)
+                        .addGroup(jPanel2Layout.createSequentialGroup()
+                                .addContainerGap()
+                                .addGroup(jPanel2Layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
+                                        .addComponent(jLabel7)
+                                        .addComponent(easingCbox, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
+                                .addGap(18, 18, 18)
+                                .addGroup(jPanel2Layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
+                                        .addComponent(delaySpinner, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+                                        .addComponent(jLabel3))
+                                .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
+                                .addGroup(jPanel2Layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
+                                        .addComponent(durationSpinner, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+                                        .addComponent(jLabel5))
+                                .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
+                                .addGroup(jPanel2Layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
+                                        .addComponent(repeatSpinner, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+                                        .addComponent(jLabel4))
+                                .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
+                                .addGroup(jPanel2Layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
+                                        .addComponent(repeatDelaySpinner, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+                                        .addComponent(jLabel6))
+                                .addGap(18, 18, 18)
+                                .addComponent(autoReverseCheckbox)
+                                .addContainerGap(GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE.toInt()))
+        )
+        jPanel4.border = GroupBorder()
+        jLabel8.text = "<html>\nClick anywhere on the canvas to fire your custom tween."
+        jLabel8.verticalAlignment = SwingConstants.TOP
+
+        val jPanel4Layout = GroupLayout(jPanel4)
+        jPanel4.layout = jPanel4Layout
+        jPanel4Layout.setHorizontalGroup(
+                jPanel4Layout.createParallelGroup(GroupLayout.Alignment.LEADING)
+                        .addGroup(jPanel4Layout.createSequentialGroup()
+                                .addContainerGap()
+                                .addComponent(jLabel8, GroupLayout.DEFAULT_SIZE, 144, Short.MAX_VALUE.toInt())
+                                .addContainerGap())
+        )
+        jPanel4Layout.setVerticalGroup(
+                jPanel4Layout.createParallelGroup(GroupLayout.Alignment.LEADING)
+                        .addGroup(jPanel4Layout.createSequentialGroup()
+                                .addContainerGap()
+                                .addComponent(jLabel8, GroupLayout.DEFAULT_SIZE, 42, Short.MAX_VALUE.toInt())
+                                .addContainerGap())
+        )
+
+
+        val jPanel3Layout = GroupLayout(jPanel3)
+        jPanel3.layout = jPanel3Layout
+        jPanel3Layout.setHorizontalGroup(
+                jPanel3Layout.createParallelGroup(GroupLayout.Alignment.LEADING)
+                        .addComponent(jLabel2, GroupLayout.DEFAULT_SIZE, 164, Short.MAX_VALUE.toInt())
+                        .addComponent(jPanel4, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE.toInt())
+                        .addComponent(jPanel2, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE.toInt())
+        )
+        jPanel3Layout.setVerticalGroup(
+                jPanel3Layout.createParallelGroup(GroupLayout.Alignment.LEADING)
+                        .addGroup(jPanel3Layout.createSequentialGroup()
+                                .addComponent(jLabel2)
+                                .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED, 26, Short.MAX_VALUE.toInt())
+                                .addComponent(jPanel2, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+                                .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
+                                .addComponent(jPanel4, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
+        )
+
+
+        val layout = GroupLayout(contentPane)
+        contentPane.layout = layout
+        layout.setHorizontalGroup(
+                layout.createParallelGroup(GroupLayout.Alignment.LEADING)
+                        .addGroup(layout.createSequentialGroup()
+                                .addContainerGap()
+                                .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
+                                        .addComponent(jPanel1, GroupLayout.Alignment.TRAILING, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE.toInt())
+                                        .addGroup(GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
+                                                .addComponent(canvasWrapper, GroupLayout.DEFAULT_SIZE, 412, Short.MAX_VALUE.toInt())
+                                                .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
+                                                .addComponent(jPanel3, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)))
+                                .addContainerGap())
+        )
+        layout.setVerticalGroup(
+                layout.createParallelGroup(GroupLayout.Alignment.LEADING)
+                        .addGroup(GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
+                                .addContainerGap()
+                                .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
+                                        .addComponent(canvasWrapper, GroupLayout.DEFAULT_SIZE, 365, Short.MAX_VALUE.toInt())
+                                        .addComponent(jPanel3, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE.toInt()))
+                                .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
+                                .addComponent(jPanel1, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+                                .addContainerGap())
+        )
+    }
+
+
+    private fun generateCode() {
+        val easing = easingCbox.selectedItem as String
+        val delay = delaySpinner.value as Int
+        val duration = convertToSeconds(durationSpinner.value as Int)
+        val repeatCount = repeatSpinner.value as Int
+        val repeatDelay = convertToSeconds(repeatDelaySpinner.value as Int)
+        val isAutoReverse = autoReverseCheckbox.isSelected
+        var code = "Tween.to(mySprite, POSITION_XY, $duration)"
+        code += "\n     .target()"
+        if (easing != "Linear" && easing != "----------") {
+            code += "\n     .ease($easing)"
         }
         if (delay > 0) {
-            code += "\n     .delay(" + delay + ")";
+            code += "\n     .delay($delay)"
         }
         if (repeatCount > 0) {
-            code += "\n     .repeat" + (isAutoReverse ? "autoReverse" : "") + "(" + repeatCount + ", " + repeatDelay + ")";
+            code += """
+     .repeat${if (isAutoReverse) "autoReverse" else ""}($repeatCount, $repeatDelay)"""
         }
-
-        code += "\n     .start(myManager);";
-
-        resultArea.setText(code);
-	}
-
-	private class OptionsListener implements ChangeListener, ActionListener {
-		@Override public void stateChanged(ChangeEvent e) {onEvent();}
-		@Override public void actionPerformed(ActionEvent e) {onEvent();}
-		private void onEvent() {
-			generateCode();
-		}
-	}
-
-	// -------------------------------------------------------------------------
-	// Canvas
-	// -------------------------------------------------------------------------
-
-	private class MyCanvas extends Canvas {
-        private final TweenEngine tweenEngine = TweenEngine.Companion.create()
-                                                           .unsafe()
-                                                           .setWaypointsLimit(10)
-                                                           .setCombinedAttributesLimit(3)
-                                                           .registerAccessor(Sprite.class, new SpriteAccessor())
-                                                           .build();
-		private transient final Sprite vialSprite;
-		private transient TexturePaint bgPaint;
-
-		public MyCanvas() {
-			addMouseListener(mouseAdapter);
-
-			vialSprite = new Sprite("vial.png");
-			vialSprite.setPosition(100, 100);
-
-			try {
-				BufferedImage bgImage = ImageIO.read(Sprite.class.getResource("gfx/transparent-dark.png"));
-				bgPaint = new TexturePaint(bgImage, new Rectangle(0, 0, bgImage.getWidth(), bgImage.getHeight()));
-			} catch (IOException ex) {
-                ex.printStackTrace();
-			}
-		}
-
-		@Override
-		public void paint(Graphics g) {
-			Graphics2D gg = (Graphics2D) g;
-
-			if (bgPaint != null) {
-				gg.setPaint(bgPaint);
-				gg.fillRect(0, 0, getWidth(), getHeight());
-				gg.setPaint(null);
-			}
-
-			vialSprite.draw(gg);
-		}
-
-		@SuppressWarnings("GwtInconsistentSerializableClass")
-        private final MouseAdapter mouseAdapter = new MouseAdapter() {
-			@Override public void mousePressed(MouseEvent e) {
-                TweenEquation easing = TweenEquations.Companion.parse((String) easingCbox.getSelectedItem());
-                int delay = (Integer) delaySpinner.getValue();
-                float duration = convertToSeconds((Integer) durationSpinner.getValue());
-                int repeatCount = (Integer) repeatSpinner.getValue();
-                float repeatDelay = convertToSeconds((Integer) repeatDelaySpinner.getValue());
-                boolean isAutoReverse = autoReverseCheckbox.isSelected();
-
-                tweenEngine.cancelAll();
-
-                Tween<Sprite> tween = tweenEngine.to(vialSprite, SpriteAccessor.POSITION_XY, duration)
-                                         .target(e.getX(), e.getY())
-                                         .delay(delay);
-
-                if (easing != null) {
-                    tween.ease(easing);
-                }
-                if (isAutoReverse) {
-                    tween.repeatAutoReverse(repeatCount, repeatDelay);
-                }
-                else {
-                    tween.repeat(repeatCount, repeatDelay);
-                }
-
-                tween.start();
-            }
-		};
-	}
-
-    private static
-    float convertToSeconds(int milliSeconds) {
-        return milliSeconds / 1000.0F;
+        code += "\n     .start(myManager);"
+        resultArea.text = code
     }
 
-	// -------------------------------------------------------------------------
-	// Generated stuff
-	// -------------------------------------------------------------------------
+    private inner class OptionsListener : ChangeListener, ActionListener {
+        override fun stateChanged(e: ChangeEvent) {
+            onEvent()
+        }
 
-    @SuppressWarnings("unchecked")
-    // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
-    private void initComponents() {
+        override fun actionPerformed(e: ActionEvent) {
+            onEvent()
+        }
 
-        jPanel1 = new javax.swing.JPanel();
-        jScrollPane1 = new javax.swing.JScrollPane();
-        resultArea = new javax.swing.JTextArea();
-        jLabel1 = new javax.swing.JLabel();
-        jLabel9 = new javax.swing.JLabel();
-        canvasWrapper = new javax.swing.JPanel();
-        jPanel3 = new javax.swing.JPanel();
-        jLabel2 = new javax.swing.JLabel();
-        jPanel2 = new javax.swing.JPanel();
-        jLabel3 = new javax.swing.JLabel();
-        delaySpinner = new javax.swing.JSpinner();
-        jLabel4 = new javax.swing.JLabel();
-        repeatSpinner = new javax.swing.JSpinner();
-        autoReverseCheckbox = new javax.swing.JCheckBox();
-        jLabel5 = new javax.swing.JLabel();
-        durationSpinner = new javax.swing.JSpinner();
-        jLabel7 = new javax.swing.JLabel();
-        easingCbox = new javax.swing.JComboBox();
-        jLabel6 = new javax.swing.JLabel();
-        repeatDelaySpinner = new javax.swing.JSpinner();
-        jPanel4 = new javax.swing.JPanel();
-        jLabel8 = new javax.swing.JLabel();
+        private fun onEvent() {
+            generateCode()
+        }
+    }
 
-        jPanel1.setBorder(new GroupBorder());
+    // -------------------------------------------------------------------------
+    // Canvas
+    // -------------------------------------------------------------------------
+    inner class MyCanvas : Canvas() {
+        val tweenEngine = create()
+                .unsafe()
+                .setWaypointsLimit(10)
+                .setCombinedAttributesLimit(3)
+                .registerAccessor(Sprite::class.java, SpriteAccessor())
+                .build()
 
-        jScrollPane1.setVerticalScrollBarPolicy(javax.swing.ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);
+        private val vialSprite = Sprite("vial.png")
 
-        resultArea.setColumns(20);
-        resultArea.setRows(5);
-        jScrollPane1.setViewportView(resultArea);
+        @Transient
+        private var bgPaint: TexturePaint? = null
 
-        jLabel1.setText("Java code:");
+        private val mouseAdapter: MouseAdapter = object : MouseAdapter() {
+            override fun mousePressed(e: MouseEvent) {
+                val easing = parse((easingCbox.selectedItem as String))
+                val delay = delaySpinner.value as Int
+                val duration = convertToSeconds(durationSpinner.value as Int)
+                val repeatCount = repeatSpinner.value as Int
+                val repeatDelay = convertToSeconds(repeatDelaySpinner.value as Int)
+                val isAutoReverse = autoReverseCheckbox.isSelected
+                tweenEngine.cancelAll()
 
-        jLabel9.setText("<html>\nTween Engine v" + TweenEngine.version);
 
-        javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
-        jPanel1.setLayout(jPanel1Layout);
-        jPanel1Layout.setHorizontalGroup(
-            jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(jPanel1Layout.createSequentialGroup()
-                .addContainerGap()
-                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(jScrollPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 562, Short.MAX_VALUE)
-                    .addGroup(jPanel1Layout.createSequentialGroup()
-                        .addComponent(jLabel1)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 237, Short.MAX_VALUE)
-                        .addComponent(jLabel9, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
-                .addContainerGap())
-        );
-        jPanel1Layout.setVerticalGroup(
-            jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(jPanel1Layout.createSequentialGroup()
-                .addContainerGap()
-                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(jLabel1)
-                    .addComponent(jLabel9, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jScrollPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 101, Short.MAX_VALUE)
-                .addContainerGap())
-        );
+                val tween = tweenEngine.to(vialSprite, SpriteAccessor.POSITION_XY, duration)
+                        .target(e.x.toFloat(), e.y.toFloat())
+                        .delay(delay.toFloat())
+                if (easing != null) {
+                    tween.ease(easing)
+                }
+                if (isAutoReverse) {
+                    tween.repeatAutoReverse(repeatCount, repeatDelay)
+                } else {
+                    tween.repeat(repeatCount, repeatDelay)
+                }
+                tween.start()
+            }
+        }
 
-        canvasWrapper.setLayout(new java.awt.BorderLayout());
+        init {
+            addMouseListener(mouseAdapter)
 
-        jPanel3.setOpaque(false);
+            vialSprite.setPosition(100f, 100f)
+            try {
+                val bgImage = ImageIO.read(Sprite::class.java.getResource("gfx/transparent-dark.png"))
+                bgPaint = TexturePaint(bgImage, Rectangle(0, 0, bgImage.width, bgImage.height))
+            } catch (ex: IOException) {
+                ex.printStackTrace()
+            }
+        }
 
-        jLabel2.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        jLabel2.setIcon(new javax.swing.ImageIcon(Sprite.class.getResource("gfx/logo-tween.png")));
-        //
-        // NOI18N
+        override fun paint(g: Graphics) {
+            val gg = g as Graphics2D
+            if (bgPaint != null) {
+                gg.paint = bgPaint
+                gg.fillRect(0, 0, width, height)
+                gg.paint = null
+            }
+            vialSprite.draw(gg)
+        }
 
-        GroupBorder groupBorder1 = new GroupBorder();
-        groupBorder1.setTitle("Options");
-        jPanel2.setBorder(groupBorder1);
 
-        jLabel3.setText("Delay:");
-
-        delaySpinner.setModel(new javax.swing.SpinnerNumberModel(0, 0, null, 100));
-
-        jLabel4.setText("Repetitions:");
-
-        repeatSpinner.setModel(new javax.swing.SpinnerNumberModel(0, 0, null, 1));
-
-        autoReverseCheckbox.setText("Auto reverse");
-
-        jLabel5.setText("Duration (in ms):");
-
-        durationSpinner.setModel(new javax.swing.SpinnerNumberModel(500, 0, null, 100));
-
-        jLabel7.setText("Easing:");
-
-        easingCbox.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "Linear.INOUT", "----------", "Quad.IN", "Quad.OUT", "Quad.INOUT", "----------", "Cubic.IN", "Cubic.OUT", "Cubic.INOUT", "----------", "Quart.IN", "Quart.OUT", "Quart.INOUT", "----------", "Quint.IN", "Quint.OUT", "Quint.INOUT", "----------", "Circ.IN", "Circ.OUT", "Circ.INOUT", "----------", "Sine.IN", "Sine.OUT", "Sine.INOUT", "----------", "Expo.IN", "Expo.OUT", "Expo.INOUT", "----------", "Back.IN", "Back.OUT", "Back.INOUT", "----------", "Bounce.IN", "Bounce.OUT", "Bounce.INOUT", "----------", "Elastic.IN", "Elastic.OUT", "Elastic.INOUT" }));
-        easingCbox.setSelectedIndex(31);
-
-        jLabel6.setText("Repeat delay (in ms):");
-
-        repeatDelaySpinner.setModel(new javax.swing.SpinnerNumberModel(0, 0, null, 100));
-
-        javax.swing.GroupLayout jPanel2Layout = new javax.swing.GroupLayout(jPanel2);
-        jPanel2.setLayout(jPanel2Layout);
-        jPanel2Layout.setHorizontalGroup(
-            jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(jPanel2Layout.createSequentialGroup()
-                .addContainerGap()
-                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(autoReverseCheckbox, javax.swing.GroupLayout.Alignment.TRAILING)
-                    .addGroup(jPanel2Layout.createSequentialGroup()
-                        .addComponent(jLabel7)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(easingCbox, 0, 105, Short.MAX_VALUE))
-                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel2Layout.createSequentialGroup()
-                        .addGap(13, 13, 13)
-                        .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
-                            .addComponent(jLabel5)
-                            .addComponent(jLabel3))
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                        .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addComponent(durationSpinner, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 66, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(delaySpinner, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 66, javax.swing.GroupLayout.PREFERRED_SIZE)))
-                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel2Layout.createSequentialGroup()
-                        .addComponent(jLabel4)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                        .addComponent(repeatSpinner, javax.swing.GroupLayout.PREFERRED_SIZE, 66, javax.swing.GroupLayout.PREFERRED_SIZE))
-                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel2Layout.createSequentialGroup()
-                        .addComponent(jLabel6)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                        .addComponent(repeatDelaySpinner, javax.swing.GroupLayout.PREFERRED_SIZE, 66, javax.swing.GroupLayout.PREFERRED_SIZE)))
-                .addContainerGap())
-        );
-        jPanel2Layout.setVerticalGroup(
-            jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(jPanel2Layout.createSequentialGroup()
-                .addContainerGap()
-                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(jLabel7)
-                    .addComponent(easingCbox, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addGap(18, 18, 18)
-                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(delaySpinner, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(jLabel3))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(durationSpinner, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(jLabel5))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(repeatSpinner, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(jLabel4))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(repeatDelaySpinner, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(jLabel6))
-                .addGap(18, 18, 18)
-                .addComponent(autoReverseCheckbox)
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-        );
-
-        jPanel4.setBorder(new GroupBorder());
-
-        jLabel8.setText("<html>\nClick anywhere on the canvas to fire your custom tween.");
-        jLabel8.setVerticalAlignment(javax.swing.SwingConstants.TOP);
-
-        javax.swing.GroupLayout jPanel4Layout = new javax.swing.GroupLayout(jPanel4);
-        jPanel4.setLayout(jPanel4Layout);
-        jPanel4Layout.setHorizontalGroup(
-            jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(jPanel4Layout.createSequentialGroup()
-                .addContainerGap()
-                .addComponent(jLabel8, javax.swing.GroupLayout.DEFAULT_SIZE, 144, Short.MAX_VALUE)
-                .addContainerGap())
-        );
-        jPanel4Layout.setVerticalGroup(
-            jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(jPanel4Layout.createSequentialGroup()
-                .addContainerGap()
-                .addComponent(jLabel8, javax.swing.GroupLayout.DEFAULT_SIZE, 42, Short.MAX_VALUE)
-                .addContainerGap())
-        );
-
-        javax.swing.GroupLayout jPanel3Layout = new javax.swing.GroupLayout(jPanel3);
-        jPanel3.setLayout(jPanel3Layout);
-        jPanel3Layout.setHorizontalGroup(
-            jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addComponent(jLabel2, javax.swing.GroupLayout.DEFAULT_SIZE, 164, Short.MAX_VALUE)
-            .addComponent(jPanel4, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-            .addComponent(jPanel2, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-        );
-        jPanel3Layout.setVerticalGroup(
-            jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(jPanel3Layout.createSequentialGroup()
-                .addComponent(jLabel2)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 26, Short.MAX_VALUE)
-                .addComponent(jPanel2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jPanel4, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-        );
-
-        javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
-        getContentPane().setLayout(layout);
-        layout.setHorizontalGroup(
-            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(layout.createSequentialGroup()
-                .addContainerGap()
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(jPanel1, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
-                        .addComponent(canvasWrapper, javax.swing.GroupLayout.DEFAULT_SIZE, 412, Short.MAX_VALUE)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(jPanel3, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
-                .addContainerGap())
-        );
-        layout.setVerticalGroup(
-            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
-                .addContainerGap()
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(canvasWrapper, javax.swing.GroupLayout.DEFAULT_SIZE, 365, Short.MAX_VALUE)
-                    .addComponent(jPanel3, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jPanel1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap())
-        );
-    }// </editor-fold>//GEN-END:initComponents
-
-    // Variables declaration - do not modify//GEN-BEGIN:variables
-    private javax.swing.JPanel canvasWrapper;
-    private javax.swing.JSpinner delaySpinner;
-    private javax.swing.JSpinner durationSpinner;
-    private javax.swing.JComboBox easingCbox;
-    private javax.swing.JLabel jLabel1;
-    private javax.swing.JLabel jLabel2;
-    private javax.swing.JLabel jLabel3;
-    private javax.swing.JLabel jLabel4;
-    private javax.swing.JLabel jLabel5;
-    private javax.swing.JLabel jLabel6;
-    private javax.swing.JLabel jLabel7;
-    private javax.swing.JLabel jLabel8;
-    private javax.swing.JLabel jLabel9;
-    private javax.swing.JPanel jPanel1;
-    private javax.swing.JPanel jPanel2;
-    private javax.swing.JPanel jPanel3;
-    private javax.swing.JPanel jPanel4;
-    private javax.swing.JScrollPane jScrollPane1;
-    private javax.swing.JTextArea resultArea;
-    private javax.swing.JSpinner repeatDelaySpinner;
-    private javax.swing.JSpinner repeatSpinner;
-    private javax.swing.JCheckBox autoReverseCheckbox;
-    // End of variables declaration//GEN-END:variables
-
+    }
 }

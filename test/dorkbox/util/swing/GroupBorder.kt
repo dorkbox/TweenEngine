@@ -13,57 +13,42 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dorkbox.util.swing;
+package dorkbox.util.swing
 
-import javax.swing.border.Border;
-import java.awt.Component;
-import java.awt.Graphics;
-import java.awt.Graphics2D;
-import java.awt.Insets;
+import java.awt.Component
+import java.awt.Graphics
+import java.awt.Graphics2D
+import java.awt.Insets
+import javax.swing.border.Border
 
-public class GroupBorder implements Border {
-	private final int titleHeight = 20;
-	private final int borderPadding = 0;
-	private String title = "";
+class GroupBorder : Border {
+    private val titleHeight = 20
+    private val borderPadding = 0
+    @JvmField
+	var title = ""
+    override fun paintBorder(c: Component, g: Graphics, x: Int, y: Int, width: Int, height: Int) {
+        val gg = g.create() as Graphics2D
+        val titleW = gg.fontMetrics.stringWidth(title) + 20
+        val titleDescent = gg.fontMetrics.descent
+        gg.color = c.background
+        if (title != "") {
+            val xs = intArrayOf(0, titleW, titleW + titleHeight, 0)
+            val ys = intArrayOf(0, 0, titleHeight, titleHeight)
+            gg.fillPolygon(xs, ys, 4)
+            gg.fillRect(0, titleHeight, width, height)
+            gg.color = c.foreground
+            gg.drawString(title, 10, titleHeight - titleDescent)
+        } else {
+            gg.fillRect(0, 0, width, height)
+        }
+        gg.dispose()
+    }
 
-	public String getTitle() {
-		return title;
-	}
+    override fun getBorderInsets(c: Component): Insets {
+        return Insets(if (title != "") borderPadding + titleHeight else borderPadding, borderPadding, borderPadding, borderPadding)
+    }
 
-	public void setTitle(String title) {
-		this.title = title;
-	}
-
-	@Override
-	public void paintBorder(Component c, Graphics g, int x, int y, int width, int height) {
-		Graphics2D gg = (Graphics2D) g.create();
-		
-		int titleW = gg.getFontMetrics().stringWidth(title) + 20;
-		int titleDescent = gg.getFontMetrics().getDescent();
-		
-		gg.setColor(c.getBackground());
-
-		if (!title.equals("")) {
-			int[] xs = {0, titleW, titleW + titleHeight, 0};
-			int[] ys = {0, 0, titleHeight, titleHeight};
-			gg.fillPolygon(xs, ys, 4);
-			gg.fillRect(0, titleHeight, width, height);
-			gg.setColor(c.getForeground());
-			gg.drawString(title, 10, titleHeight - titleDescent);
-		} else {
-			gg.fillRect(0, 0, width, height);
-		}
-		
-		gg.dispose();
-	}
-
-	@Override
-	public Insets getBorderInsets(Component c) {
-		return new Insets(!title.equals("") ? borderPadding + titleHeight : borderPadding, borderPadding, borderPadding, borderPadding);
-	}
-
-	@Override
-	public boolean isBorderOpaque() {
-		return false;
-	}
+    override fun isBorderOpaque(): Boolean {
+        return false
+    }
 }

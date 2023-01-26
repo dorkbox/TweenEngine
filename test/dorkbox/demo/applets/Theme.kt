@@ -13,80 +13,60 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dorkbox.demo.applets;
+package dorkbox.demo.applets
 
-import java.awt.Color;
-import java.awt.Component;
-import java.awt.Container;
-import java.awt.Font;
+import dorkbox.util.swing.GroupBorder
+import java.awt.Color
+import java.awt.Component
+import java.awt.Container
+import java.awt.Font
+import javax.swing.*
 
-import javax.swing.JButton;
-import javax.swing.JCheckBox;
-import javax.swing.JComponent;
-import javax.swing.JLabel;
-import javax.swing.JSlider;
-import javax.swing.border.Border;
+object Theme {
+	val MAIN_BACKGROUND = Color(0x444444)
+	val MAIN_FOREGROUND = Color(0xF0F0F0)
+    val MAIN_ALT_BACKGROUND = Color(0x707070)
+    val MAIN_ALT_FOREGROUND = Color(0xF0F0F0)
+    val HEADER_BACKGROUND = Color(0x707070)
+    val HEADER_FOREGROUND = Color(0xF0F0F0)
+    val TEXTAREA_BACKGROUND = Color(0x333333)
+    val TEXTAREA_FOREGROUND = Color(0xF0F0F0)
+    val TEXTAREA_SELECTED_BACKGROUND = Color(0x808080)
+    val TEXTAREA_SELECTED_FOREGROUND = Color(0xF0F0F0)
+    val CONSOLE_BACKGROUND = Color(0xA5A5A5)
+    val CONSOLE_FOREGROUND = Color(0x000000)
+    val SEPARATOR = Color(0xB5B5B5)
 
-import dorkbox.util.swing.GroupBorder;
-
-public class Theme {
-    public static final Color MAIN_BACKGROUND = new Color(0x444444);
-    public static final Color MAIN_FOREGROUND = new Color(0xF0F0F0);
-    public static final Color MAIN_ALT_BACKGROUND = new Color(0x707070);
-    public static final Color MAIN_ALT_FOREGROUND = new Color(0xF0F0F0);
-
-    public static final Color HEADER_BACKGROUND = new Color(0x707070);
-    public static final Color HEADER_FOREGROUND = new Color(0xF0F0F0);
-
-    public static final Color TEXTAREA_BACKGROUND = new Color(0x333333);
-    public static final Color TEXTAREA_FOREGROUND = new Color(0xF0F0F0);
-    public static final Color TEXTAREA_SELECTED_BACKGROUND = new Color(0x808080);
-    public static final Color TEXTAREA_SELECTED_FOREGROUND = new Color(0xF0F0F0);
-
-    public static final Color CONSOLE_BACKGROUND = new Color(0xA5A5A5);
-    public static final Color CONSOLE_FOREGROUND = new Color(0x000000);
-
-    public static final Color SEPARATOR = new Color(0xB5B5B5);
-
-	public static void apply(Component cmp) {
-		if (cmp instanceof JComponent) {
-			JComponent c = (JComponent) cmp;
-			Border border = c.getBorder();
-			if (border != null && border instanceof GroupBorder) {
-				Font font = c.getFont();
-				c.setFont(new Font(font.getFamily(), Font.BOLD, font.getSize()));
-				c.setBackground(MAIN_ALT_BACKGROUND);
-				c.setForeground(MAIN_ALT_FOREGROUND);
-				c.setOpaque(false);
-			}
-		}
-
-		if (cmp instanceof JLabel) {
-			JLabel c = (JLabel) cmp;
-			c.setForeground(MAIN_FOREGROUND);
-		}
-
-		if (cmp instanceof JCheckBox) {
-			JCheckBox c = (JCheckBox) cmp;
-			c.setForeground(MAIN_FOREGROUND);
-			c.setOpaque(false);
-		}
-
-		if (cmp instanceof Container) {
-			Container c = (Container) cmp;
-			for (Component child : c.getComponents())
-				apply(child);
-		}
-
-		if (cmp instanceof JButton) {
-			JButton c = (JButton) cmp;
-			c.setOpaque(false);
-		}
-
-		if (cmp instanceof JSlider) {
-			JSlider c = (JSlider) cmp;
-			c.setOpaque(false);
-			c.setForeground(MAIN_FOREGROUND);
-		}
-	}
+	fun apply(cmp: Component?) {
+        if (cmp is JComponent) {
+            val c = cmp
+            val border = c.border
+            if (border != null && border is GroupBorder) {
+                val font = c.font
+                c.font = Font(font.family, Font.BOLD, font.size)
+                c.background = MAIN_ALT_BACKGROUND
+                c.foreground = MAIN_ALT_FOREGROUND
+                c.isOpaque = false
+            }
+        }
+        if (cmp is JLabel) {
+            cmp.foreground = MAIN_FOREGROUND
+        }
+        if (cmp is JCheckBox) {
+            val c = cmp
+            c.foreground = MAIN_FOREGROUND
+            c.isOpaque = false
+        }
+        if (cmp is Container) {
+            for (child in cmp.components) apply(child)
+        }
+        if (cmp is JButton) {
+            cmp.isOpaque = false
+        }
+        if (cmp is JSlider) {
+            val c = cmp
+            c.isOpaque = false
+            c.foreground = MAIN_FOREGROUND
+        }
+    }
 }

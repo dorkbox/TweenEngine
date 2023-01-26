@@ -28,54 +28,40 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dorkbox.util.swing;
+package dorkbox.util.swing
 
-import java.awt.Container;
-import java.awt.GraphicsConfiguration;
-import java.awt.GraphicsDevice;
-import java.awt.GraphicsEnvironment;
-import java.awt.MouseInfo;
-import java.awt.Point;
-import java.awt.Rectangle;
-import java.util.ArrayList;
+import java.awt.Container
+import java.awt.GraphicsDevice
+import java.awt.GraphicsEnvironment
+import java.awt.MouseInfo
 
 /**
  * @author Aurelien Ribon | http://www.aurelienribon.com
  * @author dorkbox, llc
  */
-public class SwingHelper {
-
-    public static
-    void showOnSameScreenAsMouseCenter(Container frame) {
-        Point mouseLocation = MouseInfo.getPointerInfo()
-                                       .getLocation();
-
-
-        GraphicsDevice device;
-
-        GraphicsEnvironment ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
-        GraphicsDevice lstGDs[] = ge.getScreenDevices();
-
-        ArrayList<GraphicsDevice> lstDevices = new ArrayList<GraphicsDevice>(lstGDs.length);
-
-        for (GraphicsDevice gd : lstGDs) {
-            GraphicsConfiguration gc = gd.getDefaultConfiguration();
-            Rectangle screenBounds = gc.getBounds();
-
+object SwingHelper {
+    @JvmStatic
+    fun showOnSameScreenAsMouseCenter(frame: Container) {
+        val mouseLocation = MouseInfo.getPointerInfo()
+                .location
+        val device: GraphicsDevice
+        val ge = GraphicsEnvironment.getLocalGraphicsEnvironment()
+        val lstGDs = ge.screenDevices
+        val lstDevices = ArrayList<GraphicsDevice>(lstGDs.size)
+        for (gd in lstGDs) {
+            val gc = gd.defaultConfiguration
+            val screenBounds = gc.bounds
             if (screenBounds.contains(mouseLocation)) {
-                lstDevices.add(gd);
+                lstDevices.add(gd)
             }
         }
-
-        if (lstDevices.size() > 0) {
-            device = lstDevices.get(0);
+        device = if (lstDevices.size > 0) {
+            lstDevices[0]
+        } else {
+            ge.defaultScreenDevice
         }
-        else {
-            device = ge.getDefaultScreenDevice();
-        }
-
-        Rectangle bounds = device.getDefaultConfiguration()
-                                 .getBounds();
-        frame.setLocation(bounds.x + bounds.width / 2 - frame.getWidth() / 2, bounds.y + bounds.height / 2 - frame.getHeight() / 2);
+        val bounds = device.defaultConfiguration
+                .bounds
+        frame.setLocation(bounds.x + bounds.width / 2 - frame.width / 2, bounds.y + bounds.height / 2 - frame.height / 2)
     }
 }

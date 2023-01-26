@@ -13,79 +13,60 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dorkbox.demo.applets;
+package dorkbox.demo.applets
 
-import java.awt.Graphics2D;
-import java.awt.image.BufferedImage;
-import java.io.IOException;
-
-import javax.imageio.ImageIO;
+import java.awt.Graphics2D
+import java.awt.image.BufferedImage
+import java.io.IOException
+import javax.imageio.ImageIO
 
 /**
  * @author Aurelien Ribon | http://www.aurelienribon.com
  */
-public class Sprite {
-	private BufferedImage image;
-	private float x = 0;
-	private float y = 0;
-	private float scaleX = 1;
-	private float scaleY = 1;
-	private boolean isCentered = true;
-	private boolean isVisible = true;
+class Sprite(gfxName: String) {
+    private var image: BufferedImage? = null
+    var x = 0f
+        private set
+    var y = 0f
+        private set
+    var scaleX = 1f
+        private set
+    var scaleY = 1f
+        private set
+    private var isCentered = true
+    @JvmField
+	var isVisible = true
 
-	public Sprite(String gfxName) {
-		try {
-			image = ImageIO.read(Sprite.class.getResource("gfx/" + gfxName));
-		} catch (IOException ex) {
-            ex.printStackTrace();
-		}
-	}
+    init {
+        try {
+            image = ImageIO.read(Sprite::class.java.getResource("gfx/$gfxName"))
+        } catch (ex: IOException) {
+            ex.printStackTrace()
+        }
+    }
 
-	public void draw(Graphics2D gg) {
-		if (!isVisible) return;
-		gg = (Graphics2D) gg.create();
-		gg.translate(x, y);
-		gg.scale(scaleX, scaleY);
-		gg.drawImage(image, null, isCentered ? -image.getWidth()/2 : 0, isCentered ? -image.getHeight()/2 : 0);
-		gg.dispose();
-	}
+    fun draw(gg: Graphics2D) {
+        var gg = gg
+        if (!isVisible) return
+        gg = gg.create() as Graphics2D
+        gg.translate(x.toDouble(), y.toDouble())
+        gg.scale(scaleX.toDouble(), scaleY.toDouble())
+        gg.drawImage(image, null, if (isCentered) -image!!.width / 2 else 0, if (isCentered) -image!!.height / 2 else 0)
+        gg.dispose()
+    }
 
-	public void setPosition(float x, float y) {
-		this.x = x;
-		this.y = y;
-	}
+    fun setPosition(x: Float, y: Float) {
+        this.x = x
+        this.y = y
+    }
 
-	public void setScale(float scaleX, float scaleY) {
-		this.scaleX = scaleX;
-		this.scaleY = scaleY;
-	}
+    fun setScale(scaleX: Float, scaleY: Float) {
+        this.scaleX = scaleX
+        this.scaleY = scaleY
+    }
 
-	public Sprite setCentered(boolean isCentered) {
-		this.isCentered = isCentered;
-		return this;
-	}
-
-	public void setVisible(boolean isVisible) {
-		this.isVisible = isVisible;
-	}
-
-	public float getX() {
-		return x;
-	}
-
-	public float getY() {
-		return y;
-	}
-
-	public float getScaleX() {
-		return scaleX;
-	}
-
-	public float getScaleY() {
-		return scaleY;
-	}
-
-	public boolean isVisible() {
-		return isVisible;
-	}
+    fun setCentered(isCentered: Boolean): Sprite {
+        this.isCentered = isCentered
+        return this
+    }
 }
