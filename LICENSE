@@ -7,6 +7,18 @@
    High performance and lightweight Animation/Tween framework for Java 8+
 
    Extra license information
+     - Robert Penner's Easing Functions - 
+       [BSD 3-Clause License]
+       http://robertpenner.com/easing
+       Copyright 2001
+         Robert Penner
+
+     - Easing Functions - 
+       [BSD 3-Clause License]
+       https://github.com/Michaelangel007/easing/blob/master/js/core/easing.js
+       Copyright 2017
+         Michael Pohoreski
+
      - Kotlin - 
        [The Apache Software License, Version 2.0]
        https://github.com/JetBrains/kotlin
