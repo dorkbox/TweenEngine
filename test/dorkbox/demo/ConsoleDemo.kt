@@ -13,194 +13,164 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dorkbox.demo;
+package dorkbox.demo
 
-import java.util.Locale;
+import dorkbox.tweenEngine.*
+import java.util.*
 
-import dorkbox.tweenEngine.BaseTween;
-import dorkbox.tweenEngine.Timeline;
-import dorkbox.tweenEngine.Tween;
-import dorkbox.tweenEngine.TweenAccessor;
-import dorkbox.tweenEngine.TweenCallback;
-import dorkbox.tweenEngine.TweenEngine;
+class ConsoleDemo(delta: Int, delay: Int, isAutoReverse: Boolean, reverseCount: Int) {
+    init {
+        var delta: Int = delta
+        val terminalwidth = 50
+        val bugs: Array<Bugtest>
 
-public
-class ConsoleDemo {
+        bugs = arrayOf(
+                Bugtest('a'),
+                Bugtest('b'))
 
-    private static final TweenEngine tweenEngine = TweenEngine.Companion.create()
-                                                              .unsafe()
-                                                              .setWaypointsLimit(10)
-                                                              .setCombinedAttributesLimit(3)
-                                                              .registerAccessor(Bugtest.class, new A())
-                                                              .build();
+        val timeline: Timeline = ConsoleDemo.tweenEngine.createSequential() // callback text is ABOVE the line that it applies to
+                .addCallback(ConsoleDemo.buildCallback<Timeline>("TL", TweenCallback.Events.ANY))
+                .delay(delay.toFloat())
+                .push(bugs[0].t)
+                .beginParallel()
+                .push(bugs[1].t) ////                                    .beginSequence()
+                ////                                        .push(bugs[2].t) // third tween not even needed
+                ////                                        .end()
+                .end() //                                    .push(bugs[2].t)
 
-    public static
-    void main(String[] args) {
-        // Tests
-        RunConsole();
-    }
+        if (isAutoReverse) {
+            timeline.repeatAutoReverse(reverseCount, 500f)
+        } else {
+            timeline.repeat(reverseCount, 500f)
+        }
+        timeline.start()
 
-     private static
-    <T extends BaseTween<T>> TweenCallback<T> buildCallback(final String name, final int triggers) {
-        return new TweenCallback<T>(triggers) {
-            @Override
-            public
-            void onEvent(final int type, final T source) {
-                String t;
-                if (type == Events.BEGIN) {
-                    t = "BEGIN        ";
-                } else if (type == Events.START) {
-                    t = "START        ";
-                } else if (type == Events.END) {
-                    t = "END          ";
-                } else if (type == Events.COMPLETE) {
-                    t = "COMPLETE     ";
-                } else if (type == Events.BACK_BEGIN) {
-                    t = "BACK_BEGIN   ";
-                } else if (type == Events.BACK_START) {
-                    t = "BACK_START   ";
-                } else if (type == Events.BACK_END) {
-                    t = "BACK_END     ";
-                } else if (type == Events.BACK_COMPLETE) {
-                    t = "BACK_COMPLETE";
-                } else {
-                    t = "???";
-                }
 
-                String str = String.format(Locale.US, "%s %s   lt %3f", name, t, source.getCurrentTime());
-                System.out.println(str);
+        val permitFlip = false
+        var flipped = false
+        do {
+            if (permitFlip && !flipped && timeline.getCurrentTime() > 0.5f) {
+                flipped = true
+                delta = -delta
             }
-        };
+            drawConsole(timeline, terminalwidth, bugs)
+            timeline.update(delta.toFloat())
+            try {
+                Thread.sleep(30)
+            } catch (ignored: Throwable) {
+            }
+        } while (!timeline.isFinished)
     }
 
-    private static
-    void RunConsole() {
-        int delta = 50;
-//        int delta = 51;
+    internal class A : TweenAccessor<Bugtest> {
+        override fun getValues(b: Bugtest, m: Int, `val`: FloatArray): Int {
+            `val`[0] = b.`val`
+            return 1
+        }
+
+        override fun setValues(b: Bugtest, m: Int, `val`: FloatArray) {
+            b.`val` = `val`[0]
+        }
+    }
+
+    internal class Bugtest(var name: Char) {
+        var `val` = 0f // tweened
+        var t: Tween<Bugtest>
+
+        init {
+            t = tweenEngine.to<Bugtest>(this, 0, 1000f)
+                    .target(1f)
+                    .addCallback(buildCallback("" + name, TweenCallback.Events.ANY))
+        }
+    }
+
+    companion object {
+
+        private val tweenEngine = TweenEngine.create()
+                .unsafe()
+                .setWaypointsLimit(10)
+                .setCombinedAttributesLimit(3)
+                .registerAccessor(Bugtest::class.java, A())
+                .build()
+
+        @JvmStatic
+        fun main(args: Array<String>) {
+            // Tests
+            RunConsole()
+        }
+
+        private fun <T : BaseTween<T>> buildCallback(name: String, triggers: Int): TweenCallback<T> {
+            return object : TweenCallback<T>(triggers) {
+                override fun onEvent(type: Int, source: T) {
+                    val t: String
+                    t = if (type == Events.BEGIN) {
+                        "BEGIN        "
+                    } else if (type == Events.START) {
+                        "START        "
+                    } else if (type == Events.END) {
+                        "END          "
+                    } else if (type == Events.COMPLETE) {
+                        "COMPLETE     "
+                    } else if (type == Events.BACK_BEGIN) {
+                        "BACK_BEGIN   "
+                    } else if (type == Events.BACK_START) {
+                        "BACK_START   "
+                    } else if (type == Events.BACK_END) {
+                        "BACK_END     "
+                    } else if (type == Events.BACK_COMPLETE) {
+                        "BACK_COMPLETE"
+                    } else {
+                        "???"
+                    }
+                    val str = String.format(Locale.US, "%s %s   lt %3f", name, t, source!!.getCurrentTime())
+                    println(str)
+                }
+            }
+        }
+
+        private fun RunConsole() {
+            val delta = 50
+            //        int delta = 51;
 
 //        ConsoleDemo(delta, 250, false, 0);
 //        ConsoleDemo(delta, 250, false, 1);
-        ConsoleDemo(delta, 250, false, 2);
-//        ConsoleDemo(delta, 250, false, Tween.INFINITY);
+            ConsoleDemo(delta, 250, false, 2)
+            //        ConsoleDemo(delta, 250, false, Tween.INFINITY);
 //
 //        ConsoleDemo(delta, 250, true, 1);
 //        ConsoleDemo(delta, 250, true, 2);
 //        ConsoleDemo(delta, 250, true, 4);
 //        ConsoleDemo(delta, 250, true, Tween.INFINITY);
-    }
-
-    private static
-    void ConsoleDemo(int delta, final int delay, final boolean isAutoReverse, final int reverseCount) {
-        final int terminalwidth = 50;
-
-        Bugtest[] bugs;
-
-        bugs = new Bugtest[]{
-                        new Bugtest('a'),
-                        new Bugtest('b'),
-//                        new Bugtest('c')
-        };
-
-        Timeline timeline = tweenEngine.createSequential()
-                                       // callback text is ABOVE the line that it applies to
-                                       .addCallback(buildCallback("TL", TweenCallback.Events.ANY))
-                                       .delay(delay)
-                                       .push(bugs[0].t)
-                                       .beginParallel()
-                                       .push(bugs[1].t)
-////                                    .beginSequence()
-////                                        .push(bugs[2].t) // third tween not even needed
-////                                        .end()
-                                       .end()
-//                                    .push(bugs[2].t)
-                                    ;
-
-        if (isAutoReverse) {
-            timeline.repeatAutoReverse(reverseCount, 500);
-        } else {
-            timeline.repeat(reverseCount, 500);
         }
 
-        timeline.start();
+        private fun drawConsole(timeline: Timeline, terminalWidth: Int, bugs: Array<Bugtest>) {
+            val prog = CharArray(terminalWidth + 1)
 
-
-        boolean permitFlip = false;
-        boolean flipped = false;
-        do {
-            if (permitFlip && !flipped && timeline.getCurrentTime() > 0.5F) {
-                flipped = true;
-                delta = -delta;
+            //just for drawing
+            for (i in 0..terminalWidth) {
+                prog[i] = '-'
+            }
+            for (i in bugs.indices) {
+                val bug = bugs[i]
+                val i1 = (bug.`val` * terminalWidth).toInt()
+                prog[i1] = bug.name
             }
 
-            drawConsole(timeline, terminalwidth, bugs);
-            timeline.update(delta);
+            print(prog)
 
-            try {
-                Thread.sleep(30);
-            } catch (Throwable ignored) {
+            print(String.format(Locale.US, "\t%s:%.1f %s",
+                    if (timeline.getDirection()) "F" else "R",
+                    timeline.getCurrentTime(),
+                    if (timeline.isFinished) "don" else "run"))
+            for (i in bugs.indices) {
+                val bug = bugs[i]
+
+                print("\t\t" + String.format(Locale.US, "%s: %.1f %s",
+                        if (bug.t.getDirection()) "F" else "R",
+                        bug.t.getCurrentTime(),
+                        if (timeline.isFinished) "don" else "run"))
             }
-        } while (!timeline.isFinished());
-    }
-
-    private static
-    void drawConsole(final Timeline timeline, final int terminalWidth, final Bugtest[] bugs) {
-        char[] prog = new char[terminalWidth + 1];
-
-        //just for drawing
-        for (int i = 0; i <= terminalWidth; i++) {
-            prog[i] = '-';
-        }
-        for (int i = 0; i < bugs.length; i++) {
-            Bugtest bug = bugs[i];
-            int i1 = (int) (bug.val * terminalWidth);
-            prog[i1] = bug.name;
-        }
-
-        System.out.print(prog);
-        System.out.print(String.format(Locale.US, "\t%s:%.1f %s",
-                                       timeline.getDirection() ? "F" : "R",
-                                       timeline.getCurrentTime(),
-                                       timeline.isFinished() ? "don" : "run"));
-
-        for (int i = 0; i < bugs.length; i++) {
-            Bugtest bug = bugs[i];
-            System.out.print("\t\t" + String.format(Locale.US, "%s: %.1f %s",
-                                                    bug.t.getDirection() ? "F" : "R",
-                                                    bug.t.getCurrentTime(),
-                                                    timeline.isFinished() ? "don" : "run"));
-        }
-        System.out.println();
-    }
-
-    static
-    class A implements TweenAccessor<Bugtest> {
-        @Override
-        public
-        int getValues(Bugtest b, int m, float[] val) {
-            val[0] = b.val;
-            return 1;
-        }
-
-        @Override
-        public
-        void setValues(Bugtest b, int m, float[] val) {
-            b.val = val[0];
-        }
-    }
-
-
-    static
-    class Bugtest {
-        public float val = 0; // tweened
-        public char name;
-        public Tween<Bugtest> t;
-
-
-        Bugtest(char name) {
-            this.name = name;
-            t = tweenEngine.to(this, 0, 1000)
-                           .target(1)
-                           .addCallback(buildCallback("" + name, TweenCallback.Events.ANY));
+            println()
         }
     }
 }
