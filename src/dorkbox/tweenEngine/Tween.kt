@@ -86,7 +86,7 @@ class Tween<T> internal constructor(animator: TweenEngine, private val combinedA
         /**
          * Gets the version number.
          */
-        const val version = "8.3"
+        const val version = TweenEngine.version
 
         /**
          * Used as parameter in [.repeat] and [.repeatAutoReverse] methods.
@@ -101,34 +101,30 @@ class Tween<T> internal constructor(animator: TweenEngine, private val combinedA
     private var equation: TweenEquation? = null
     private var path: TweenPath? = null
 
-    var isFrom = false
+    internal var isFrom = false
     private var isRelative = false
     private var combinedAttrsCnt = 0
     private var waypointsCount = 0
 
     // Values
-    private val startValues: FloatArray
-    private val targetValues: FloatArray
-    private val waypoints: FloatArray
+    private val startValues = FloatArray(combinedAttrsLimit)
+    private val targetValues = FloatArray(combinedAttrsLimit)
+    private val waypoints = FloatArray(waypointsLimit * combinedAttrsLimit)
 
     // Buffers
-    private val accessorBuffer: FloatArray
-    private val pathBuffer: FloatArray
+    private val accessorBuffer = FloatArray(combinedAttrsLimit)
+    private val pathBuffer = FloatArray((2 + waypointsLimit) * combinedAttrsLimit)
 
     // -------------------------------------------------------------------------
     // Setup
     // -------------------------------------------------------------------------
     init {
-        startValues = FloatArray(combinedAttrsLimit)
-        targetValues = FloatArray(combinedAttrsLimit)
-        waypoints = FloatArray(waypointsLimit * combinedAttrsLimit)
-        accessorBuffer = FloatArray(combinedAttrsLimit)
-        pathBuffer = FloatArray((2 + waypointsLimit) * combinedAttrsLimit)
         destroy()
     }
 
     public override fun destroy() {
         super.destroy()
+
         target = null
         targetClass = null
         accessor = null
@@ -136,16 +132,14 @@ class Tween<T> internal constructor(animator: TweenEngine, private val combinedA
         equation = null
         path = null
         isRelative = false
-        isFrom = isRelative
+        isFrom = false
+
         waypointsCount = 0
-        combinedAttrsCnt = waypointsCount
+        combinedAttrsCnt = 0
 
 
-        var i: Int
-        var n: Int
-
-        i = 0
-        n = startValues.size
+        var i = 0
+        var n = startValues.size
         while (i < n) {
             startValues[i] = 0.0f
             i++
@@ -183,7 +177,7 @@ class Tween<T> internal constructor(animator: TweenEngine, private val combinedA
     /**
      * doesn't sync on anything.
      */
-    fun setupEmpty__() {
+    internal fun setupEmpty__() {
         this.target = null
         this.accessor = null
         this.targetClass = null
@@ -196,7 +190,7 @@ class Tween<T> internal constructor(animator: TweenEngine, private val combinedA
     /**
      * doesn't sync on anything.
      */
-    fun setup__(target: T, tweenType: Int, targetAccessor: TweenAccessor<T>?, duration: Float) {
+    internal fun setup__(target: T, tweenType: Int, targetAccessor: TweenAccessor<T>?, duration: Float) {
         if (duration < 0.0f) {
             throw RuntimeException("Duration can not be negative")
         }
@@ -254,21 +248,21 @@ class Tween<T> internal constructor(animator: TweenEngine, private val combinedA
     // -------------------------------------------------------------------------
     /**
      * Adds a callback. By default, it will be fired at the completion of the tween (event COMPLETE). If you want to change
-     * this behavior use the [TweenCallback] constructor.
+     * this behavior use the [TweenEvents] constructor.
      *
      * Thread/Concurrent safe
      *
-     * @see TweenCallback
+     * @see TweenEvents
      *
      * @return The current tween
      */
-    public override fun addCallback(callback: TweenCallback<Tween<T>>): Tween<T> {
-        super.addCallback(callback)
+    public override fun addCallback(triggers: Int, callback: Tween<T>.(Int)->Unit): Tween<T> {
+        super.addCallback(triggers, callback)
         return this
     }
 
     /**
-     * Clears all of the callbacks.
+     * Clears all the callbacks.
      *
      * Thread/Concurrent safe
      *
@@ -336,7 +330,7 @@ class Tween<T> internal constructor(animator: TweenEngine, private val combinedA
      *
      * @return The current tween
      */
-    override fun setStartCallback(startCallback: UpdateAction<Tween<T>>?): Tween<T> {
+    override fun setStartCallback(startCallback: ((updatedObject: Tween<T>) -> Unit)?): Tween<T> {
         super.setStartCallback(startCallback)
         return this
     }
@@ -348,7 +342,7 @@ class Tween<T> internal constructor(animator: TweenEngine, private val combinedA
      *
      * @return The current tween
      */
-    override fun setEndCallback(endCallback: UpdateAction<Tween<T>>?): Tween<T> {
+    override fun setEndCallback(endCallback: ((updatedObject: Tween<T>) -> Unit)?): Tween<T> {
         super.setEndCallback(endCallback)
         return this
     }
@@ -445,7 +439,7 @@ class Tween<T> internal constructor(animator: TweenEngine, private val combinedA
     // -------------------------------------------------------------------------
     /**
      * Attaches an object to this tween. It can be useful in order
-     * to retrieve some data from a TweenCallback.
+     * to retrieve some data from a TweenEvent Callback.
      *
      * @param data Any kind of object.
      *
@@ -455,9 +449,12 @@ class Tween<T> internal constructor(animator: TweenEngine, private val combinedA
         super.setUserData(data)
         return this
     }
+
+
     // -------------------------------------------------------------------------
     // Public API
     // -------------------------------------------------------------------------
+
     /**
      * Sets the easing equation of the tween. Existing equations are located in [TweenEquations], but you can of course implement your
      * own, see [TweenEquation].
@@ -515,7 +512,7 @@ class Tween<T> internal constructor(animator: TweenEngine, private val combinedA
      *
      * @see TweenEquations
      */
-    fun ease__(easeEquation: TweenEquations): Tween<T> {
+    internal fun ease__(easeEquation: TweenEquations): Tween<T> {
         equation = easeEquation.equation
         return this
     }
@@ -850,7 +847,7 @@ class Tween<T> internal constructor(animator: TweenEngine, private val combinedA
      *
      * @see TweenPaths
      */
-    fun path__(path: TweenPaths): Tween<T> {
+    internal fun path__(path: TweenPaths): Tween<T> {
         this.path = path.path
         return this
     }
@@ -869,7 +866,7 @@ class Tween<T> internal constructor(animator: TweenEngine, private val combinedA
      *
      * @see TweenPaths
      */
-    protected fun path__(path: TweenPath?): Tween<T> {
+    internal fun path__(path: TweenPath?): Tween<T> {
         this.path = path
         return this
     }
@@ -898,11 +895,10 @@ class Tween<T> internal constructor(animator: TweenEngine, private val combinedA
     /**
      * Gets the easing equation.
      */
-    val easing: TweenEquation?
-        get() {
-            animator.flushRead()
-            return equation
-        }
+    fun easing(): TweenEquation? {
+        animator.flushRead()
+        return equation
+    }
 
     /**
      * Gets the target values. The returned buffer is as long as the maximum allowed combined values. Therefore, you're surely not
@@ -916,11 +912,10 @@ class Tween<T> internal constructor(animator: TweenEngine, private val combinedA
     /**
      * Gets the number of combined animations.
      */
-    val combinedAttributesCount: Int
-        get() {
-            animator.flushRead()
-            return combinedAttrsCnt
-        }
+    fun combinedAttributesCount(): Int {
+        animator.flushRead()
+        return combinedAttrsCnt
+    }
 
     /**
      * Gets the TweenAccessor used with the target.
@@ -937,6 +932,8 @@ class Tween<T> internal constructor(animator: TweenEngine, private val combinedA
         animator.flushRead()
         return targetClass
     }
+
+
     // -------------------------------------------------------------------------
     // Overrides
     // -------------------------------------------------------------------------
@@ -1067,6 +1064,7 @@ class Tween<T> internal constructor(animator: TweenEngine, private val combinedA
                 accessorBuffer[i] = path.compute(tweenValue, pathBuffer, waypointsCnt + 2)
             }
         }
+
         accessor!!.setValues(target, type, accessorBuffer)
     }
 
@@ -1105,6 +1103,4 @@ class Tween<T> internal constructor(animator: TweenEngine, private val combinedA
             throw RuntimeException(msg)
         }
     }
-
-
 }

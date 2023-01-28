@@ -15,7 +15,12 @@
  */
 package dorkbox.demo
 
-import dorkbox.tweenEngine.*
+import dorkbox.tweenEngine.BaseTween
+import dorkbox.tweenEngine.Timeline
+import dorkbox.tweenEngine.Tween
+import dorkbox.tweenEngine.TweenAccessor
+import dorkbox.tweenEngine.TweenEngine
+import dorkbox.tweenEngine.TweenEvents
 import java.util.*
 
 class ConsoleDemo(delta: Int, delay: Int, isAutoReverse: Boolean, reverseCount: Int) {
@@ -29,7 +34,7 @@ class ConsoleDemo(delta: Int, delay: Int, isAutoReverse: Boolean, reverseCount: 
                 Bugtest('b'))
 
         val timeline: Timeline = ConsoleDemo.tweenEngine.createSequential() // callback text is ABOVE the line that it applies to
-                .addCallback(ConsoleDemo.buildCallback<Timeline>("TL", TweenCallback.Events.ANY))
+                .addCallback(TweenEvents.ANY) { "TL" }
                 .delay(delay.toFloat())
                 .push(bugs[0].t)
                 .beginParallel()
@@ -59,7 +64,7 @@ class ConsoleDemo(delta: Int, delay: Int, isAutoReverse: Boolean, reverseCount: 
                 Thread.sleep(30)
             } catch (ignored: Throwable) {
             }
-        } while (!timeline.isFinished)
+        } while (!timeline.isFinished())
     }
 
     internal class A : TweenAccessor<Bugtest> {
@@ -80,7 +85,7 @@ class ConsoleDemo(delta: Int, delay: Int, isAutoReverse: Boolean, reverseCount: 
         init {
             t = tweenEngine.to<Bugtest>(this, 0, 1000f)
                     .target(1f)
-                    .addCallback(buildCallback("" + name, TweenCallback.Events.ANY))
+                    .addCallback(TweenEvents.ANY) {"" + name }
         }
     }
 
@@ -99,32 +104,30 @@ class ConsoleDemo(delta: Int, delay: Int, isAutoReverse: Boolean, reverseCount: 
             RunConsole()
         }
 
-        private fun <T : BaseTween<T>> buildCallback(name: String, triggers: Int): TweenCallback<T> {
-            return object : TweenCallback<T>(triggers) {
-                override fun onEvent(type: Int, source: T) {
-                    val t: String
-                    t = if (type == Events.BEGIN) {
-                        "BEGIN        "
-                    } else if (type == Events.START) {
-                        "START        "
-                    } else if (type == Events.END) {
-                        "END          "
-                    } else if (type == Events.COMPLETE) {
-                        "COMPLETE     "
-                    } else if (type == Events.BACK_BEGIN) {
-                        "BACK_BEGIN   "
-                    } else if (type == Events.BACK_START) {
-                        "BACK_START   "
-                    } else if (type == Events.BACK_END) {
-                        "BACK_END     "
-                    } else if (type == Events.BACK_COMPLETE) {
-                        "BACK_COMPLETE"
-                    } else {
-                        "???"
-                    }
-                    val str = String.format(Locale.US, "%s %s   lt %3f", name, t, source!!.getCurrentTime())
-                    println(str)
+        private fun <T : BaseTween<T>> buildCallback(name: String, triggers: Int): T.(triggers: Int)->Unit {
+            return { type ->
+                val t: String
+                t = if (type == TweenEvents.BEGIN) {
+                    "BEGIN        "
+                } else if (type == TweenEvents.START) {
+                    "START        "
+                } else if (type == TweenEvents.END) {
+                    "END          "
+                } else if (type == TweenEvents.COMPLETE) {
+                    "COMPLETE     "
+                } else if (type == TweenEvents.BACK_BEGIN) {
+                    "BACK_BEGIN   "
+                } else if (type == TweenEvents.BACK_START) {
+                    "BACK_START   "
+                } else if (type == TweenEvents.BACK_END) {
+                    "BACK_END     "
+                } else if (type == TweenEvents.BACK_COMPLETE) {
+                    "BACK_COMPLETE"
+                } else {
+                    "???"
                 }
+                val str = String.format(Locale.US, "%s %s   lt %3f", name, t, getCurrentTime())
+                println(str)
             }
         }
 
@@ -161,14 +164,14 @@ class ConsoleDemo(delta: Int, delay: Int, isAutoReverse: Boolean, reverseCount: 
             print(String.format(Locale.US, "\t%s:%.1f %s",
                     if (timeline.getDirection()) "F" else "R",
                     timeline.getCurrentTime(),
-                    if (timeline.isFinished) "don" else "run"))
+                    if (timeline.isFinished()) "don" else "run"))
             for (i in bugs.indices) {
                 val bug = bugs[i]
 
                 print("\t\t" + String.format(Locale.US, "%s: %.1f %s",
                         if (bug.t.getDirection()) "F" else "R",
                         bug.t.getCurrentTime(),
-                        if (timeline.isFinished) "don" else "run"))
+                        if (timeline.isFinished()) "don" else "run"))
             }
             println()
         }

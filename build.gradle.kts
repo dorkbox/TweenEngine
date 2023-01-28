@@ -57,6 +57,7 @@ object Extras {
 GradleUtils.load("$projectDir/../../gradle.properties", Extras)
 GradleUtils.defaults()
 GradleUtils.compileConfiguration(JavaVersion.VERSION_1_8)
+GradleUtils.jpms(JavaVersion.VERSION_1_9)
 
 licensing {
     license(License.APACHE_2) {
@@ -65,13 +66,7 @@ licensing {
         url(Extras.url)
         note(Extras.description)
 
-        extra("Robert Penner's Easing Functions", License.BSD_3) {
-            copyright(2001)
-            author("Robert Penner")
-            url("http://robertpenner.com/easing")
-        }
-
-        extra("Easing Functions", License.BSD_3) {
+        extra("Easing Functions", License.CC0) {
             copyright(2017)
             author("Michael Pohoreski")
             url("https://github.com/Michaelangel007/easing/blob/master/js/core/easing.js")

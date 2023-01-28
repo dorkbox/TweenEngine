@@ -85,7 +85,7 @@ interface TweenAccessor<T> {
      *
      * @return The count of modified slots from the returnValues array.
      */
-    fun getValues(target: T, tweenType: Int, returnValues: FloatArray?): Int
+    fun getValues(target: T, tweenType: Int, returnValues: FloatArray): Int
 
     /**
      * This method is called by the Tween Engine each time a running tween
@@ -95,5 +95,5 @@ interface TweenAccessor<T> {
      * @param tweenType An arbitrary number used to associate an interpolation type for a tween in the TweenAccessor get/setValues() methods
      * @param newValues The new values determined by the Tween Engine.
      */
-    fun setValues(target: T, tweenType: Int, newValues: FloatArray?)
+    fun setValues(target: T, tweenType: Int, newValues: FloatArray)
 }

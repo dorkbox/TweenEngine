@@ -21,7 +21,7 @@ class EngineBuilder internal constructor() {
 
     companion object {
         /** Gets the version number. */
-        const val version = "8.3"
+        const val version = TweenEngine.version
     }
 
 

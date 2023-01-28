@@ -55,7 +55,7 @@ package dorkbox.tweenEngine
  *
  * @see Tween
  *
- * @see TweenCallback
+ * @see TweenEvents
  *
  * @author Aurelien Ribon | http://www.aurelienribon.com/
  * @author dorkbox, llc
@@ -69,7 +69,7 @@ class Timeline internal constructor(animator: TweenEngine) : BaseTween<Timeline>
         /**
          * Gets the version number.
          */
-        const val version = "8.3"
+        const val version = TweenEngine.version
 
         val INVALID_TIMELINE = Timeline(TweenEngine(false))
         val INVALID_CHILDREN = emptyArray<BaseTween<*>>()
@@ -140,22 +140,21 @@ class Timeline internal constructor(animator: TweenEngine) : BaseTween<Timeline>
         current = this
     }
 
-
     /**
      * Adds a callback. By default, it will be fired at the completion of the timeline (event COMPLETE). If you want to change
-     * this behavior use the [TweenCallback] constructor.
+     * this behavior use the [TweenEvents] constructor.
      *
      * Thread/Concurrent safe
      *
      * @see TweenCallback
      */
-    public override fun addCallback(callback: TweenCallback<Timeline>): Timeline {
-        super.addCallback(callback)
+    public override fun addCallback(triggers: Int, callback: Timeline.(Int)->Unit): Timeline {
+        super.addCallback(triggers, callback)
         return this
     }
 
     /**
-     * Clears all of the callback.
+     * Clears all the callbacks.
      *
      * Thread/Concurrent safe
      */
@@ -230,7 +229,7 @@ class Timeline internal constructor(animator: TweenEngine) : BaseTween<Timeline>
      *
      * @return The current timeline
      */
-    override fun setStartCallback(startCallback: UpdateAction<Timeline>?): Timeline {
+    override fun setStartCallback(startCallback: ((updatedObject: Timeline) -> Unit)?): Timeline {
         super.setStartCallback(startCallback)
         return this
     }
@@ -242,7 +241,7 @@ class Timeline internal constructor(animator: TweenEngine) : BaseTween<Timeline>
      *
      * @return The current timeline
      */
-    override fun setEndCallback(endCallback: UpdateAction<Timeline>?): Timeline {
+    override fun setEndCallback(endCallback: ((updatedObject: Timeline) -> Unit)?): Timeline {
         super.setEndCallback(endCallback)
         return this
     }
@@ -329,7 +328,7 @@ class Timeline internal constructor(animator: TweenEngine) : BaseTween<Timeline>
     // -------------------------------------------------------------------------
     /**
      * Attaches an object to this timeline. It can be useful in order
-     * to retrieve some data from a TweenCallback.
+     * to retrieve some data from a TweenEvent Callback.
      *
      * @param data Any kind of object.
      *
@@ -476,9 +475,10 @@ class Timeline internal constructor(animator: TweenEngine) : BaseTween<Timeline>
      */
     private fun setupTimeline__(tweenOrTimeline: BaseTween<*>) {
         when (mode) {
-            Mode.SEQUENTIAL -> duration += tweenOrTimeline.fullDuration__
-            Mode.PARALLEL -> duration = duration.coerceAtLeast(tweenOrTimeline.fullDuration__)
+            Mode.SEQUENTIAL -> duration += tweenOrTimeline.fullDuration__()
+            Mode.PARALLEL -> duration = duration.coerceAtLeast(tweenOrTimeline.fullDuration__())
         }
+
         childrenSize = children.size
         if (childrenSize == 0) {
             throw RuntimeException("Creating a timeline with zero children. This is likely unintended, and is not permitted.")

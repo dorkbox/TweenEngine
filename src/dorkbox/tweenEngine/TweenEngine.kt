@@ -59,14 +59,12 @@ open class TweenEngine internal constructor(
         /**
          * The default update event, which does nothing.
          */
-        val NULL_ACTION : UpdateAction<TweenEngine> = object: UpdateAction<TweenEngine> {
-            override fun onEvent(updatedObject: TweenEngine) { }
-        }
+        val NULL_ACTION : ((updatedObject: TweenEngine) -> Unit) = { }
 
         /**
          * Gets the version number.
          */
-        const val version = "8.3"
+        const val version = "8.3.1"
 
 
         // for creating arrays slightly faster...
@@ -204,7 +202,7 @@ open class TweenEngine internal constructor(
      * @param startCallback the callback for when the manager starts updating everything. NULL to unset.
      * @return The manager, for instruction chaining.
      */
-    fun setStartCallback(startCallback: UpdateAction<TweenEngine>?): TweenEngine {
+    fun setStartCallback(startCallback: ((updatedObject: TweenEngine) -> Unit)?): TweenEngine {
         startEventCallback = startCallback ?: NULL_ACTION
         flushWrite()
         return this
@@ -216,7 +214,7 @@ open class TweenEngine internal constructor(
      * @param endCallback the callback for when the manager finishes updating everything. NULL to unset.
      * @return The manager, for instruction chaining.
      */
-    fun setEndCallback(endCallback: UpdateAction<TweenEngine>?): TweenEngine {
+    fun setEndCallback(endCallback: ((updatedObject: TweenEngine) -> Unit)?): TweenEngine {
         endEventCallback = endCallback ?: NULL_ACTION
         flushWrite()
         return this
@@ -433,7 +431,7 @@ open class TweenEngine internal constructor(
     private fun runUpdateUnsafe(delta: Float) {
         if (!isPaused) {
             // on start sync
-            startEventCallback.onEvent(this)
+            startEventCallback.invoke(this)
             val size = newTweens.size
             if (size > 0) {
                 tweenArrayList.addAll(newTweens)
@@ -465,7 +463,7 @@ open class TweenEngine internal constructor(
             }
 
             // on finish sync
-            endEventCallback.onEvent(this)
+            endEventCallback.invoke(this)
         }
     }
 
@@ -475,44 +473,40 @@ open class TweenEngine internal constructor(
      *
      * To get the count of running tweens, see [.getRunningTweensCount].
      */
-    val size: Int
-        get() {
-            flushRead()
-            return tweenArrayList.size
-        }
+    fun size(): Int {
+        flushRead()
+        return tweenArrayList.size
+    }
 
     /**
      * Gets the number of running tweens. This number includes the tweens located inside timelines (and nested timelines).
      *
      * **Provided for debug purpose only.**
      */
-    val runningTweensCount: Int
-        get() {
-            flushRead()
-            return getTweensCount(tweenArrayList)
-        }
+    fun runningTweensCount(): Int {
+        flushRead()
+        return getTweensCount(tweenArrayList)
+    }
 
     /**
      * Gets the number of running timelines. This number includes the timelines nested inside other timelines.
      *
      * **Provided for debug purpose only.**
      */
-    val runningTimelinesCount: Int
-        get() {
-            flushRead()
-            return getTimelinesCount(tweenArrayList)
-        }
+    fun runningTimelinesCount(): Int {
+        flushRead()
+        return getTimelinesCount(tweenArrayList)
+    }
 
     /**
      * Gets an immutable list of every managed object.
      *
      * **Provided for debug purpose only.**
      */
-    val objects: List<BaseTween<*>>
-        get() {
-            flushRead()
-            return Collections.unmodifiableList(tweenArrayList)
-        }
+    fun objects(): List<BaseTween<*>> {
+        flushRead()
+        return Collections.unmodifiableList(tweenArrayList)
+    }
 
 
 
@@ -788,15 +782,14 @@ open class TweenEngine internal constructor(
      *
      * @return The generated Tween.
      *
-     * @see TweenCallback
+     * @see TweenEvents
      */
-    fun call(callback: TweenCallback<Tween<Any>>): Tween<Any> {
+    fun call(callback: Tween<Any>.(Int)->Unit): Tween<Any> {
         val tween: Tween<Any> = takeTween()
         flushRead()
 
         tween.setupEmpty__()
-        callback.triggers = TweenCallback.Events.START
-        tween.addCallback(callback) // Thread/Concurrent safe
+        tween.addCallback(TweenEvents.START, callback) // Thread/Concurrent safe
 
         flushWrite()
         return tween
@@ -830,7 +823,7 @@ open class TweenEngine internal constructor(
      *
      * @see Timeline
      */
-    fun mark__(): Tween<Int> {
+    internal fun mark__(): Tween<Int> {
         val tween: Tween<Int> = takeTween()
         tween.setupEmpty__()
         return tween

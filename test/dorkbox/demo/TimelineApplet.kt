@@ -24,22 +24,46 @@ import dorkbox.demo.applets.Theme.apply
 import dorkbox.swingActiveRender.ActionHandlerLong
 import dorkbox.swingActiveRender.SwingActiveRender
 import dorkbox.tweenEngine.Timeline
-import dorkbox.tweenEngine.TweenCallback
 import dorkbox.tweenEngine.TweenEngine
 import dorkbox.tweenEngine.TweenEngine.Companion.create
 import dorkbox.tweenEngine.TweenEquations
+import dorkbox.tweenEngine.TweenEvents
 import dorkbox.util.LocationResolver
 import dorkbox.util.SwingUtil
 import dorkbox.util.swing.GroupBorder
 import dorkbox.util.swing.SwingHelper.showOnSameScreenAsMouseCenter
-import java.awt.*
+import java.awt.BorderLayout
+import java.awt.Canvas
+import java.awt.Font
+import java.awt.Graphics
+import java.awt.Graphics2D
+import java.awt.Insets
+import java.awt.Rectangle
+import java.awt.TexturePaint
 import java.awt.event.ActionEvent
 import java.awt.event.ActionListener
 import java.io.IOException
 import java.util.*
-import java.util.concurrent.TimeUnit
+import java.util.concurrent.*
 import javax.imageio.ImageIO
-import javax.swing.*
+import javax.swing.GroupLayout
+import javax.swing.ImageIcon
+import javax.swing.JApplet
+import javax.swing.JButton
+import javax.swing.JCheckBox
+import javax.swing.JFrame
+import javax.swing.JLabel
+import javax.swing.JPanel
+import javax.swing.JScrollPane
+import javax.swing.JSlider
+import javax.swing.JSpinner
+import javax.swing.JTextArea
+import javax.swing.LayoutStyle
+import javax.swing.ScrollPaneConstants
+import javax.swing.SpinnerNumberModel
+import javax.swing.SwingConstants
+import javax.swing.UIManager
+import javax.swing.WindowConstants
 import javax.swing.event.ChangeEvent
 import javax.swing.event.ChangeListener
 
@@ -100,7 +124,7 @@ class TimelineApplet : JApplet() {
 
             // everything here MUST be in milliseconds (because the GUI is in MS, and the tween is in NANO-SECONDS)
             val deltaInMillis = TimeUnit.NANOSECONDS.toMillis(adjustedDeltaInNanos).toInt()
-            if (!timeline.isFinished && !timeline.isInDelay) {
+            if (!timeline.isFinished() && !timeline.isInDelay()) {
                 val value = iterationTimeSlider.value
                 if (!timeline.isInAutoReverse) {
                     // normal, forwards running
@@ -111,7 +135,7 @@ class TimelineApplet : JApplet() {
                 }
             }
             val value = totalTimeSlider.value
-            val duration = (timeline.fullDuration * 1000).toInt() // must be in MS
+            val duration = (timeline.fullDuration() * 1000).toInt() // must be in MS
             if (value in 0..duration) {
                 totalTimeSlider.value = value + deltaInMillis
             }
@@ -126,7 +150,7 @@ class TimelineApplet : JApplet() {
     private fun initTimeline() {
         val timeline: Timeline = canvas.timeline
         iterationTimeSlider.maximum = timeline.duration.toInt() * 1000 // this is in milliseconds
-        totalTimeSlider.maximum = timeline.fullDuration.toInt() * 1000 // this is in milliseconds
+        totalTimeSlider.maximum = timeline.fullDuration().toInt() * 1000 // this is in milliseconds
         iterationTimeSlider.value = 0
         totalTimeSlider.value = 0
     }
@@ -228,17 +252,13 @@ class TimelineApplet : JApplet() {
 
             // scale is NOT "1 tick = 1 second". It is adjusted for use with "animation speed" slider (slider is in MILLISECONDS)
             timeline = tweenEngine.createSequential()
-                    .addCallback(object : TweenCallback<Timeline>(Events.START) {
-                        override fun onEvent(type: Int, source: Timeline) {
+                    .addCallback(TweenEvents.START) {
                             iterationTimeSlider.value = 0
-                        }
-                    })
-                    .addCallback(object : TweenCallback<Timeline>(Events.END) {
-                        override fun onEvent(type: Int, source: Timeline) {
-                            // has to be in milliseconds
-                            iterationTimeSlider.value = source.duration.toInt() * 1000
-                        }
-                    })
+                    }
+                    .addCallback(TweenEvents.END) {
+                        // has to be in milliseconds
+                        iterationTimeSlider.value = duration.toInt() * 1000
+                    }
                     .push(tweenEngine.to<Sprite?>(imgTweenSprite, SpriteAccessor.POSITION_XY, 0.5f)
                             .target(60f, 140f)
                             .ease(TweenEquations.Quart_Out))

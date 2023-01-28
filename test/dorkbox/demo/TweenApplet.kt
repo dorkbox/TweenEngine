@@ -20,6 +20,7 @@ import dorkbox.demo.applets.SpriteAccessor
 import dorkbox.demo.applets.Theme.MAIN_BACKGROUND
 import dorkbox.demo.applets.Theme.apply
 import dorkbox.swingActiveRender.ActionHandlerLong
+import dorkbox.swingActiveRender.NullRepaintManager
 import dorkbox.swingActiveRender.SwingActiveRender
 import dorkbox.tweenEngine.TweenEngine
 import dorkbox.tweenEngine.TweenEngine.Companion.create
@@ -46,8 +47,9 @@ class TweenApplet : JApplet() {
     companion object {
         @JvmStatic
         fun main(args: Array<String>) {
+//            NullRepaintManager.install()
+
             SwingUtil.invokeLater {
-                // NullRepaintManager.install();
                 val applet = TweenApplet()
                 applet.init()
                 applet.start()

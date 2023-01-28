@@ -73,8 +73,4 @@ enum class TweenPaths(computeFunction: (Float, FloatArray, Int) -> Float) {
     ;
 
     val path: TweenPath = InnerTweenPath(computeFunction)
-
-    companion object {
-
-    }
 }
