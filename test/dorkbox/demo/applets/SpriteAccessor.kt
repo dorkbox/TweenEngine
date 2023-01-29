@@ -19,6 +19,7 @@ import dorkbox.tweenEngine.TweenAccessor
 
 /**
  * @author Aurelien Ribon | http://www.aurelienribon.com
+ * @author dorkbox, llc
  */
 class SpriteAccessor : TweenAccessor<Sprite> {
     override fun getValues(target: Sprite, tweenType: Int, returnValues: FloatArray): Int {

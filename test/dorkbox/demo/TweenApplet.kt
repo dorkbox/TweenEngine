@@ -20,7 +20,6 @@ import dorkbox.demo.applets.SpriteAccessor
 import dorkbox.demo.applets.Theme.MAIN_BACKGROUND
 import dorkbox.demo.applets.Theme.apply
 import dorkbox.swingActiveRender.ActionHandlerLong
-import dorkbox.swingActiveRender.NullRepaintManager
 import dorkbox.swingActiveRender.SwingActiveRender
 import dorkbox.tweenEngine.TweenEngine
 import dorkbox.tweenEngine.TweenEngine.Companion.create
@@ -28,19 +27,42 @@ import dorkbox.tweenEngine.TweenEquations.Companion.parse
 import dorkbox.util.SwingUtil
 import dorkbox.util.swing.GroupBorder
 import dorkbox.util.swing.SwingHelper.showOnSameScreenAsMouseCenter
-import java.awt.*
+import java.awt.BorderLayout
+import java.awt.Canvas
+import java.awt.Graphics
+import java.awt.Graphics2D
+import java.awt.Rectangle
+import java.awt.TexturePaint
 import java.awt.event.ActionEvent
 import java.awt.event.ActionListener
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
 import java.io.IOException
 import javax.imageio.ImageIO
-import javax.swing.*
+import javax.swing.DefaultComboBoxModel
+import javax.swing.GroupLayout
+import javax.swing.ImageIcon
+import javax.swing.JApplet
+import javax.swing.JCheckBox
+import javax.swing.JComboBox
+import javax.swing.JFrame
+import javax.swing.JLabel
+import javax.swing.JPanel
+import javax.swing.JScrollPane
+import javax.swing.JSpinner
+import javax.swing.JTextArea
+import javax.swing.LayoutStyle
+import javax.swing.ScrollPaneConstants
+import javax.swing.SpinnerNumberModel
+import javax.swing.SwingConstants
+import javax.swing.UIManager
+import javax.swing.WindowConstants
 import javax.swing.event.ChangeEvent
 import javax.swing.event.ChangeListener
 
 /**
  * @author Aurelien Ribon | http://www.aurelienribon.com
+ * @author dorkbox, llc
  */
 class TweenApplet : JApplet() {
 

@@ -22,6 +22,7 @@ import javax.imageio.ImageIO
 
 /**
  * @author Aurelien Ribon | http://www.aurelienribon.com
+ * @author dorkbox, llc
  */
 class Sprite(gfxName: String) {
     private var image: BufferedImage? = null

@@ -17,7 +17,6 @@ package dorkbox.demo
 
 import dorkbox.tweenEngine.BaseTween
 import dorkbox.tweenEngine.Timeline
-import dorkbox.tweenEngine.Tween
 import dorkbox.tweenEngine.TweenAccessor
 import dorkbox.tweenEngine.TweenEngine
 import dorkbox.tweenEngine.TweenEvents
@@ -33,15 +32,18 @@ class ConsoleDemo(delta: Int, delay: Int, isAutoReverse: Boolean, reverseCount: 
                 Bugtest('a'),
                 Bugtest('b'))
 
-        val timeline: Timeline = ConsoleDemo.tweenEngine.createSequential() // callback text is ABOVE the line that it applies to
+        val timeline: Timeline = tweenEngine.createSequential() // callback text is ABOVE the line that it applies to
                 .addCallback(TweenEvents.ANY) { "TL" }
                 .delay(delay.toFloat())
                 .push(bugs[0].t)
                 .beginParallel()
-                .push(bugs[1].t) ////                                    .beginSequence()
-                ////                                        .push(bugs[2].t) // third tween not even needed
-                ////                                        .end()
-                .end() //                                    .push(bugs[2].t)
+                    .push(bugs[1].t)
+                    //.beginSequence()
+                    //.push(bugs[2].t) // third tween not even needed
+                    //.end()
+
+                .end()
+                //.push(bugs[2].t)
 
         if (isAutoReverse) {
             timeline.repeatAutoReverse(reverseCount, 500f)
@@ -68,25 +70,22 @@ class ConsoleDemo(delta: Int, delay: Int, isAutoReverse: Boolean, reverseCount: 
     }
 
     internal class A : TweenAccessor<Bugtest> {
-        override fun getValues(b: Bugtest, m: Int, `val`: FloatArray): Int {
-            `val`[0] = b.`val`
+        override fun getValues(target: Bugtest, tweenType: Int, returnValues: FloatArray): Int {
+            returnValues[0] = target.tween
             return 1
         }
 
-        override fun setValues(b: Bugtest, m: Int, `val`: FloatArray) {
-            b.`val` = `val`[0]
+        override fun setValues(target: Bugtest, tweenType: Int, newValues: FloatArray) {
+            target.tween = newValues[0]
         }
     }
 
     internal class Bugtest(var name: Char) {
-        var `val` = 0f // tweened
-        var t: Tween<Bugtest>
+        var tween = 0f // tweened
+        var t = tweenEngine.to(this, 0, 1000f)
+                .target(1f)
+                .addCallback(TweenEvents.ANY) {"" + name }
 
-        init {
-            t = tweenEngine.to<Bugtest>(this, 0, 1000f)
-                    .target(1f)
-                    .addCallback(TweenEvents.ANY) {"" + name }
-        }
     }
 
     companion object {
@@ -155,7 +154,7 @@ class ConsoleDemo(delta: Int, delay: Int, isAutoReverse: Boolean, reverseCount: 
             }
             for (i in bugs.indices) {
                 val bug = bugs[i]
-                val i1 = (bug.`val` * terminalWidth).toInt()
+                val i1 = (bug.tween * terminalWidth).toInt()
                 prog[i1] = bug.name
             }
 
