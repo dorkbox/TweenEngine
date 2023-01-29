@@ -24,7 +24,8 @@ import kotlin.math.min
 /**
  * Collection of built-in paths.
  *
- * @author Aurelien Ribon | http://www.aurelienribon.com/
+ * @author Aurelien Ribon | http://www.aurelienribon.com
+ * @author dorkbox, llc
  */
 enum class TweenPaths(computeFunction: (Float, FloatArray, Int) -> Float) {
     Linear({ tweenValue: Float, points: FloatArray, pointsCount: Int ->

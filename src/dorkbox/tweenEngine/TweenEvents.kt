@@ -39,6 +39,7 @@ package dorkbox.tweenEngine
  *
  *
  * Timeline events are ALWAYS happen before children events (begin/start), or after (complete/end)
+ *
  * ```
  * DELAY - (delay) initial start delay, only happens once, during init
  * R.DELAY - (repeatDelay) delay between repeat iterations, if there are more than one.
@@ -95,8 +96,12 @@ object TweenEvents {
     const val BACK_COMPLETE = 1 shl 7 // 10000000
 
 
-    /** **ANY-FORWARD**: at each backward iteration ending  */
+    /** **ANY-FORWARD**: at any forward event */
     const val ANY_FORWARD = 0x0F // 00001111
+
+    /** **ANY-BACKWARD**: at any backward event */
     const val ANY_BACKWARD = 0xF0 // 11110000
+
+    /** **ANY**: at ANY event that is triggered  */
     const val ANY = 0xFF // 11111111
 }

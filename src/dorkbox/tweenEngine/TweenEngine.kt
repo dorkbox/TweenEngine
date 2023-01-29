@@ -191,9 +191,9 @@ open class TweenEngine internal constructor(
      *
      * @param someClass An object class.
      */
-    fun getRegisteredAccessor(someClass: Class<*>): TweenAccessor<*> {
+    fun getRegisteredAccessor(someClass: Class<*>): TweenAccessor<*>? {
         flushRead()
-        return registeredAccessors[someClass]!!
+        return registeredAccessors[someClass]
     }
 
     /**
@@ -471,7 +471,7 @@ open class TweenEngine internal constructor(
      * Gets the number of managed objects. An object may be a tween or a timeline. A timeline only counts for 1 object, since it manages
      * its children itself.
      *
-     * To get the count of running tweens, see [.getRunningTweensCount].
+     * To get the count of running tweens, see [runningTweensCount].
      */
     fun size(): Int {
         flushRead()
@@ -483,6 +483,7 @@ open class TweenEngine internal constructor(
      *
      * **Provided for debug purpose only.**
      */
+    @Deprecated("Provided for debug purpose only", ReplaceWith(""))
     fun runningTweensCount(): Int {
         flushRead()
         return getTweensCount(tweenArrayList)
@@ -493,6 +494,7 @@ open class TweenEngine internal constructor(
      *
      * **Provided for debug purpose only.**
      */
+    @Deprecated("Provided for debug purpose only", ReplaceWith(""))
     fun runningTimelinesCount(): Int {
         flushRead()
         return getTimelinesCount(tweenArrayList)
@@ -503,6 +505,7 @@ open class TweenEngine internal constructor(
      *
      * **Provided for debug purpose only.**
      */
+    @Deprecated("Provided for debug purpose only", ReplaceWith(""))
     fun objects(): List<BaseTween<*>> {
         flushRead()
         return Collections.unmodifiableList(tweenArrayList)
@@ -551,8 +554,8 @@ open class TweenEngine internal constructor(
      *
      *
      * The common use of Tweens is "fire-and-forget": you do not need to care for tweens if they are started normally via
-     * [Tween.start], as they will be be updated and cleaned/etc automatically once finished. If started unmanaged via
-     * ([Tween.startUnmanaged] then you will have to manage it's lifecycle manually.
+     * [Tween.start], as they will be updated and cleaned/etc automatically once finished. If started unmanaged via
+     * ([Tween.startUnmanaged] then you will have to manage its lifecycle manually.
      *
      *
      * ```
@@ -583,8 +586,8 @@ open class TweenEngine internal constructor(
      *
      *
      * The common use of Tweens is "fire-and-forget": you do not need to care for tweens if they are started normally via
-     * [Tween.start], as they will be be updated and cleaned/etc automatically once finished. If started unmanaged via
-     * ([Tween.startUnmanaged] then you will have to manage it's lifecycle manually.
+     * [Tween.start], as they will be updated and cleaned/etc automatically once finished. If started unmanaged via
+     * ([Tween.startUnmanaged] then you will have to manage its lifecycle manually.
      *
      *
      * ```
@@ -784,7 +787,7 @@ open class TweenEngine internal constructor(
      *
      * @see TweenEvents
      */
-    fun call(callback: Tween<Any>.(Int)->Unit): Tween<Any> {
+    fun call(callback: Tween<Any>.()->Unit): Tween<Any> {
         val tween: Tween<Any> = takeTween()
         flushRead()
 

@@ -79,7 +79,7 @@ package dorkbox.tweenEngine
  *
  * @author dorkbox, llc
  */
-@Suppress("unused")
+@Suppress("unused", "MemberVisibilityCanBePrivate")
 class Tween<T> internal constructor(animator: TweenEngine, private val combinedAttrsLimit: Int, private val waypointsLimit: Int) : BaseTween<Tween<T>>(animator) {
 
     companion object {
@@ -122,6 +122,7 @@ class Tween<T> internal constructor(animator: TweenEngine, private val combinedA
         destroy()
     }
 
+    @Suppress("DuplicatedCode")
     public override fun destroy() {
         super.destroy()
 
@@ -192,7 +193,7 @@ class Tween<T> internal constructor(animator: TweenEngine, private val combinedA
      */
     internal fun setup__(target: T, tweenType: Int, targetAccessor: TweenAccessor<T>?, duration: Float) {
         if (duration < 0.0f) {
-            throw RuntimeException("Duration can not be negative")
+            throw IllegalArgumentException("Duration can not be negative")
         }
 
         this.target = target
@@ -256,7 +257,7 @@ class Tween<T> internal constructor(animator: TweenEngine, private val combinedA
      *
      * @return The current tween
      */
-    public override fun addCallback(triggers: Int, callback: Tween<T>.(Int)->Unit): Tween<T> {
+    public override fun addCallback(triggers: Int, callback: Tween<T>.()->Unit): Tween<T> {
         super.addCallback(triggers, callback)
         return this
     }
@@ -348,8 +349,8 @@ class Tween<T> internal constructor(animator: TweenEngine, private val combinedA
     }
 
     /**
-     * Sets the tween to a specific point in time based on it's duration + delays. Callbacks are not notified and the change is
-     * immediate. The tween will continue in it's original direction
+     * Sets the tween to a specific point in time based on its duration + delays. Callbacks are not notified and the change is
+     * immediate. The tween will continue in its original direction
      * For example:
      *
      *  *  setProgress(0F, true) : set it to the starting position just after the start delay in the forward direction
@@ -360,7 +361,7 @@ class Tween<T> internal constructor(animator: TweenEngine, private val combinedA
      * Caveat: If the tween is set to end in reverse, and it CANNOT go in reverse, then it will end up in the finished state
      * (end position). If the tween is in repeat mode then it will end up in the same position if it was going forwards.
      *
-     * @param percentage the percentage (of it's duration) from 0-1, that the tween be set to
+     * @param percentage the percentage (of its duration) from 0-1, that the tween be set to
      */
     public override fun setProgress(percentage: Float): Tween<T> {
         super.setProgress(percentage)
@@ -368,7 +369,7 @@ class Tween<T> internal constructor(animator: TweenEngine, private val combinedA
     }
 
     /**
-     * Sets the tween to a specific point in time based on it's duration + delays. Callbacks are not notified and the change is
+     * Sets the tween to a specific point in time based on its duration + delays. Callbacks are not notified and the change is
      * immediate.
      * For example:
      *
@@ -382,7 +383,7 @@ class Tween<T> internal constructor(animator: TweenEngine, private val combinedA
      * Caveat: If the tween is set to end in reverse, and it CANNOT go in reverse, then it will end up in the finished state
      * (end position). If the timeline/tween is in repeat mode then it will end up in the same position if it was going forwards.
      *
-     * @param percentage the percentage (of it's duration) from 0-1, that the tween be set to
+     * @param percentage the percentage (of its duration) from 0-1, that the tween be set to
      * @param direction sets the direction of the timeline when it updates next: forwards (true) or reverse (false).
      */
     public override fun setProgress(percentage: Float, direction: Boolean): Tween<T> {
@@ -434,6 +435,8 @@ class Tween<T> internal constructor(animator: TweenEngine, private val combinedA
         super.start()
         return this
     }
+
+
     // -------------------------------------------------------------------------
     // User Data
     // -------------------------------------------------------------------------
@@ -528,7 +531,7 @@ class Tween<T> internal constructor(animator: TweenEngine, private val combinedA
     fun cast(targetClass: Class<*>?): Tween<T> {
         animator.flushRead()
         if (isInitialized) {
-            throw RuntimeException("You can't cast the target of a tween once it has been initialized")
+            throw IllegalArgumentException("You can't cast the target of a tween once it has been initialized")
         }
         this.targetClass = targetClass
         animator.flushWrite()
@@ -538,8 +541,6 @@ class Tween<T> internal constructor(animator: TweenEngine, private val combinedA
     /**
      * Sets the target value of the interpolation. The interpolation will run from the **value at start time (after the delay, if any)**
      * to this target value.
-     *
-     *   \
      *
      * ### To sum-up:
      * - start value: value at start time, after delay
@@ -559,9 +560,7 @@ class Tween<T> internal constructor(animator: TweenEngine, private val combinedA
      * Sets the target values of the interpolation. The interpolation will run from the **values at start time (after the delay, if
      * any)** to these target values.
      *
-     *
-     *
-     * To sum-up:<br></br>
+     * ### To sum-up:
      * - start values: values at start time, after delay<br></br>
      * - end values: params
      *
@@ -581,9 +580,7 @@ class Tween<T> internal constructor(animator: TweenEngine, private val combinedA
      * Sets the target values of the interpolation. The interpolation will run from the **values at start time (after the delay, if
      * any)** to these target values.
      *
-     *
-     *
-     * To sum-up:<br></br>
+     * ### To sum-up:
      * - start values: values at start time, after delay<br></br>
      * - end values: params
      *
@@ -605,9 +602,7 @@ class Tween<T> internal constructor(animator: TweenEngine, private val combinedA
      * Sets the target values of the interpolation. The interpolation will run from the **values at start time (after the delay, if
      * any)** to these target values.
      *
-     *
-     *
-     * To sum-up:<br></br>
+     * ### To sum-up:
      * - start values: values at start time, after delay<br></br>
      * - end values: params
      *
@@ -627,7 +622,7 @@ class Tween<T> internal constructor(animator: TweenEngine, private val combinedA
     /**
      * Sets the target value of the interpolation, relatively to the **value at start time (after the delay, if any)**.
      *
-     * To sum-up:<br></br>
+     * ### To sum-up:
      * - start value: value at start time, after delay<br></br>
      * - end value: param + value at start time, after delay
      *
@@ -646,9 +641,7 @@ class Tween<T> internal constructor(animator: TweenEngine, private val combinedA
     /**
      * Sets the target value of the interpolation, relatively to the **value at start time (after the delay, if any)**.
      *
-     *
-     *
-     * To sum-up:<br></br>
+     * ### To sum-up:
      * - start values: values at start time, after delay<br></br>
      * - end values: params + values at start time, after delay
      *
@@ -670,9 +663,7 @@ class Tween<T> internal constructor(animator: TweenEngine, private val combinedA
     /**
      * Sets the target value of the interpolation, relatively to the **value at start time (after the delay, if any)**.
      *
-     *
-     *
-     * To sum-up:<br></br>
+     * ### To sum-up:
      * - start values: values at start time, after delay<br></br>
      * - end values: params + values at start time, after delay
      *
@@ -697,9 +688,7 @@ class Tween<T> internal constructor(animator: TweenEngine, private val combinedA
     /**
      * Sets the target value of the interpolation, relatively to the **value at start time (after the delay, if any)**.
      *
-     *
-     *
-     * To sum-up:<br></br>
+     * ### To sum-up:
      * - start values: values at start time, after delay<br></br>
      * - end values: params + values at start time, after delay
      *
@@ -724,7 +713,7 @@ class Tween<T> internal constructor(animator: TweenEngine, private val combinedA
     /**
      * Adds a waypoint to the path. The default path runs from the start values to the end values linearly. If you add waypoints, the
      * default path will use a smooth catmull-rom spline to navigate between the waypoints, but you can change this behavior by using the
-     * [.path] method.
+     * [path] method.
      *
      * @param targetValue The target of this waypoint.
      *
@@ -743,10 +732,9 @@ class Tween<T> internal constructor(animator: TweenEngine, private val combinedA
     /**
      * Adds a waypoint to the path. The default path runs from the start values to the end values linearly. If you add waypoints, the
      * default path will use a smooth catmull-rom spline to navigate between the waypoints, but you can change this behavior by using the
-     * [.path] method.
+     * [path] method.
      *
-     *
-     * Note that if you want waypoints relative to the start values, use one of the .targetRelative() methods to define your target.
+     * Note that if you want waypoints relative to the start values, use one of the [targetRelative] methods to define your target.
      *
      * @param targetValue1 The 1st target of this waypoint.
      * @param targetValue2 The 2nd target of this waypoint.
@@ -769,10 +757,9 @@ class Tween<T> internal constructor(animator: TweenEngine, private val combinedA
     /**
      * Adds a waypoint to the path. The default path runs from the start values to the end values linearly. If you add waypoints, the
      * default path will use a smooth catmull-rom spline to navigate between the waypoints, but you can change this behavior by using the
-     * [.path] method.
+     * [path] method.
      *
-     *
-     * Note that if you want waypoints relative to the start values, use one of the .targetRelative() methods to define your target.
+     * Note that if you want waypoints relative to the start values, use one of the [targetRelative] methods to define your target.
      *
      * @param targetValue1 The 1st target of this waypoint.
      * @param targetValue2 The 2nd target of this waypoint.
@@ -797,10 +784,9 @@ class Tween<T> internal constructor(animator: TweenEngine, private val combinedA
     /**
      * Adds a waypoint to the path. The default path runs from the start values to the end values linearly. If you add waypoints, the
      * default path will use a smooth catmull-rom spline to navigate between the waypoints, but you can change this behavior by using the
-     * [.path] method.
+     * [path] method.
      *
-     *
-     * Note that if you want waypoints relative to the start values, use one of the .targetRelative() methods to define your target.
+     * Note that if you want waypoints relative to the start values, use one of the [targetRelative] methods to define your target.
      *
      * @param targetValues The targets of this waypoint.
      *
@@ -808,10 +794,12 @@ class Tween<T> internal constructor(animator: TweenEngine, private val combinedA
      */
     fun waypoint(vararg targetValues: Float): Tween<T> {
         animator.flushRead()
+
         val waypointsCount = waypointsCount
         verifyWaypoints(waypointsCount)
         System.arraycopy(targetValues, 0, waypoints, waypointsCount * targetValues.size, targetValues.size)
         this.waypointsCount += 1
+
         animator.flushWrite()
         return this
     }
@@ -938,7 +926,7 @@ class Tween<T> internal constructor(animator: TweenEngine, private val combinedA
     // Overrides
     // -------------------------------------------------------------------------
     /**
-     * Forces a timeline/tween to have it's start/target values. Repeat behavior is also correctly modeled in the decision process
+     * Forces a timeline/tween to have its start/target values. Repeat behavior is also correctly modeled in the decision process
      *
      * @param updateDirection direction in which the update is happening. Affects children iteration order (timelines)
      * @param updateValue this is the start (true) or target (false) to set the tween to.
@@ -1014,14 +1002,14 @@ class Tween<T> internal constructor(animator: TweenEngine, private val combinedA
     }
 
     /**
-     * When done with all the adjustments and notifications, update the object. Only called during State.RUN. Other state updates will
+     * When done with all the adjustments and notifications, update the object. Only called during [BaseTween.RUN] Other state updates will
      * use [BaseTween.setValues]
      *
      *
      * values will ONLY be updated if the tween was initialized (reached START state at least once)
      *
      *
-     * If a timeline/tween is outside it's animation cycle time, it will "snap" to the start/end points via
+     * If a timeline/tween is outside its animation cycle time, it will "snap" to the start/end points via
      * [BaseTween.setValues]
      *
      * @param updateDirection not used (only used by the timeline). It is necessary here because of how the methods are overloaded.
@@ -1031,7 +1019,7 @@ class Tween<T> internal constructor(animator: TweenEngine, private val combinedA
         val target = target
         val equation = equation
 
-        // be aware that a tween can ONLY have it's values updated IFF it has been initialized (reached START state at least once)
+        // be aware that a tween can ONLY have its values updated IFF it has been initialized (reached START state at least once)
         if (target == null || equation == null || !this.isInitialized || isCanceled) {
             return
         }
@@ -1089,7 +1077,7 @@ class Tween<T> internal constructor(animator: TweenEngine, private val combinedA
         if (length > combinedAttrsLimit) {
             val msg = "You cannot combine more than " + combinedAttrsLimit + " " + "attributes in a tween. You can raise this limit with " +
                     "Tween.setCombinedAttributesLimit(), which should be called once in application initialization code."
-            throw RuntimeException(msg)
+            throw IllegalArgumentException(msg)
         }
     }
 
@@ -1100,7 +1088,7 @@ class Tween<T> internal constructor(animator: TweenEngine, private val combinedA
         if (waypointsCount == waypointsLimit) {
             val msg = "You cannot add more than " + waypointsLimit + " " + "waypoints to a tween. You can raise this limit with " +
                     "Tween.setWaypointsLimit(), which should be called once in application initialization code."
-            throw RuntimeException(msg)
+            throw IllegalArgumentException(msg)
         }
     }
 }

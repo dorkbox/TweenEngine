@@ -16,6 +16,7 @@
  */
 package dorkbox.tweenEngine
 
+import dorkbox.tweenEngine.TweenEvents.BEGIN
 import java.util.concurrent.locks.*
 import kotlin.concurrent.write
 
@@ -32,7 +33,7 @@ import kotlin.concurrent.write
  *
  * @author dorkbox, llc
  */
-@Suppress("MemberVisibilityCanBePrivate")
+@Suppress("MemberVisibilityCanBePrivate", "FunctionName", "LocalVariableName", "PrivatePropertyName")
 abstract class BaseTween<T : BaseTween<T>>(protected val animator: TweenEngine) {
 
     companion object {
@@ -53,7 +54,7 @@ abstract class BaseTween<T : BaseTween<T>>(protected val animator: TweenEngine) 
 
     // callbacks (optimized for fast call w/ many callbacks). Verification for multiple triggers is on add.
     private val callbackLock = ReentrantReadWriteLock()
-    private val emptyCallback = emptyArray<T.(triggers: Int)->Unit>()
+    private val emptyCallback = emptyArray<T.()->Unit>()
 
     /**
      * The default update event, which does nothing.
@@ -155,14 +156,14 @@ abstract class BaseTween<T : BaseTween<T>>(protected val animator: TweenEngine) 
     private var startEventCallback = emptyAction
     private var endEventCallback = emptyAction
 
-    private var forwards_Begin =    emptyArray<T.(triggers: Int)->Unit>()
-    private var forwards_Start =    emptyArray<T.(triggers: Int)->Unit>()
-    private var forwards_End =      emptyArray<T.(triggers: Int)->Unit>()
-    private var forwards_Complete = emptyArray<T.(triggers: Int)->Unit>()
-    private var reverse_Begin =     emptyArray<T.(triggers: Int)->Unit>()
-    private var reverse_Start =     emptyArray<T.(triggers: Int)->Unit>()
-    private var reverse_End =       emptyArray<T.(triggers: Int)->Unit>()
-    private var reverse_Complete =  emptyArray<T.(triggers: Int)->Unit>()
+    private var forwards_Begin =    emptyArray<T.()->Unit>()
+    private var forwards_Start =    emptyArray<T.()->Unit>()
+    private var forwards_End =      emptyArray<T.()->Unit>()
+    private var forwards_Complete = emptyArray<T.()->Unit>()
+    private var reverse_Begin =     emptyArray<T.()->Unit>()
+    private var reverse_Start =     emptyArray<T.()->Unit>()
+    private var reverse_End =       emptyArray<T.()->Unit>()
+    private var reverse_Complete =  emptyArray<T.()->Unit>()
 
     /**
      * Reset the tween/timeline to it's initial state. It will be as if the tween/timeline has never run before. If it was already
@@ -208,16 +209,16 @@ abstract class BaseTween<T : BaseTween<T>>(protected val animator: TweenEngine) 
     // Public API
     // -------------------------------------------------------------------------
 
-    fun callbackHelper(array: Array<T.(triggers: Int)->Unit>, callback: T.(triggers: Int)->Unit): Array<T.(triggers: Int)->Unit> {
+    fun callbackHelper(array: Array<T.()->Unit>, callback: T.()->Unit): Array<T.()->Unit> {
         val currentLength = array.size
         val newLength = currentLength + 1
 
-        val copy = arrayOfNulls<T.(triggers: Int)->Unit>(newLength)
+        val copy = arrayOfNulls<T.()->Unit>(newLength)
         System.arraycopy(array, 0, copy, 0, currentLength.coerceAtMost(newLength))
         copy[currentLength] = callback
 
         @Suppress("UNCHECKED_CAST")
-        return copy as Array<T.(triggers: Int)->Unit>
+        return copy as Array<T.()->Unit>
     }
 
     /**
@@ -230,34 +231,38 @@ abstract class BaseTween<T : BaseTween<T>>(protected val animator: TweenEngine) 
      *
      * @see TweenEvents
      */
-    protected open fun addCallback(triggers: Int = TweenEvents.COMPLETE, callback: T.(triggers: Int)->Unit): BaseTween<T> {
+    protected open fun addCallback(triggers: Int = TweenEvents.COMPLETE, callback: T.()->Unit): BaseTween<T> {
         val isAny = triggers and TweenEvents.ANY == TweenEvents.ANY
+        val isAnyForward = triggers and TweenEvents.ANY_FORWARD == TweenEvents.ANY_FORWARD
+        val isAnyBackward = triggers and TweenEvents.ANY_BACKWARD == TweenEvents.ANY_BACKWARD
 
         // ALSO have to prevent anyone from updating/changing callbacks while this is occurring.
         // not necessary to call flushRead/Write
         callbackLock.write {
-            if (triggers and TweenEvents.BEGIN == TweenEvents.BEGIN || isAny) {
+            // forward events
+            if (triggers and BEGIN == BEGIN || isAnyForward || isAny) {
                 forwards_Begin = callbackHelper(forwards_Begin, callback)
             }
-            if (triggers and TweenEvents.START == TweenEvents.START || isAny) {
+            if (triggers and TweenEvents.START == TweenEvents.START || isAnyForward || isAny) {
                 forwards_Start = callbackHelper(forwards_Start, callback)
             }
-            if (triggers and TweenEvents.END == TweenEvents.END || isAny) {
+            if (triggers and TweenEvents.END == TweenEvents.END || isAnyForward || isAny) {
                 forwards_End = callbackHelper(forwards_End, callback)
             }
-            if (triggers and TweenEvents.COMPLETE == TweenEvents.COMPLETE || isAny) {
+            if (triggers and TweenEvents.COMPLETE == TweenEvents.COMPLETE || isAnyForward || isAny) {
                 forwards_Complete = callbackHelper(forwards_Complete, callback)
             }
-            if (triggers and TweenEvents.BACK_BEGIN == TweenEvents.BACK_BEGIN || isAny) {
+            // back events
+            if (triggers and TweenEvents.BACK_BEGIN == TweenEvents.BACK_BEGIN || isAnyBackward || isAny) {
                 reverse_Begin = callbackHelper(reverse_Begin, callback)
             }
-            if (triggers and TweenEvents.BACK_START == TweenEvents.BACK_START || isAny) {
+            if (triggers and TweenEvents.BACK_START == TweenEvents.BACK_START || isAnyBackward || isAny) {
                 reverse_Start = callbackHelper(reverse_Start, callback)
             }
-            if (triggers and TweenEvents.BACK_END == TweenEvents.BACK_END || isAny) {
+            if (triggers and TweenEvents.BACK_END == TweenEvents.BACK_END || isAnyBackward || isAny) {
                 reverse_End = callbackHelper(reverse_End, callback)
             }
-            if (triggers and TweenEvents.BACK_COMPLETE == TweenEvents.BACK_COMPLETE || isAny) {
+            if (triggers and TweenEvents.BACK_COMPLETE == TweenEvents.BACK_COMPLETE || isAnyBackward || isAny) {
                 reverse_Complete = callbackHelper(reverse_Complete, callback)
             }
         }
@@ -287,7 +292,7 @@ abstract class BaseTween<T : BaseTween<T>>(protected val animator: TweenEngine) 
     }
 
     /**
-     * Adds a start delay to the tween or timeline in seconds.
+     * Adds a start delay to the tween or timeline in seconds. Must be positive and greater than 0.
      *
      * @param delay A duration in seconds for the delay
      *
@@ -304,11 +309,12 @@ abstract class BaseTween<T : BaseTween<T>>(protected val animator: TweenEngine) 
      * doesn't sync on anything.
      *
      *
-     * Adds a start delay to the tween or timeline in seconds.
+     * Adds a start delay to the tween or timeline in seconds. Must be positive and greater than 0.
      *
      * @param delay A duration in seconds for the delay
      */
     internal fun delay__(delay: Float) {
+        // will always be > 0
         startDelay += delay
         currentTime -= delay
     }
@@ -379,7 +385,7 @@ abstract class BaseTween<T : BaseTween<T>>(protected val animator: TweenEngine) 
      */
     private fun repeat__(count: Int, delay: Float) {
         if (count < -1) {
-            throw RuntimeException(
+            throw IllegalArgumentException(
                 "Count " + count + " is an invalid option. It must be -1 (Tween.INFINITY) for infinite or > 0 for " +
                         "finite."
             )
@@ -457,7 +463,7 @@ abstract class BaseTween<T : BaseTween<T>>(protected val animator: TweenEngine) 
      *
      * @return The current object
      */
-    open fun start(): BaseTween<T>? {
+    open fun start(): BaseTween<T> {
         animator.flushRead()
         animator.addUnsafe(this)
         animator.flushWrite()
@@ -684,7 +690,7 @@ abstract class BaseTween<T : BaseTween<T>>(protected val animator: TweenEngine) 
     }
 
     /**
-     * Sets the tween or timeline to a specific point in time based on it's duration + delays. Callbacks are not notified and the change is
+     * Sets the tween or timeline to a specific point in time based on its duration + delays. Callbacks are not notified and the change is
      * immediate.
      * For example:
      *
@@ -698,12 +704,12 @@ abstract class BaseTween<T : BaseTween<T>>(protected val animator: TweenEngine) 
      * Caveat: If the timeline/tween is set to end in reverse, and it CANNOT go in reverse, then it will end up in the finished state
      * (end position). If the timeline/tween is in repeat mode then it will end up in the same position if it was going forwards.
      *
-     * @param percentage the percentage (of it's duration) from 0-1, that the tween/timeline be set to
+     * @param percentage the percentage (of its duration) from 0-1, that the tween/timeline be set to
      * @param direction sets the direction of the timeline when it updates next: forwards (true) or reverse (false).
      */
     internal open fun setProgress(percentage: Float, direction: Boolean): BaseTween<T> {
         if (percentage < -0.0f || percentage > 1.0f) {
-            throw RuntimeException("Cannot set the progress <0 or >1")
+            throw IllegalArgumentException("Cannot set the progress <0 or >1")
         }
 
         //flushRead();   // synchronize takes care of this
@@ -755,7 +761,7 @@ abstract class BaseTween<T : BaseTween<T>>(protected val animator: TweenEngine) 
             // update by the timeline/tween this amount (always starting from "scratch"). It will automatically end up in the correct direction.
             updateUnsafe(adjustmentTime)
 
-            // have to RESTORE all of the callbacks
+            // have to RESTORE all the callbacks
             forwards_Begin = forwards_Begin_saved
             forwards_Start = forwards_Start_saved
             forwards_End = forwards_End_saved
@@ -874,6 +880,7 @@ abstract class BaseTween<T : BaseTween<T>>(protected val animator: TweenEngine) 
      *
      * @return the amount of time remaining (this is the amount of delta that wasn't processed)
      */
+    @Suppress("DuplicatedCode")
     internal fun updateUnsafe(delta: Float): Float {
         if (isPaused || isCanceled) {
             return delta
@@ -932,7 +939,7 @@ abstract class BaseTween<T : BaseTween<T>>(protected val animator: TweenEngine) 
         // REVERSE:  0 >= time < duration   (reverse always goes from duration -> 0)
         startEventCallback.invoke(this)
 
-        var callbacks: Array<T.(triggers: Int)->Unit>
+        var callbacks: Array<T.()->Unit>
         var i: Int
         var n: Int
 
@@ -954,6 +961,7 @@ abstract class BaseTween<T : BaseTween<T>>(protected val animator: TweenEngine) 
                         }
 
                         currentTime = 0.0f
+
                         if (canTriggerBeginEvent) {
                             canTriggerBeginEvent = false
 
@@ -967,7 +975,7 @@ abstract class BaseTween<T : BaseTween<T>>(protected val animator: TweenEngine) 
                             i = 0
                             n = callbacks.size
                             while (i < n) {
-                                callbacks[i].invoke(this, TweenEvents.BEGIN)
+                                callbacks[i].invoke(this)
                                 i++
                             }
                         }
@@ -976,7 +984,7 @@ abstract class BaseTween<T : BaseTween<T>>(protected val animator: TweenEngine) 
                         i = 0
                         n = callbacks.size
                         while (i < n) {
-                            callbacks[i].invoke(this, TweenEvents.START)
+                            callbacks[i].invoke(this)
                             i++
                         }
 
@@ -1023,7 +1031,7 @@ abstract class BaseTween<T : BaseTween<T>>(protected val animator: TweenEngine) 
                             i = 0
                             n = callbacks.size
                             while (i < n) {
-                                callbacks[i].invoke(this, TweenEvents.END)
+                                callbacks[i].invoke(this)
                                 i++
                             }
 
@@ -1031,7 +1039,7 @@ abstract class BaseTween<T : BaseTween<T>>(protected val animator: TweenEngine) 
                             i = 0
                             n = callbacks.size
                             while (i < n) {
-                                callbacks[i].invoke(this, TweenEvents.COMPLETE)
+                                callbacks[i].invoke(this)
                                 i++
                             }
 
@@ -1061,7 +1069,7 @@ abstract class BaseTween<T : BaseTween<T>>(protected val animator: TweenEngine) 
                             i = 0
                             n = callbacks.size
                             while (i < n) {
-                                callbacks[i].invoke(this, TweenEvents.END)
+                                callbacks[i].invoke(this)
                                 i++
                             }
 
@@ -1071,7 +1079,7 @@ abstract class BaseTween<T : BaseTween<T>>(protected val animator: TweenEngine) 
                                 i = 0
                                 n = callbacks.size
                                 while (i < n) {
-                                    callbacks[i].invoke(this, TweenEvents.COMPLETE)
+                                    callbacks[i].invoke(this)
                                     i++
                                 }
 
@@ -1127,7 +1135,7 @@ abstract class BaseTween<T : BaseTween<T>>(protected val animator: TweenEngine) 
                             i = 0
                             n = callbacks.size
                             while (i < n) {
-                                callbacks[i].invoke(this, TweenEvents.END)
+                                callbacks[i].invoke(this)
                                 i++
                             }
 
@@ -1135,7 +1143,7 @@ abstract class BaseTween<T : BaseTween<T>>(protected val animator: TweenEngine) 
                             i = 0
                             n = callbacks.size
                             while (i < n) {
-                                callbacks[i].invoke(this, TweenEvents.COMPLETE)
+                                callbacks[i].invoke(this)
                                 i++
                             }
                             canTriggerBeginEvent = true
@@ -1153,7 +1161,7 @@ abstract class BaseTween<T : BaseTween<T>>(protected val animator: TweenEngine) 
                             i = 0
                             n = callbacks.size
                             while (i < n) {
-                                callbacks[i].invoke(this, TweenEvents.END)
+                                callbacks[i].invoke(this)
                                 i++
                             }
 
@@ -1162,7 +1170,7 @@ abstract class BaseTween<T : BaseTween<T>>(protected val animator: TweenEngine) 
                                 i = 0
                                 n = callbacks.size
                                 while (i < n) {
-                                    callbacks[i].invoke(this, TweenEvents.COMPLETE)
+                                    callbacks[i].invoke(this)
                                     i++
                                 }
 
@@ -1231,7 +1239,7 @@ abstract class BaseTween<T : BaseTween<T>>(protected val animator: TweenEngine) 
                                 i = 0
                                 n = callbacks.size
                                 while (i < n) {
-                                    callbacks[i].invoke(this, TweenEvents.BACK_BEGIN)
+                                    callbacks[i].invoke(this)
                                     i++
                                 }
                             }
@@ -1240,7 +1248,7 @@ abstract class BaseTween<T : BaseTween<T>>(protected val animator: TweenEngine) 
                             i = 0
                             n = callbacks.size
                             while (i < n) {
-                                callbacks[i].invoke(this, TweenEvents.BACK_START)
+                                callbacks[i].invoke(this)
                                 i++
                             }
 
@@ -1294,7 +1302,7 @@ abstract class BaseTween<T : BaseTween<T>>(protected val animator: TweenEngine) 
                             i = 0
                             n = callbacks.size
                             while (i < n) {
-                                callbacks[i].invoke(this, TweenEvents.BACK_END)
+                                callbacks[i].invoke(this)
                                 i++
                             }
 
@@ -1302,7 +1310,7 @@ abstract class BaseTween<T : BaseTween<T>>(protected val animator: TweenEngine) 
                             i = 0
                             n = callbacks.size
                             while (i < n) {
-                                callbacks[i].invoke(this, TweenEvents.BACK_COMPLETE)
+                                callbacks[i].invoke(this)
                                 i++
                             }
 
@@ -1332,7 +1340,7 @@ abstract class BaseTween<T : BaseTween<T>>(protected val animator: TweenEngine) 
                             i = 0
                             n = callbacks.size
                             while (i < n) {
-                                callbacks[i].invoke(this, TweenEvents.BACK_END)
+                                callbacks[i].invoke(this)
                                 i++
                             }
 
@@ -1342,7 +1350,7 @@ abstract class BaseTween<T : BaseTween<T>>(protected val animator: TweenEngine) 
                                 i = 0
                                 n = callbacks.size
                                 while (i < n) {
-                                    callbacks[i].invoke(this, TweenEvents.BACK_COMPLETE)
+                                    callbacks[i].invoke(this)
                                     i++
                                 }
 
@@ -1403,7 +1411,7 @@ abstract class BaseTween<T : BaseTween<T>>(protected val animator: TweenEngine) 
                             i = 0
                             n = callbacks.size
                             while (i < n) {
-                                callbacks[i].invoke(this, TweenEvents.BACK_END)
+                                callbacks[i].invoke(this)
                                 i++
                             }
 
@@ -1411,7 +1419,7 @@ abstract class BaseTween<T : BaseTween<T>>(protected val animator: TweenEngine) 
                             i = 0
                             n = callbacks.size
                             while (i < n) {
-                                callbacks[i].invoke(this, TweenEvents.BACK_COMPLETE)
+                                callbacks[i].invoke(this)
                                 i++
                             }
 
@@ -1430,7 +1438,7 @@ abstract class BaseTween<T : BaseTween<T>>(protected val animator: TweenEngine) 
                             i = 0
                             n = callbacks.size
                             while (i < n) {
-                                callbacks[i].invoke(this, TweenEvents.BACK_END)
+                                callbacks[i].invoke(this)
                                 i++
                             }
 
@@ -1439,7 +1447,7 @@ abstract class BaseTween<T : BaseTween<T>>(protected val animator: TweenEngine) 
                                 i = 0
                                 n = callbacks.size
                                 while (i < n) {
-                                    callbacks[i].invoke(this, TweenEvents.BACK_COMPLETE)
+                                    callbacks[i].invoke(this)
                                     i++
                                 }
 

@@ -57,7 +57,7 @@ package dorkbox.tweenEngine
  *
  * @see TweenEvents
  *
- * @author Aurelien Ribon | http://www.aurelienribon.com/
+ * @author Aurelien Ribon | http://www.aurelienribon.com
  * @author dorkbox, llc
  */
 class Timeline internal constructor(animator: TweenEngine) : BaseTween<Timeline>(animator) {
@@ -146,9 +146,9 @@ class Timeline internal constructor(animator: TweenEngine) : BaseTween<Timeline>
      *
      * Thread/Concurrent safe
      *
-     * @see TweenCallback
+     * @see TweenEvents
      */
-    public override fun addCallback(triggers: Int, callback: Timeline.(Int)->Unit): Timeline {
+    public override fun addCallback(triggers: Int, callback: Timeline.()->Unit): Timeline {
         super.addCallback(triggers, callback)
         return this
     }
@@ -225,7 +225,7 @@ class Timeline internal constructor(animator: TweenEngine) : BaseTween<Timeline>
     /**
      * Sets the "start" callback, which is called when the timeline starts running, NULL to remove.
      *
-     * @param startCallback this is the object that will be notified when the timeline starts running. NULL to unset.
+     * @param startCallback this is the object that will be notified when the timeline starts running. NULL to remove.
      *
      * @return The current timeline
      */
@@ -237,7 +237,7 @@ class Timeline internal constructor(animator: TweenEngine) : BaseTween<Timeline>
     /**
      * Sets the "end" callback, which is called when the timeline finishes running, NULL to remove.
      *
-     * @param endCallback this is the object that will be notified when the timeline finishes running. NULL to unset.
+     * @param endCallback this is the object that will be notified when the timeline finishes running. NULL to remove.
      *
      * @return The current timeline
      */
@@ -247,8 +247,8 @@ class Timeline internal constructor(animator: TweenEngine) : BaseTween<Timeline>
     }
 
     /**
-     * Sets the timeline to a specific point in time based on it's duration + delays. Callbacks are not notified and the change is
-     * immediate. The timeline will continue in it's original direction
+     * Sets the timeline to a specific point in time based on its duration + delays. Callbacks are not notified and the change is
+     * immediate. The timeline will continue in its original direction
      * For example:
      *
      *  *  setProgress(0F, true) : set it to the starting position just after the start delay in the forward direction
@@ -261,7 +261,7 @@ class Timeline internal constructor(animator: TweenEngine) : BaseTween<Timeline>
      * Caveat: If the timeline is set to end in reverse, and it CANNOT go in reverse, then it will end up in the finished state
      * (end position). If the timeline is in repeat mode then it will end up in the same position if it was going forwards.
      *
-     * @param percentage the percentage (of it's duration) from 0-1, that the timeline be set to
+     * @param percentage the percentage (of its duration) from 0-1, that the timeline be set to
      */
     public override fun setProgress(percentage: Float): Timeline {
         super.setProgress(percentage)
@@ -269,7 +269,7 @@ class Timeline internal constructor(animator: TweenEngine) : BaseTween<Timeline>
     }
 
     /**
-     * Sets the timeline to a specific point in time based on it's duration + delays. Callbacks are not notified and the change is
+     * Sets the timeline to a specific point in time based on its duration + delays. Callbacks are not notified and the change is
      * immediate.
      * For example:
      *
@@ -308,7 +308,7 @@ class Timeline internal constructor(animator: TweenEngine) : BaseTween<Timeline>
         for (i in 0 until childrenSize) {
             val obj = childrenArray[i]
             if (obj.repeatCountOrig < 0) {
-                throw RuntimeException("You can't push an object with infinite repetitions in a timeline")
+                throw IllegalArgumentException("You can't push an object with infinite repetitions in a timeline")
             }
             obj.startUnmanaged__()
         }
@@ -323,6 +323,10 @@ class Timeline internal constructor(animator: TweenEngine) : BaseTween<Timeline>
         super.start()
         return this
     }
+
+
+
+
     // -------------------------------------------------------------------------
     // User Data
     // -------------------------------------------------------------------------
@@ -374,15 +378,14 @@ class Timeline internal constructor(animator: TweenEngine) : BaseTween<Timeline>
     /**
      * Adds a pause to the timeline. The pause may be negative if you want to overlap the preceding and following children.
      *
-     * @param time A positive or negative duration in seconds
+     * @param time A positive or negative duration in seconds. Must be positive and greater than 0.
      *
      * @return The current timeline
      */
     fun pushPause(time: Float): Timeline {
-        if (time < 0.0f) {
-            throw RuntimeException(
-                "You can't push a negative pause to a timeline. Just make the last entry's duration shorter or use" +
-                        " with a parallel timeline and appropriate delays in place."
+        if (time <= 0.0f) {
+            throw IllegalArgumentException(
+                "You can't push a negative or 0 pause to a timeline. Just make the last entry's duration shorter or use with a parallel timeline and appropriate delays in place."
             )
         }
 
@@ -417,7 +420,7 @@ class Timeline internal constructor(animator: TweenEngine) : BaseTween<Timeline>
 
         // animator.flushWrite() // called on end
 
-        // our timeline info is setup when the sequenced timeline is "ended", so we can retrieve it's children
+        // our timeline info is setup when the sequenced timeline is "ended", so we can retrieve its children
         return timeline
     }
 
@@ -439,7 +442,7 @@ class Timeline internal constructor(animator: TweenEngine) : BaseTween<Timeline>
 
         // flushWrite(); called on end()
 
-        // our timeline info is setup when the sequenced timeline is "ended", so we can retrieve it's children
+        // our timeline info is setup when the sequenced timeline is "ended", so we can retrieve its children
         return timeline
     }
 
@@ -481,7 +484,7 @@ class Timeline internal constructor(animator: TweenEngine) : BaseTween<Timeline>
 
         childrenSize = children.size
         if (childrenSize == 0) {
-            throw RuntimeException("Creating a timeline with zero children. This is likely unintended, and is not permitted.")
+            throw IllegalArgumentException("Creating a timeline with zero children. This is likely unintended, and is not permitted.")
         }
 
         childrenSizeMinusOne = childrenSize - 1

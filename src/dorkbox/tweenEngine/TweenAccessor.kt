@@ -21,8 +21,7 @@ package dorkbox.tweenEngine
  * calling [EngineBuilder.registerAccessor].
  *
  *
- *
- * <h2>Example</h2>
+ * ##Example
  *
  * The following code snippet presents an example of implementation for tweening
  * a Particle class. This Particle class is supposed to only define a position
@@ -30,48 +29,50 @@ package dorkbox.tweenEngine
  *
  *
  *
- * <pre> `public class ParticleAccessor implements TweenAccessor<Particle> {
- * public static final int X = 1;
- * public static final int Y = 2;
- * public static final int XY = 3;
+ * ```
+ * public class ParticleAccessor implements TweenAccessor<Particle> {
+ *      public static final int X = 1;
+ *      public static final int Y = 2;
+ *      public static final int XY = 3;
  *
- * public int getValues(Particle target, int tweenType, float[] returnValues) {
- * switch (tweenType) {
- * case X: returnValues[0] = target.getX(); return 1;
- * case Y: returnValues[0] = target.getY(); return 1;
- * case XY:
- * returnValues[0] = target.getX();
- * returnValues[1] = target.getY();
- * return 2;
- * default: assert false; return 0;
- * }
- * }
+ *      public int getValues(Particle target, int tweenType, float[] returnValues) {
+ *          switch (tweenType) {
+ *              case X: returnValues[0] = target.getX(); return 1;
+ *              case Y: returnValues[0] = target.getY(); return 1;
+ *              case XY:
+ *                  returnValues[0] = target.getX();
+ *                  returnValues[1] = target.getY();
+ *                  return 2;
+ *              default: assert false; return 0;
+ *          }
+ *      }
  *
- * public void setValues(Particle target, int tweenType, float[] newValues) {
- * switch (tweenType) {
- * case X: target.setX(newValues[0]); break;
- * case Y: target.setY(newValues[1]); break;
- * case XY:
- * target.setX(newValues[0]);
- * target.setY(newValues[1]);
- * break;
- * default: assert false; break;
+ *      public void setValues(Particle target, int tweenType, float[] newValues) {
+ *          switch (tweenType) {
+ *              case X: target.setX(newValues[0]); break;
+ *              case Y: target.setY(newValues[1]); break;
+ *              case XY:
+ *                  target.setX(newValues[0]);
+ *                  target.setY(newValues[1]);
+ *                  break;
+ *              default: assert false; break;
+ *         }
+ *      }
  * }
- * }
- * }
-`</pre> *
+ * ```
  *
  * Once done, you only need to register this TweenAccessor once to be able to
  * use it for every Particle objects in your application:
  *
  *
- *
- * <pre> `Tween.registerAccessor(Particle.class, new ParticleAccessor());
-`</pre> *
+ * ```
+ * Tween.registerAccessor(Particle.class, new ParticleAccessor());
+ * ```
  *
  * And that's all, the Tween Engine can now work with all your particles!
  *
- * @author Aurelien Ribon | http://www.aurelienribon.com/
+ * @author Aurelien Ribon | http://www.aurelienribon.com
+ * @author dorkbox, llc
  */
 interface TweenAccessor<T> {
     /**

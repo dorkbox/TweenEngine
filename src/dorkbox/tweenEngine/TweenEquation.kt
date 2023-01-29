@@ -21,7 +21,8 @@ package dorkbox.tweenEngine
  *
  * @see Tween
  *
- * @author Aurelien Ribon | http://www.aurelienribon.com/
+ * @author Aurelien Ribon | http://www.aurelienribon.com
+ * @author dorkbox, llc
  */
 interface TweenEquation {
     /**
