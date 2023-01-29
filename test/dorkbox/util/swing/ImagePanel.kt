@@ -15,18 +15,22 @@
  */
 package dorkbox.util.swing
 
-import java.awt.*
+import java.awt.Color
+import java.awt.Graphics
+import java.awt.Graphics2D
+import java.awt.Rectangle
+import java.awt.TexturePaint
 import java.awt.image.BufferedImage
 import java.io.File
 import java.io.IOException
 import java.net.URL
-import java.util.logging.Level
-import java.util.logging.Logger
+import java.util.logging.*
 import javax.imageio.ImageIO
 import javax.swing.JPanel
 
 /**
  * @author Aurelien Ribon | http://www.aurelienribon.com
+ * @author dorkbox, llc
  */
 class ImagePanel : JPanel() {
     private var background: BufferedImage? = null
