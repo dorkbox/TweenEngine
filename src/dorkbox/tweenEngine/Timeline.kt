@@ -71,8 +71,8 @@ class Timeline internal constructor(animator: TweenEngine) : BaseTween<Timeline>
          */
         const val version = TweenEngine.version
 
-        val INVALID_TIMELINE = Timeline(TweenEngine(false))
-        val INVALID_CHILDREN = emptyArray<BaseTween<*>>()
+        private val INVALID_TIMELINE = Timeline(TweenEngine(false))
+        private val INVALID_CHILDREN = emptyArray<BaseTween<*>>()
     }
 
     /** The backing list of the timeline children. */
