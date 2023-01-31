@@ -231,7 +231,7 @@ abstract class BaseTween<T : BaseTween<T>>(protected val animator: TweenEngine) 
      *
      * @see TweenEvents
      */
-    protected open fun addCallback(triggers: Int = TweenEvents.COMPLETE, callback: T.()->Unit): BaseTween<T> {
+    protected open fun addCallback(triggers: Int, callback: T.()->Unit): BaseTween<T> {
         val isAny = triggers and TweenEvents.ANY == TweenEvents.ANY
         val isAnyForward = triggers and TweenEvents.ANY_FORWARD == TweenEvents.ANY_FORWARD
         val isAnyBackward = triggers and TweenEvents.ANY_BACKWARD == TweenEvents.ANY_BACKWARD
