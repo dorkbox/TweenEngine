@@ -30,15 +30,15 @@ import java.util.*
  * If un-managed, then you must update the tween/timeline manually, and make sure to release the tween objects back to the pool manually via
  * [BaseTween.free]
  *
- * Just give it a bunch of tweens or timelines and call [.update] periodically, you don't need to do anything else!
+ * Just give it a bunch of tweens or timelines and call [update] periodically, you don't need to do anything else!
  *
- * More fine-grained control is available as well via [.update] to update via seconds (1.0F == 1.0 seconds), or
- * [.update] to update via nano-seconds.
+ * More fine-grained control is available as well via [update] to update via seconds (1.0F == 1.0 seconds), or
+ * [update] to update via nano-seconds.
  *
  *
  * @author dorkbox, llc
- * @see Tween
  *
+ * @see Tween
  * @see Timeline
  */
 @Suppress("unused", "unused")
@@ -627,8 +627,8 @@ open class TweenEngine internal constructor(
      *
      *
      * The common use of Tweens is "fire-and-forget": you do not need to care for tweens if they are started normally via
-     * [Tween.start], as they will be be updated and cleaned/etc automatically once finished. If started unmanaged via
-     * ([Tween.startUnmanaged] then you will have to manage it's lifecycle manually.
+     * [Tween.start], as they will be updated and cleaned/etc automatically once finished. If started unmanaged via
+     * ([Tween.startUnmanaged] then you will have to manage its lifecycle manually.
      *
      *
      *```
