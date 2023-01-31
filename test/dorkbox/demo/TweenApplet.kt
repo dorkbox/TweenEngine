@@ -355,7 +355,7 @@ class TweenApplet : JApplet() {
         val repeatDelay = convertToSeconds(repeatDelaySpinner.value as Int)
         val isAutoReverse = autoReverseCheckbox.isSelected
         var code = "Tween.to(mySprite, POSITION_XY, $duration)"
-        code += "\n     .target()"
+        code += "\n     .value()"
         if (easing != "Linear" && easing != "----------") {
             code += "\n     .ease($easing)"
         }
@@ -412,7 +412,7 @@ class TweenApplet : JApplet() {
 
 
                 val tween = tweenEngine.to(vialSprite, SpriteAccessor.POSITION_XY, duration)
-                        .target(e.x.toFloat(), e.y.toFloat())
+                        .value(e.x.toFloat(), e.y.toFloat())
                         .delay(delay.toFloat())
                 if (easing != null) {
                     tween.ease(easing)

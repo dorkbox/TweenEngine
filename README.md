@@ -24,7 +24,7 @@ In one line, send your objects to another position (here x=20 and y=30), with a 
 // and (3) the duration in seconds. Additional methods specify
 // the target values, and the easing function.
 
-Tween.to(mySprite, Type.POSITION_XY, 1.0f).target(20, 30).ease(Elastic.INOUT);
+Tween.to(mySprite, Type.POSITION_XY, 1.0f).value(20, 30).ease(Elastic.INOUT);
 
 // Possibilities are:
 
@@ -158,4 +158,3 @@ https://repo1.maven.org/maven2/org/slf4j/slf4j-api/
 License
 ---------
 This project is © 2015 dorkbox llc, and is distributed under the terms of the Apache v2.0 License. See file "LICENSE" for further references.
-

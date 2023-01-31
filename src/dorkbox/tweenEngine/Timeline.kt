@@ -21,37 +21,31 @@ package dorkbox.tweenEngine
 /**
  * A Timeline can be used to create complex animations made of sequences and parallel sets of Tweens.
  *
- *
- *
  * The following example will create an animation sequence composed of 5 parts:
  *
- *
- *
- * 1. First, opacity and scale are set to 0 (with Tween.set() calls).<br></br>
- * 2. Then, opacity and scale are animated in parallel.<br></br>
- * 3. Then, the animation is paused for 1s.<br></br>
- * 4. Then, position is animated to x=100.<br></br>
+ * 1. First, opacity and scale are set to 0 (with Tween.set() calls).
+ * 2. Then, opacity and scale are animated in parallel.
+ * 3. Then, the animation is paused for 1s.
+ * 4. Then, position is animated to x=100.
  * 5. Then, rotation is animated to 360°.
- *
- *
  *
  * This animation will be repeated 5 times, with a 500ms delay between each
  * iteration:
- * <br></br><br></br>
  *
- * <pre> `Timeline.createSequential()
- * .push(Tween.set(myObject, OPACITY).target(0))
- * .push(Tween.set(myObject, SCALE).target(0, 0))
- * .beginParallel()
- * .push(Tween.to(myObject, OPACITY, 0.5F).target(1).ease(Quad_InOut))
- * .push(Tween.to(myObject, SCALE, 0.5F).target(1, 1).ease(Quad_InOut))
- * .end()
- * .pushPause(1.0F)
- * .push(Tween.to(myObject, POSITION_X, 0.5F).target(100).ease(Quad_InOut))
- * .push(Tween.to(myObject, ROTATION, 0.5F).target(360).ease(Quad_InOut))
- * .repeat(5, 0.5F)
- * .start(myManager);
-`</pre> *
+ * ```
+ * Timeline.createSequential()
+ *  .push(Tween.set(myObject, OPACITY).value(0))
+ *  .push(Tween.set(myObject, SCALE).value(0, 0))
+ *  .beginParallel()
+ *      .push(Tween.to(myObject, OPACITY, 0.5F).value(1).ease(Quad_InOut))
+ *      .push(Tween.to(myObject, SCALE, 0.5F).value(1, 1).ease(Quad_InOut))
+ *  .end()
+ *  .pushPause(1.0F)
+ *  .push(Tween.to(myObject, POSITION_X, 0.5F).value(100).ease(Quad_InOut))
+ *  .push(Tween.to(myObject, ROTATION, 0.5F).value(360).ease(Quad_InOut))
+ *  .repeat(5, 0.5F)
+ *  .start(myManager);
+ * ```
  *
  * @see Tween
  *
@@ -255,7 +249,6 @@ class Timeline internal constructor(animator: TweenEngine) : BaseTween<Timeline>
      *  *  setProgress(.5F, true) : set it to the middle position in the forward direction
      *  *  setProgress(.5F, false) : set it to the middle position in the reverse direction
      *  *  setProgress(1F, false) : set it to the end position in the reverse direction
-     *
      *
      *
      * Caveat: If the timeline is set to end in reverse, and it CANNOT go in reverse, then it will end up in the finished state

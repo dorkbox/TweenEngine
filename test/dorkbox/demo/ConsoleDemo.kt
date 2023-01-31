@@ -83,7 +83,7 @@ class ConsoleDemo(delta: Int, delay: Int, isAutoReverse: Boolean, reverseCount: 
     internal class Bugtest(var name: Char) {
         var tween = 0f // tweened
         var t = tweenEngine.to(this, 0, 1000f)
-                .target(1f)
+                .value(1f)
                 .addCallback(TweenEvents.ANY) {"" + name }
 
     }

@@ -357,7 +357,7 @@ open class TweenEngine internal constructor(
     }
 
     /**
-     * Resets the last time this tweenManager had "update" called. This is useful when the timer (that [.update]) is
+     * Resets the last time this tweenManager had "update" called. This is useful when the timer (that [update]) is
      * usually called on, has been stopped for a while. This prevents the "first" update call to 'snap' to the target values because the
      * time delta update was so large.
      */
@@ -560,7 +560,7 @@ open class TweenEngine internal constructor(
      *
      * ```
      * TweenEngine.build().to(myObject, POSITION, 1.0F)
-     *                    .target(50, 70)
+     *                    .value(50, 70)
      *                    .ease(Quad_InOut)
      *                    .start();
      *```
@@ -593,7 +593,7 @@ open class TweenEngine internal constructor(
      * ```
      * TweenEngine engine = TweenEngine.build();
      * engine.to(myObject, POSITION, accessorObject, 1.0F)
-     *       .target(50, 70)
+     *       .value(50, 70)
      *       .ease(Quad_InOut)
      *       .start();
      *```
@@ -634,7 +634,7 @@ open class TweenEngine internal constructor(
      *```
      * TweenEngine engine = TweenEngine.build();
      * engine.from(myObject, POSITION, 1.0F)
-     *       .target(0, 0)
+     *       .value(0, 0)
      *       .ease(Quad_InOut)
      *       .start();
      *```
@@ -667,7 +667,7 @@ open class TweenEngine internal constructor(
      * ```
      * TweenEngine engine = TweenEngine.build();
      * engine.from(myObject, POSITION, 1.0F)
-     *       .target(0, 0)
+     *       .value(0, 0)
      *       .ease(Quad_InOut)
      *       .start();
      *```
@@ -709,7 +709,7 @@ open class TweenEngine internal constructor(
      * ```
      * TweenEngine engine = TweenEngine.build();
      * engine.set(myObject, POSITION)
-     *       .target(50, 70)
+     *       .value(50, 70)
      *       .delay(1.0F)
      *       .start();
      *```
@@ -741,7 +741,7 @@ open class TweenEngine internal constructor(
      * ```
      * TweenEngine engine = TweenEngine.build();
      * engine.set(myObject, POSITION)
-     *       .target(50, 70)
+     *       .value(50, 70)
      *       .delay(1.0F)
      *       .start();
      *```
@@ -835,7 +835,7 @@ open class TweenEngine internal constructor(
 
     /**
      * This doesn't sync on anything.
-     * - After assigning values to this tween, you must call [flushWrite]. W
+     * - After assigning values to this tween, you must call [flushWrite].
      * - When DONE with this object, you should return it to the pool via [free]
      */
     fun takeTimeline(): Timeline {
@@ -844,7 +844,7 @@ open class TweenEngine internal constructor(
 
     /**
      * This doesn't sync on anything.
-     * - After assigning values to this tween, you must call [flushWrite]. W
+     * - After assigning values to this tween, you must call [flushWrite].
      * - When DONE with this object, you should return it to the pool via [free]
      */
     fun <T> takeTween(): Tween<T> {

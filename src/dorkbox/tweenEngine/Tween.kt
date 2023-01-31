@@ -33,13 +33,13 @@ package dorkbox.tweenEngine
  * by using one of these factories:
  *
  *
- * - Tween.to(...)
+ * - TweenEngine.to(...)
  *
- * - Tween.from(...)
+ * - TweenEngine.from(...)
  *
- * - Tween.set(...)
+ * - TweenEngine.set(...)
  *
- * - Tween.call(...)
+ * - TweenEngine.call(...)
  *
  *
  * ## Example - firing a Tween
@@ -50,7 +50,7 @@ package dorkbox.tweenEngine
  *
  * ```
  * Tween.to(myObject, POSITION_XY, 500)
- *      .target(200, 300)
+ *      .value(200, 300)
  *      .ease(Quad_InOut)
  *      .delay(1.0F)
  *      .repeat(2, 0.02F)
@@ -550,7 +550,7 @@ class Tween<T> internal constructor(animator: TweenEngine, private val combinedA
      *
      * @return The current tween
      */
-    fun target(targetValue: Float): Tween<T> {
+    fun value(targetValue: Float): Tween<T> {
         targetValues[0] = targetValue
         animator.flushWrite()
         return this
@@ -561,7 +561,7 @@ class Tween<T> internal constructor(animator: TweenEngine, private val combinedA
      * any)** to these target values.
      *
      * ### To sum-up:
-     * - start values: values at start time, after delay<br></br>
+     * - start values: values at start time, after delay<
      * - end values: params
      *
      * @param targetValue1 The 1st target value of the interpolation.
@@ -569,7 +569,7 @@ class Tween<T> internal constructor(animator: TweenEngine, private val combinedA
      *
      * @return The current tween
      */
-    fun target(targetValue1: Float, targetValue2: Float): Tween<T> {
+    fun value(targetValue1: Float, targetValue2: Float): Tween<T> {
         targetValues[0] = targetValue1
         targetValues[1] = targetValue2
         animator.flushWrite()
@@ -581,7 +581,7 @@ class Tween<T> internal constructor(animator: TweenEngine, private val combinedA
      * any)** to these target values.
      *
      * ### To sum-up:
-     * - start values: values at start time, after delay<br></br>
+     * - start values: values at start time, after delay
      * - end values: params
      *
      * @param targetValue1 The 1st target value of the interpolation.
@@ -590,7 +590,7 @@ class Tween<T> internal constructor(animator: TweenEngine, private val combinedA
      *
      * @return The current tween
      */
-    fun target(targetValue1: Float, targetValue2: Float, targetValue3: Float): Tween<T> {
+    fun value(targetValue1: Float, targetValue2: Float, targetValue3: Float): Tween<T> {
         targetValues[0] = targetValue1
         targetValues[1] = targetValue2
         targetValues[2] = targetValue3
@@ -603,14 +603,14 @@ class Tween<T> internal constructor(animator: TweenEngine, private val combinedA
      * any)** to these target values.
      *
      * ### To sum-up:
-     * - start values: values at start time, after delay<br></br>
+     * - start values: values at start time, after delay
      * - end values: params
      *
      * @param targetValues The target values of the interpolation.
      *
      * @return The current tween
      */
-    fun target(vararg targetValues: Float): Tween<T> {
+    fun value(vararg targetValues: Float): Tween<T> {
         animator.flushRead()
         val length = targetValues.size
         verifyCombinedAttrs(length)
@@ -623,14 +623,14 @@ class Tween<T> internal constructor(animator: TweenEngine, private val combinedA
      * Sets the target value of the interpolation, relatively to the **value at start time (after the delay, if any)**.
      *
      * ### To sum-up:
-     * - start value: value at start time, after delay<br></br>
+     * - start value: value at start time, after delay
      * - end value: param + value at start time, after delay
      *
      * @param targetValue The relative target value of the interpolation.
      *
      * @return The current tween
      */
-    fun targetRelative(targetValue: Float): Tween<T> {
+    fun valueRelative(targetValue: Float): Tween<T> {
         animator.flushRead()
         isRelative = true
         targetValues[0] = if (isInitialized) targetValue + startValues[0] else targetValue
@@ -642,7 +642,7 @@ class Tween<T> internal constructor(animator: TweenEngine, private val combinedA
      * Sets the target value of the interpolation, relatively to the **value at start time (after the delay, if any)**.
      *
      * ### To sum-up:
-     * - start values: values at start time, after delay<br></br>
+     * - start values: values at start time, after delay
      * - end values: params + values at start time, after delay
      *
      * @param targetValue1 The 1st relative target value of the interpolation.
@@ -650,7 +650,7 @@ class Tween<T> internal constructor(animator: TweenEngine, private val combinedA
      *
      * @return The current tween
      */
-    fun targetRelative(targetValue1: Float, targetValue2: Float): Tween<T> {
+    fun valueRelative(targetValue1: Float, targetValue2: Float): Tween<T> {
         animator.flushRead()
         isRelative = true
         val initialized = isInitialized
@@ -664,7 +664,7 @@ class Tween<T> internal constructor(animator: TweenEngine, private val combinedA
      * Sets the target value of the interpolation, relatively to the **value at start time (after the delay, if any)**.
      *
      * ### To sum-up:
-     * - start values: values at start time, after delay<br></br>
+     * - start values: values at start time, after delay
      * - end values: params + values at start time, after delay
      *
      * @param targetValue1 The 1st relative target value of the interpolation.
@@ -673,7 +673,7 @@ class Tween<T> internal constructor(animator: TweenEngine, private val combinedA
      *
      * @return The current tween
      */
-    fun targetRelative(targetValue1: Float, targetValue2: Float, targetValue3: Float): Tween<T> {
+    fun valueRelative(targetValue1: Float, targetValue2: Float, targetValue3: Float): Tween<T> {
         animator.flushRead()
         isRelative = true
         val initialized = this.isInitialized
@@ -689,14 +689,14 @@ class Tween<T> internal constructor(animator: TweenEngine, private val combinedA
      * Sets the target value of the interpolation, relatively to the **value at start time (after the delay, if any)**.
      *
      * ### To sum-up:
-     * - start values: values at start time, after delay<br></br>
+     * - start values: values at start time, after delay
      * - end values: params + values at start time, after delay
      *
      * @param targetValues The relative target values of the interpolation.
      *
      * @return The current tween
      */
-    fun targetRelative(vararg targetValues: Float): Tween<T> {
+    fun valueRelative(vararg targetValues: Float): Tween<T> {
         animator.flushRead()
         val length = targetValues.size
         verifyCombinedAttrs(length)
@@ -734,7 +734,7 @@ class Tween<T> internal constructor(animator: TweenEngine, private val combinedA
      * default path will use a smooth catmull-rom spline to navigate between the waypoints, but you can change this behavior by using the
      * [path] method.
      *
-     * Note that if you want waypoints relative to the start values, use one of the [targetRelative] methods to define your target.
+     * Note that if you want waypoints relative to the start values, use one of the [valueRelative] methods to define your target.
      *
      * @param targetValue1 The 1st target of this waypoint.
      * @param targetValue2 The 2nd target of this waypoint.
@@ -759,7 +759,7 @@ class Tween<T> internal constructor(animator: TweenEngine, private val combinedA
      * default path will use a smooth catmull-rom spline to navigate between the waypoints, but you can change this behavior by using the
      * [path] method.
      *
-     * Note that if you want waypoints relative to the start values, use one of the [targetRelative] methods to define your target.
+     * Note that if you want waypoints relative to the start values, use one of the [valueRelative] methods to define your target.
      *
      * @param targetValue1 The 1st target of this waypoint.
      * @param targetValue2 The 2nd target of this waypoint.
@@ -786,7 +786,7 @@ class Tween<T> internal constructor(animator: TweenEngine, private val combinedA
      * default path will use a smooth catmull-rom spline to navigate between the waypoints, but you can change this behavior by using the
      * [path] method.
      *
-     * Note that if you want waypoints relative to the start values, use one of the [targetRelative] methods to define your target.
+     * Note that if you want waypoints relative to the start values, use one of the [valueRelative] methods to define your target.
      *
      * @param targetValues The targets of this waypoint.
      *
