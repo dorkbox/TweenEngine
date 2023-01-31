@@ -89,7 +89,7 @@ class Tween<T> internal constructor(animator: TweenEngine, private val combinedA
         const val version = TweenEngine.version
 
         /**
-         * Used as parameter in [.repeat] and [.repeatAutoReverse] methods.
+         * Used as parameter in [repeat] and [repeatAutoReverse] methods.
          */
         const val INFINITY = -1
     }
@@ -866,10 +866,12 @@ class Tween<T> internal constructor(animator: TweenEngine, private val combinedA
     // -------------------------------------------------------------------------
     /**
      * Gets the target object.
+     *
+     * This is useful when getting the tween target object during different animation state callbacks
      */
-    fun getTarget(): Any? {
+    fun getTarget(): T {
         animator.flushRead()
-        return target
+        return target!!
     }
 
     /**
