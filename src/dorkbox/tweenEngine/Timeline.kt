@@ -98,7 +98,6 @@ class Timeline internal constructor(animator: TweenEngine) : BaseTween<Timeline>
      * Reset the tween/timeline to it's initial state. It will be as if the tween/timeline has never run before. If it was already
      * initialized, it will *not* redo the initialization.
      *
-     *
      * The paused state is preserved.
      */
     override fun reset() {
