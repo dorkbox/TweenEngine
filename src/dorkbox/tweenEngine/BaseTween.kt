@@ -654,7 +654,7 @@ abstract class BaseTween<T : BaseTween<T>>(protected val animator: TweenEngine) 
     abstract fun containsTarget(target: Any, tweenType: Int): Boolean
 
     /**
-     * Updates a timeline's children. Only called during State.RUN
+     * Updates a children. Only called during State.RUN
      */
     internal abstract fun updateUnsafe(updateDirection: Boolean, delta: Float)
 
