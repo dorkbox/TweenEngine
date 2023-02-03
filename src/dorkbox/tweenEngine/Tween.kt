@@ -403,7 +403,7 @@ class Tween<T> internal constructor(animator: TweenEngine, private val combinedA
         return this
     }
 
-    public override fun startUnmanaged__() {
+    override fun startUnmanaged__() {
         super.startUnmanaged__()
         val target = target ?: return
 
@@ -552,6 +552,7 @@ class Tween<T> internal constructor(animator: TweenEngine, private val combinedA
      */
     fun value(targetValue: Float): Tween<T> {
         targetValues[0] = targetValue
+
         animator.flushWrite()
         return this
     }
@@ -572,6 +573,7 @@ class Tween<T> internal constructor(animator: TweenEngine, private val combinedA
     fun value(targetValue1: Float, targetValue2: Float): Tween<T> {
         targetValues[0] = targetValue1
         targetValues[1] = targetValue2
+
         animator.flushWrite()
         return this
     }
@@ -594,6 +596,7 @@ class Tween<T> internal constructor(animator: TweenEngine, private val combinedA
         targetValues[0] = targetValue1
         targetValues[1] = targetValue2
         targetValues[2] = targetValue3
+
         animator.flushWrite()
         return this
     }
@@ -615,6 +618,7 @@ class Tween<T> internal constructor(animator: TweenEngine, private val combinedA
         val length = targetValues.size
         verifyCombinedAttrs(length)
         System.arraycopy(targetValues, 0, this.targetValues, 0, length)
+
         animator.flushWrite()
         return this
     }
@@ -633,7 +637,9 @@ class Tween<T> internal constructor(animator: TweenEngine, private val combinedA
     fun valueRelative(targetValue: Float): Tween<T> {
         animator.flushRead()
         isRelative = true
+
         targetValues[0] = if (isInitialized) targetValue + startValues[0] else targetValue
+
         animator.flushWrite()
         return this
     }
@@ -653,9 +659,11 @@ class Tween<T> internal constructor(animator: TweenEngine, private val combinedA
     fun valueRelative(targetValue1: Float, targetValue2: Float): Tween<T> {
         animator.flushRead()
         isRelative = true
+
         val initialized = isInitialized
         targetValues[0] = if (initialized) targetValue1 + startValues[0] else targetValue1
         targetValues[1] = if (initialized) targetValue2 + startValues[1] else targetValue2
+
         animator.flushWrite()
         return this
     }
@@ -676,11 +684,13 @@ class Tween<T> internal constructor(animator: TweenEngine, private val combinedA
     fun valueRelative(targetValue1: Float, targetValue2: Float, targetValue3: Float): Tween<T> {
         animator.flushRead()
         isRelative = true
+
         val initialized = this.isInitialized
         val startValues = startValues
         targetValues[0] = if (initialized) targetValue1 + startValues[0] else targetValue1
         targetValues[1] = if (initialized) targetValue2 + startValues[1] else targetValue2
         targetValues[2] = if (initialized) targetValue3 + startValues[2] else targetValue3
+
         animator.flushWrite()
         return this
     }
@@ -698,6 +708,8 @@ class Tween<T> internal constructor(animator: TweenEngine, private val combinedA
      */
     fun valueRelative(vararg targetValues: Float): Tween<T> {
         animator.flushRead()
+        isRelative = true
+
         val length = targetValues.size
         verifyCombinedAttrs(length)
         val initialized = isInitialized
@@ -705,7 +717,7 @@ class Tween<T> internal constructor(animator: TweenEngine, private val combinedA
         for (i in 0 until length) {
             this.targetValues[i] = if (initialized) targetValues[i] + startValues[i] else targetValues[i]
         }
-        isRelative = true
+
         animator.flushWrite()
         return this
     }
@@ -743,6 +755,7 @@ class Tween<T> internal constructor(animator: TweenEngine, private val combinedA
      */
     fun waypoint(targetValue1: Float, targetValue2: Float): Tween<T> {
         animator.flushRead()
+
         val waypointsCount = waypointsCount
         verifyWaypoints(waypointsCount)
         val count = waypointsCount * 2
@@ -750,6 +763,7 @@ class Tween<T> internal constructor(animator: TweenEngine, private val combinedA
         waypoints[count] = targetValue1
         waypoints[count + 1] = targetValue2
         this.waypointsCount += 1
+
         animator.flushWrite()
         return this
     }
@@ -769,6 +783,7 @@ class Tween<T> internal constructor(animator: TweenEngine, private val combinedA
      */
     fun waypoint(targetValue1: Float, targetValue2: Float, targetValue3: Float): Tween<T> {
         animator.flushRead()
+
         val waypointsCount = waypointsCount
         verifyWaypoints(waypointsCount)
         val count = waypointsCount * 3
@@ -777,6 +792,7 @@ class Tween<T> internal constructor(animator: TweenEngine, private val combinedA
         waypoints[count + 1] = targetValue2
         waypoints[count + 2] = targetValue3
         this.waypointsCount += 1
+
         animator.flushWrite()
         return this
     }
@@ -1040,7 +1056,7 @@ class Tween<T> internal constructor(animator: TweenEngine, private val combinedA
 
         if (waypointsCnt == 0 || path == null) {
             for (i in 0 until combinedAttrsCnt) {
-                accessorBuffer[i] = startValues[i] + tweenValue * (targetValues[i] - startValues[i])
+                accessorBuffer[i] = startValues[i] + (tweenValue * (targetValues[i] - startValues[i]))
             }
         } else {
             val waypoints = waypoints
