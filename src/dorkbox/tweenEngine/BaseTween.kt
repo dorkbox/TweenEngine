@@ -176,9 +176,12 @@ abstract class BaseTween<T : BaseTween<T>>(protected val animator: TweenEngine) 
         state = START
         direction = FORWARDS
         canTriggerBeginEvent = true // this is so init can happen if necessary
-        currentTime = -startDelay
+        currentTime = startDelay
         isInAutoReverse = false
         repeatCount = repeatCountOrig
+        isCanceled = false
+        isPaused = false
+        canTriggerBeginEvent = true
     }
 
     // destroys all information about the object
@@ -187,19 +190,19 @@ abstract class BaseTween<T : BaseTween<T>>(protected val animator: TweenEngine) 
         repeatCount = 0
         state = INVALID
         currentTime = 0.0f
-        repeatDelay = currentTime
-        startDelay = repeatDelay
-        duration = startDelay
+        repeatDelay = 0.0f
+        startDelay = 0.0f
+        duration = 0.0f
         isInitialized = false
-        isInAutoReverse = isInitialized
-        isCanceled = isInAutoReverse
-        isPaused = isCanceled
+        isInAutoReverse = false
+        isCanceled = false
+        isPaused = false
         canTriggerBeginEvent = true
 
         clearCallbacks()
         userData = null
         startEventCallback = emptyAction
-        endEventCallback = startEventCallback
+        endEventCallback = emptyAction
         isAutoStartEnabled = true
         isAutoRemoveEnabled = true
     }
@@ -668,8 +671,8 @@ abstract class BaseTween<T : BaseTween<T>>(protected val animator: TweenEngine) 
     abstract fun setValues(updateDirection: Boolean, updateValue: Boolean)
 
     /**
-     * Sets the tween or timeline to a specific point in time based on it's duration + delays. Callbacks are not notified and the change is
-     * immediate. The tween/timeline will continue in it's original direction
+     * Sets the tween or timeline to a specific point in time based on its duration + delays. Callbacks are not notified and the change is
+     * immediate. The tween/timeline will continue in its original direction
      * For example:
      *
      *  *  setProgress(0F, true) : set it to the starting position just after the start delay in the forward direction
@@ -682,7 +685,7 @@ abstract class BaseTween<T : BaseTween<T>>(protected val animator: TweenEngine) 
      * Caveat: If the timeline/tween is set to end in reverse, and it CANNOT go in reverse, then it will end up in the finished state
      * (end position). If the timeline/tween is in repeat mode then it will end up in the same position if it was going forwards.
      *
-     * @param percentage the percentage (of it's duration) from 0-1, that the tween/timeline be set to
+     * @param percentage the percentage (of its duration) from 0-1, that the tween/timeline be set to
      */
     internal open fun setProgress(percentage: Float): BaseTween<T> {
         animator.flushRead()
@@ -915,7 +918,7 @@ abstract class BaseTween<T : BaseTween<T>>(protected val animator: TweenEngine) 
          * |---[DELAY]----[XXXXXXXXXX]->>-[R.DELAY]-->>--[XXXXXXXXXX]
          *
          *
-         * AUTO_REVERSE
+         * AUTO_REVERSE:
          *                BEGIN      COMPLETE
          *                START      END
          *                v          v
