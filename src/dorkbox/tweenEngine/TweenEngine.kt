@@ -16,10 +16,12 @@
  */
 package dorkbox.tweenEngine
 
+import dorkbox.collections.ConcurrentIterator
 import dorkbox.objectPool.ObjectPool.nonBlockingSoftReference
 import dorkbox.objectPool.Pool
 import dorkbox.objectPool.PoolObject
 import java.util.*
+import java.util.concurrent.*
 
 /**
  * The TweenEngine is responsible for creating Tweens and Timelines, and can be either managed, or un-managed.
@@ -79,35 +81,59 @@ open class TweenEngine internal constructor(
         private var lightSyncObject = System.nanoTime()
 
 
+        private fun getTweensCount(objs: ConcurrentIterator<BaseTween<*>>): Int {
+            var count = 0
+
+            objs.forEach {
+                if (it is Tween<*>) {
+                    count += 1
+                } else {
+                    val objs1 = (it as Timeline).children
+                    getTweensCount(objs1)
+                }
+            }
+
+            return count
+        }
+
         private fun getTweensCount(objs: List<BaseTween<*>>): Int {
             var count = 0
-            var i = 0
-            val n = objs.size
 
-            while (i < n) {
-                val obj = objs[i]
-                count += if (obj is Tween<*>) {
-                    1
+            objs.forEach {
+                if (it is Tween<*>) {
+                    count += 1
                 } else {
-                    getTweensCount((obj as Timeline).children)
+                    val objs1 = (it as Timeline).children
+                    getTweensCount(objs1)
                 }
-                i++
             }
+
+            return count
+        }
+
+        private fun getTimelinesCount(objs: ConcurrentIterator<BaseTween<*>>): Int {
+            var count = 0
+
+            objs.forEach {
+                if (it is Timeline) {
+                    val objs1 = it.children
+                    count += 1 + getTimelinesCount(objs1)
+                }
+            }
+
             return count
         }
 
         private fun getTimelinesCount(objs: List<BaseTween<*>>): Int {
             var count = 0
-            var i = 0
-            val n = objs.size
 
-            while (i < n) {
-                val obj = objs[i]
-                if (obj is Timeline) {
-                    count += 1 + getTimelinesCount(obj.children)
+            objs.forEach {
+                if (it is Timeline) {
+                    val objs1 = it.children
+                    count += 1 + getTimelinesCount(objs1)
                 }
-                i++
             }
+
             return count
         }
 
@@ -120,8 +146,7 @@ open class TweenEngine internal constructor(
     private var poolTimeline: Pool<Timeline>
     private var poolTween: Pool<Tween<*>>
 
-    private val newTweens = ArrayList<BaseTween<*>>(20)
-    private val tweenArrayList = ArrayList<BaseTween<*>>(20)
+    private val tweenArrayList = ConcurrentIterator<BaseTween<*>>()
 
     private var isPaused = false
     private var startEventCallback = NULL_ACTION
@@ -240,7 +265,7 @@ open class TweenEngine internal constructor(
      * Adds a tween or timeline to the manager and starts or restarts it.
      */
     fun addUnsafe(tween: BaseTween<*>) {
-        newTweens.add(tween)
+        tweenArrayList.add(tween)
         if (tween.isAutoStartEnabled) {
             tween.startUnmanaged__()
         }
@@ -331,14 +356,6 @@ open class TweenEngine internal constructor(
         return wasCanceled
     }
 
-    /**
-     * Increases the minimum capacity of the manager. Defaults to 20.
-     */
-    fun ensureCapacity(minCapacity: Int) {
-        flushRead()
-        tweenArrayList.ensureCapacity(minCapacity)
-        flushWrite()
-    }
 
     /**
      * Pauses the manager. Further update calls won't have any effect.
@@ -432,31 +449,22 @@ open class TweenEngine internal constructor(
         if (!isPaused) {
             // on start sync
             startEventCallback.invoke(this)
-            val size = newTweens.size
-            if (size > 0) {
-                tweenArrayList.addAll(newTweens)
-                newTweens.clear()
-            }
 
             // this is the only place that REMOVING tweens from their list can occur, otherwise there can be issues with removing tweens
             // in the middle of iteration (above) because of callbacks/etc
-            tweenArrayList.forEach {
-                it.updateUnsafe(delta)
-            }
 
-            val iterator = tweenArrayList.iterator()
-            while (iterator.hasNext()) {
-                val tween = iterator.next()
+            tweenArrayList.forEachRemovable { tween->
+                tween.updateUnsafe(delta)
+
                 if (tween.isAutoRemoveEnabled) {
                     if (tween.state == BaseTween.FINISHED) {
                         // guarantee the tween/timeline values are set at the end
                         tween.setValues(updateDirection = true, updateValue = false)
-
                         // needsRefresh = true;
-                        iterator.remove()
+                        tweenArrayList.remove(this)
                         tween.free()
                     } else if (tween.isCanceled) {
-                        iterator.remove()
+                        tweenArrayList.remove(this)
                         tween.free()
                     }
                 }
@@ -475,7 +483,7 @@ open class TweenEngine internal constructor(
      */
     fun size(): Int {
         flushRead()
-        return tweenArrayList.size
+        return tweenArrayList.size()
     }
 
     /**
@@ -508,10 +516,14 @@ open class TweenEngine internal constructor(
     @Deprecated("Provided for debug purpose only", ReplaceWith(""))
     fun objects(): List<BaseTween<*>> {
         flushRead()
-        return Collections.unmodifiableList(tweenArrayList)
+
+        val newList = mutableListOf<BaseTween<*>>()
+        tweenArrayList.forEach {
+            newList.add(it)
+        }
+
+        return newList
     }
-
-
 
     /**
      * Creates a new timeline with a 'sequential' (A then B) behavior. Its children will be updated one after the other in a sequence.
