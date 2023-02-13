@@ -39,7 +39,7 @@ object Extras {
     // set for the project
     const val description = "High performance and lightweight Animation/Tween framework for Java 8+"
     const val group = "com.dorkbox"
-    const val version = "8.3.1"
+    const val version = "9.0"
 
     // set as project.ext
     const val name = "TweenEngine"
