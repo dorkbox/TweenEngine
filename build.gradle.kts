@@ -25,7 +25,7 @@ gradle.startParameter.warningMode = WarningMode.All
 
 plugins {
     id("com.dorkbox.GradleUtils") version "3.17"
-    id("com.dorkbox.Licensing") version "2.25"
+    id("com.dorkbox.Licensing") version "2.26"
     id("com.dorkbox.VersionUpdate") version "2.8"
     id("com.dorkbox.GradlePublish") version "1.18"
 
@@ -37,7 +37,7 @@ object Extras {
     // set for the project
     const val description = "High performance and lightweight Animation/Tween framework for Java 8+"
     const val group = "com.dorkbox"
-    const val version = "9.0"
+    const val version = "9.1"
 
     // set as project.ext
     const val name = "TweenEngine"
@@ -101,12 +101,12 @@ tasks.jar.get().apply {
 }
 
 dependencies {
-    api("com.dorkbox:ObjectPool:4.2")
+    api("com.dorkbox:ObjectPool:4.3")
     api("com.dorkbox:Updates:1.1")
-    api("com.dorkbox:Collections:1.4")
+    api("com.dorkbox:Collections:2.4")
 
-    testImplementation("com.dorkbox:Utilities:1.40")
-    testImplementation("com.dorkbox:SwingActiveRender:1.2")
+    testImplementation("com.dorkbox:Utilities:1.45")
+    testImplementation("com.dorkbox:SwingActiveRender:1.4")
 }
 
 
