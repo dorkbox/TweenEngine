@@ -2,7 +2,7 @@
 
 Forked from [JavaUniversalTweenEngine](http://www.aurelienribon.com/blog/projects/universal-tween-engine), by Aurelien Ribon
 
-###### [![Dorkbox](https://badge.dorkbox.com/dorkbox.svg "Dorkbox")](https://git.dorkbox.com/dorkbox/TweenEngine) [![Github](https://badge.dorkbox.com/github.svg "Github")](https://github.com/dorkbox/TweenEngine) [![Gitlab](https://badge.dorkbox.com/gitlab.svg "Gitlab")](https://gitlab.com/dorkbox/TweenEngine) [![Bitbucket](https://badge.dorkbox.com/bitbucket.svg "Bitbucket")](https://bitbucket.org/dorkbox/TweenEngine)
+###### [![Dorkbox](https://badge.dorkbox.com/dorkbox.svg "Dorkbox")](https://git.dorkbox.com/dorkbox/TweenEngine) [![Github](https://badge.dorkbox.com/github.svg "Github")](https://github.com/dorkbox/TweenEngine) [![Gitlab](https://badge.dorkbox.com/gitlab.svg "Gitlab")](https://gitlab.com/dorkbox/TweenEngine)
 
 # Check out the demo! #
 
