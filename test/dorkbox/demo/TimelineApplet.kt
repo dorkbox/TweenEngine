@@ -1,6 +1,21 @@
 /*
+ * Copyright 2023 dorkbox, llc
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/*
  * Copyright 2012 Aurelien Ribon
- * Copyright 2015 dorkbox, llc
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,7 +36,6 @@ import dorkbox.demo.applets.SpriteAccessor
 import dorkbox.demo.applets.Theme.MAIN_BACKGROUND
 import dorkbox.demo.applets.Theme.MAIN_FOREGROUND
 import dorkbox.demo.applets.Theme.apply
-import dorkbox.swingActiveRender.ActionHandlerLong
 import dorkbox.swingActiveRender.SwingActiveRender
 import dorkbox.tweenEngine.Timeline
 import dorkbox.tweenEngine.TweenEngine
@@ -32,38 +46,14 @@ import dorkbox.util.LocationResolver
 import dorkbox.util.SwingUtil
 import dorkbox.util.swing.GroupBorder
 import dorkbox.util.swing.SwingHelper.showOnSameScreenAsMouseCenter
-import java.awt.BorderLayout
-import java.awt.Canvas
-import java.awt.Font
-import java.awt.Graphics
-import java.awt.Graphics2D
-import java.awt.Insets
-import java.awt.Rectangle
-import java.awt.TexturePaint
+import java.awt.*
 import java.awt.event.ActionEvent
 import java.awt.event.ActionListener
 import java.io.IOException
 import java.util.*
 import java.util.concurrent.*
 import javax.imageio.ImageIO
-import javax.swing.GroupLayout
-import javax.swing.ImageIcon
-import javax.swing.JApplet
-import javax.swing.JButton
-import javax.swing.JCheckBox
-import javax.swing.JFrame
-import javax.swing.JLabel
-import javax.swing.JPanel
-import javax.swing.JScrollPane
-import javax.swing.JSlider
-import javax.swing.JSpinner
-import javax.swing.JTextArea
-import javax.swing.LayoutStyle
-import javax.swing.ScrollPaneConstants
-import javax.swing.SpinnerNumberModel
-import javax.swing.SwingConstants
-import javax.swing.UIManager
-import javax.swing.WindowConstants
+import javax.swing.*
 import javax.swing.event.ChangeEvent
 import javax.swing.event.ChangeListener
 
@@ -74,15 +64,15 @@ import javax.swing.event.ChangeListener
 class TimelineApplet : JApplet() {
     private val canvas = MyCanvas()
     private var isPaused = false
-    private var frameStartHandler: ActionHandlerLong? = null
+    private var frameStartHandler: (deltaInNanos: Long)->Unit = {}
 
     override fun init() {
         SwingUtil.invokeAndWaitQuietly { load() }
     }
 
     override fun destroy() {
-        SwingActiveRender.removeActiveRender(canvas)
-        SwingActiveRender.removeActiveRenderFrameStart(frameStartHandler)
+        SwingActiveRender.remove(canvas)
+        SwingActiveRender.remove(frameStartHandler)
     }
 
     private fun load() {
@@ -115,34 +105,34 @@ class TimelineApplet : JApplet() {
         speedSlider.labelTable = labels
 
         canvasWrapper.add(canvas, BorderLayout.CENTER)
-        frameStartHandler = ActionHandlerLong { deltaInNanos ->
+        frameStartHandler = { deltaInNanos ->
             val timeline: Timeline = canvas.timeline
-            if (isPaused) {
-                return@ActionHandlerLong
-            }
-            val adjustedDeltaInNanos = deltaInNanos * speedSlider.value / 100
 
-            // everything here MUST be in milliseconds (because the GUI is in MS, and the tween is in NANO-SECONDS)
-            val deltaInMillis = TimeUnit.NANOSECONDS.toMillis(adjustedDeltaInNanos).toInt()
-            if (!timeline.isFinished() && !timeline.isInDelay()) {
-                val value = iterationTimeSlider.value
-                if (!timeline.isInAutoReverse) {
-                    // normal, forwards running
-                    iterationTimeSlider.value = value + deltaInMillis
-                } else {
-                    // when the animation is set to reverse
-                    iterationTimeSlider.value = value - deltaInMillis
+            if (!isPaused) {
+                val adjustedDeltaInNanos = deltaInNanos * speedSlider.value / 100
+
+                // everything here MUST be in milliseconds (because the GUI is in MS, and the tween is in NANO-SECONDS)
+                val deltaInMillis = TimeUnit.NANOSECONDS.toMillis(adjustedDeltaInNanos).toInt()
+                if (!timeline.isFinished() && !timeline.isInDelay()) {
+                    val value = iterationTimeSlider.value
+                    if (!timeline.isInAutoReverse) {
+                        // normal, forwards running
+                        iterationTimeSlider.value = value + deltaInMillis
+                    } else {
+                        // when the animation is set to reverse
+                        iterationTimeSlider.value = value - deltaInMillis
+                    }
                 }
+                val value = totalTimeSlider.value
+                val duration = (timeline.fullDuration() * 1000).toInt() // must be in MS
+                if (value in 0..duration) {
+                    totalTimeSlider.value = value + deltaInMillis
+                }
+                canvas.tweenEngine.update(adjustedDeltaInNanos)
+                // canvas.repaint();
             }
-            val value = totalTimeSlider.value
-            val duration = (timeline.fullDuration() * 1000).toInt() // must be in MS
-            if (value in 0..duration) {
-                totalTimeSlider.value = value + deltaInMillis
-            }
-            canvas.tweenEngine.update(adjustedDeltaInNanos)
-            // canvas.repaint();
         }
-        SwingActiveRender.addActiveRenderFrameStart(frameStartHandler)
+        SwingActiveRender.add(frameStartHandler)
         canvas.createTimeline()
         initTimeline()
     }
@@ -159,19 +149,26 @@ class TimelineApplet : JApplet() {
         val rptCnt = rptSpinner.value as Int
         val rptDelay = convertToSeconds(rptDelaySpinner.value as Int)
         val isAutoReverse = autoReverseChk.isSelected
-        var code = """Timeline.createSequential()
-    .push(Tween.to(imgTweenSprite, POSITION_XY, 0.5F).value(60, 90).ease(Quart.OUT))
-    .push(Tween.to(imgEngineSprite, POSITION_XY, 0.5F).value(200, 90).ease(Quart.OUT))
-    .push(Tween.to(imgUniversalSprite, POSITION_XY, 1.0F).value(60, 55).ease(Bounce.OUT))
+        var code = """
+private val engine = create()
+     .setWaypointsLimit(10)
+     .setCombinedAttributesLimit(3)
+     .registerAccessor(Sprite::class.java, SpriteAccessor())
+     .build()
+            
+engine.createSequential()
+    .push(engine.to(imgTweenSprite, SpriteAccessor.POSITION_XY, 0.5F).value(60, 90).ease(Quart.OUT))
+    .push(engine.to(imgEngineSprite, SpriteAccessor.POSITION_XY, 0.5F).value(200, 90).ease(Quart.OUT))
+    .push(engine.to(imgUniversalSprite, SpriteAccessor.POSITION_XY, 1.0F).value(60, 55).ease(Bounce.OUT))
     .pushPause(0.5F)
     .beginParallel()
-        .push(Tween.set(imgLogoSprite, VISIBILITY).value(1))
-        .push(Tween.to(imgLogoSprite, SCALE_XY, 0.8F).value(1, 1).ease(Back.OUT))
-        .push(Tween.to(blankStripSprite, SCALE_XY, 0.5F).value(1, 1).ease(Back.OUT))
+        .push(engine.set(imgLogoSprite, SpriteAccessor.VISIBILITY).value(1))
+        .push(engine.to(imgLogoSprite, SpriteAccessor.SCALE_XY, 0.8F).value(1, 1).ease(Back.OUT))
+        .push(engine.to(blankStripSprite, SpriteAccessor.SCALE_XY, 0.5F).value(1, 1).ease(Back.OUT))
     .end()"""
         if (rptCnt > 0) code += """
     .repeat${if (isAutoReverse) "AutoReverse" else ""}($rptCnt, ${rptDelay}F)"""
-        code += "\n    .start(myManager);"
+        code += "\n    .start();"
         resultArea.text = code
     }
 
@@ -201,7 +198,6 @@ class TimelineApplet : JApplet() {
     // -------------------------------------------------------------------------
     inner class MyCanvas : Canvas() {
         val tweenEngine = create()
-                .unsafe()
                 .setWaypointsLimit(10)
                 .setCombinedAttributesLimit(3)
                 .registerAccessor(Sprite::class.java, SpriteAccessor())
@@ -583,7 +579,7 @@ class TimelineApplet : JApplet() {
                 val applet = TimelineApplet()
                 applet.init()
                 applet.start()
-                SwingActiveRender.addActiveRender(applet.canvas)
+                SwingActiveRender.add(applet.canvas)
 
                 val wnd = JFrame()
                 wnd.add(applet)

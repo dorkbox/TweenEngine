@@ -1,6 +1,21 @@
 /*
+ * Copyright 2023 dorkbox, llc
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/*
  * Copyright 2012 Aurelien Ribon
- * Copyright 2015 dorkbox, llc
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,18 +48,24 @@ package dorkbox.tweenEngine
  * iteration:
  *
  * ```
- * Timeline.createSequential()
- *  .push(Tween.set(myObject, OPACITY).value(0))
- *  .push(Tween.set(myObject, SCALE).value(0, 0))
+ * private val engine = TweenEngine.create()
+ *            .setWaypointsLimit(10)
+ *            .setCombinedAttributesLimit(4)
+ *            .registerAccessor(XYZ::class.java, ABC())
+ *            .build()
+ *
+ * engine.createSequential()
+ *  .push(engine.set(myObject, OPACITY).value(0))
+ *  .push(engine.set(myObject, SCALE).value(0, 0))
  *  .beginParallel()
- *      .push(Tween.to(myObject, OPACITY, 0.5F).value(1).ease(Quad_InOut))
- *      .push(Tween.to(myObject, SCALE, 0.5F).value(1, 1).ease(Quad_InOut))
+ *      .push(engine.to(myObject, OPACITY, 0.5F).value(1).ease(Quad_InOut))
+ *      .push(engine.to(myObject, SCALE, 0.5F).value(1, 1).ease(Quad_InOut))
  *  .end()
  *  .pushPause(1.0F)
- *  .push(Tween.to(myObject, POSITION_X, 0.5F).value(100).ease(Quad_InOut))
- *  .push(Tween.to(myObject, ROTATION, 0.5F).value(360).ease(Quad_InOut))
+ *  .push(engine.to(myObject, POSITION_X, 0.5F).value(100).ease(Quad_InOut))
+ *  .push(engine.to(myObject, ROTATION, 0.5F).value(360).ease(Quad_InOut))
  *  .repeat(5, 0.5F)
- *  .start(myManager);
+ *  .start();
  * ```
  *
  * @see Tween

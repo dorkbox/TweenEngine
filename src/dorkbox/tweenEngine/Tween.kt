@@ -1,6 +1,21 @@
 /*
+ * Copyright 2023 dorkbox, llc
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/*
  * Copyright 2012 Aurelien Ribon
- * Copyright 2015 dorkbox, llc
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -49,12 +64,18 @@ package dorkbox.tweenEngine
  * animation will automatically restart from this registered position).
  *
  * ```
- * Tween.to(myObject, POSITION_XY, 500)
+ * private val engine = TweenEngine.create()
+ *            .setWaypointsLimit(10)
+ *            .setCombinedAttributesLimit(2)
+ *            .registerAccessor(XYZ::class.java, ABC())
+ *            .build()
+ *
+ * engine.to(myObject, POSITION_XY, 500)
  *      .value(200, 300)
  *      .ease(Quad_InOut)
  *      .delay(1.0F)
  *      .repeat(2, 0.02F)
- *      .start(myManager);
+ *      .start();
  *```
  *
  * Tween life-cycles can be automatically managed for you, thanks to the [TweenEngine] class. If you choose to manage your tween

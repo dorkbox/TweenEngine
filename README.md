@@ -20,18 +20,21 @@ The Tween Engine enables the interpolation of every attribute from any object in
 
 In one line, send your objects to another position (here x=20 and y=30), with a smooth elastic transition, during 1 second).
 ```
+ 
+val engine = TweenEngine.build()
+
 // Arguments are (1) the target, (2) the type of interpolation,
 // and (3) the duration in seconds. Additional methods specify
 // the target values, and the easing function.
 
-Tween.to(mySprite, Type.POSITION_XY, 1.0f).value(20, 30).ease(Elastic.INOUT);
+engine.to(mySprite, Type.POSITION_XY, 1.0f).value(20, 30).ease(Elastic.INOUT);
 
 // Possibilities are:
 
-Tween.to(...); // interpolates from the current values to the targets
-Tween.from(...); // interpolates from the given values to the current ones
-Tween.set(...); // apply the target values without animation (useful with a delay)
-Tween.call(...); // calls a method (useful with a delay)
+myTween = engine.to(...); // interpolates from the current values to the targets
+myTween = engine.from(...); // interpolates from the given values to the current ones
+myTween = engine.set(...); // apply the target values without animation (useful with a delay)
+myTween = engine.call(...); // calls a method (useful with a delay)
 
 // Current options are:
 
@@ -47,35 +50,36 @@ myTween.setUserData(obj);
 
 // You can of course chain everything:
 
-Tween.to(...).delay(1.0f).repeat(2, 0.5f).start(myManager);
+engine.to(...).delay(1.0f).repeat(2, 0.5f).start();
 
 // Moreover, slow-motion, fast-motion and reverse play is easy,
 // you just need to change the speed of the update:
 
-myManager.update(delta * speed);
+engine.update(delta * speed);
 ```
 
 Create some powerful animation sequences!
 ```
-Timeline.createSequence()
+val engine = TweenEngine.build()
+engine.createSequence()
     // First, set all objects to their initial positions
-    .push(Tween.set(...))
-    .push(Tween.set(...))
-    .push(Tween.set(...))
+    .push(engine.set(...))
+    .push(engine.set(...))
+    .push(engine.set(...))
 
     // Wait 1s
     .pushPause(1.0f)
 
     // Move the objects around, one after the other
-    .push(Tween.to(...))
-    .push(Tween.to(...))
-    .push(Tween.to(...))
+    .push(engine.to(...))
+    .push(engine.to(...))
+    .push(engine.to(...))
 
     // Then, move the objects around at the same time
     .beginParallel()
-        .push(Tween.to(...))
-        .push(Tween.to(...))
-        .push(Tween.to(...))
+        .push(engine.to(...))
+        .push(engine.to(...))
+        .push(engine.to(...))
     .end()
 
     // And repeat the whole sequence 2 times
@@ -83,12 +87,12 @@ Timeline.createSequence()
     .repeatAutoReverse(2, 0.5f)
 
     // Let's go!
-    .start(myManager);
+    .start();
 ```
 
 You can also quickly create timers:
 ```
-Tween.call(myCallback).delay(3000).start(myManager);
+TweenEngine.build().call(myCallback).delay(3000).start();
 ```
 
 Main features are:

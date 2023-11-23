@@ -1,4 +1,20 @@
 /*
+ * Copyright 2023 dorkbox, llc
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/*
  * Copyright 2012 Aurelien Ribon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,7 +35,6 @@ import dorkbox.demo.applets.Sprite
 import dorkbox.demo.applets.SpriteAccessor
 import dorkbox.demo.applets.Theme.MAIN_BACKGROUND
 import dorkbox.demo.applets.Theme.apply
-import dorkbox.swingActiveRender.ActionHandlerLong
 import dorkbox.swingActiveRender.SwingActiveRender
 import dorkbox.tweenEngine.TweenEngine
 import dorkbox.tweenEngine.TweenEngine.Companion.create
@@ -27,36 +42,14 @@ import dorkbox.tweenEngine.TweenEquations.Companion.parse
 import dorkbox.util.SwingUtil
 import dorkbox.util.swing.GroupBorder
 import dorkbox.util.swing.SwingHelper.showOnSameScreenAsMouseCenter
-import java.awt.BorderLayout
-import java.awt.Canvas
-import java.awt.Graphics
-import java.awt.Graphics2D
-import java.awt.Rectangle
-import java.awt.TexturePaint
+import java.awt.*
 import java.awt.event.ActionEvent
 import java.awt.event.ActionListener
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
 import java.io.IOException
 import javax.imageio.ImageIO
-import javax.swing.DefaultComboBoxModel
-import javax.swing.GroupLayout
-import javax.swing.ImageIcon
-import javax.swing.JApplet
-import javax.swing.JCheckBox
-import javax.swing.JComboBox
-import javax.swing.JFrame
-import javax.swing.JLabel
-import javax.swing.JPanel
-import javax.swing.JScrollPane
-import javax.swing.JSpinner
-import javax.swing.JTextArea
-import javax.swing.LayoutStyle
-import javax.swing.ScrollPaneConstants
-import javax.swing.SpinnerNumberModel
-import javax.swing.SwingConstants
-import javax.swing.UIManager
-import javax.swing.WindowConstants
+import javax.swing.*
 import javax.swing.event.ChangeEvent
 import javax.swing.event.ChangeListener
 
@@ -81,7 +74,7 @@ class TweenApplet : JApplet() {
                 wnd.setSize(600, 550)
                 showOnSameScreenAsMouseCenter(wnd)
                 wnd.isVisible = true
-                SwingActiveRender.addActiveRender(applet.canvas)
+                SwingActiveRender.add(applet.canvas)
             }
         }
 
@@ -114,7 +107,7 @@ class TweenApplet : JApplet() {
     private val autoReverseCheckbox = JCheckBox()
 
 
-    private var frameStartHandler: ActionHandlerLong? = null
+    private var frameStartHandler: (deltaInNanos: Long)->Unit = {}
     private val canvas = MyCanvas()
 
     override fun init() {
@@ -122,8 +115,8 @@ class TweenApplet : JApplet() {
     }
 
     override fun destroy() {
-        SwingActiveRender.removeActiveRender(canvas)
-        SwingActiveRender.removeActiveRenderFrameStart(frameStartHandler)
+        SwingActiveRender.remove(canvas)
+        SwingActiveRender.remove(frameStartHandler)
     }
 
     private fun load() {
@@ -149,11 +142,11 @@ class TweenApplet : JApplet() {
 
         canvasWrapper.add(canvas, BorderLayout.CENTER)
 
-        frameStartHandler = ActionHandlerLong { deltaInNanos ->
+        frameStartHandler = { deltaInNanos ->
             canvas.tweenEngine.update(deltaInNanos)
             // canvas.repaint();
         }
-        SwingActiveRender.addActiveRenderFrameStart(frameStartHandler)
+        SwingActiveRender.add(frameStartHandler)
     }
 
     // -------------------------------------------------------------------------
@@ -354,7 +347,7 @@ class TweenApplet : JApplet() {
         val repeatCount = repeatSpinner.value as Int
         val repeatDelay = convertToSeconds(repeatDelaySpinner.value as Int)
         val isAutoReverse = autoReverseCheckbox.isSelected
-        var code = "Tween.to(mySprite, POSITION_XY, $duration)"
+        var code = "TweenEngine.build().to(mySprite, POSITION_XY, $duration)"
         code += "\n     .value()"
         if (easing != "Linear" && easing != "----------") {
             code += "\n     .ease($easing)"
@@ -366,7 +359,7 @@ class TweenApplet : JApplet() {
             code += """
      .repeat${if (isAutoReverse) "autoReverse" else ""}($repeatCount, $repeatDelay)"""
         }
-        code += "\n     .start(myManager);"
+        code += "\n     .start();"
         resultArea.text = code
     }
 
@@ -389,7 +382,6 @@ class TweenApplet : JApplet() {
     // -------------------------------------------------------------------------
     inner class MyCanvas : Canvas() {
         val tweenEngine = create()
-                .unsafe()
                 .setWaypointsLimit(10)
                 .setCombinedAttributesLimit(3)
                 .registerAccessor(Sprite::class.java, SpriteAccessor())
