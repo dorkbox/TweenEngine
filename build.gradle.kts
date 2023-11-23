@@ -102,9 +102,9 @@ tasks.jar.get().apply {
 dependencies {
     api("com.dorkbox:ObjectPool:4.3")
     api("com.dorkbox:Updates:1.1")
-    api("com.dorkbox:Collections:2.4")
+    api("com.dorkbox:Collections:2.7")
 
-    testImplementation("com.dorkbox:Utilities:1.45")
+    testImplementation("com.dorkbox:Utilities:1.48")
     testImplementation("com.dorkbox:SwingActiveRender:1.4")
 }
 
