@@ -87,7 +87,7 @@ open class TweenEngine internal constructor(
         /**
          * Gets the version number.
          */
-        const val version = "9.1"
+        const val version = "9.2"
 
 
         // for creating arrays slightly faster...
